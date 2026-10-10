@@ -1,23 +1,146 @@
+/* Navbar */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  border-bottom: 1px solid #dddddd;
+}
+
+.navbar .logo {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-links a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.nav-links a:hover {
+  color: var(--blue);
+}
+
+/* Page layout */
 .page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 50px 20px;
+}
+
+.page.narrow {
+  max-width: 480px;
+}
+
+.page h1 {
+  text-align: center;
+  font-size: 32px;
+  margin: 0 0 30px;
+}
+
+/* Forms */
+.form {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field label,
+.field .label-text {
+  font-weight: bold;
+}
+
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  padding: 8px;
+  font-size: 16px;
+  background: var(--field-bg);
+  border: 1px solid var(--border);
+}
+
+.field textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-note {
   text-align: center;
-  padding-top: 80px;
+  color: var(--muted);
+  margin: 0;
 }
 
-h1 {
-  font-size: 40px;
-  margin-bottom: 40px;
-}
-
-.tagline {
-  font-size: 32px;
-  margin: 20px 0;
-}
-
-.big-input {
-  font-size: 26px;
-  width: 400px;
+/* Buttons */
+.btn {
   padding: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  background: var(--blue);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--blue-dark);
+}
+
+.role-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.role-btn {
+  padding: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--text);
+  background: var(--field-bg);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.role-btn.active {
+  color: #ffffff;
+  background: var(--blue);
+  border-color: var(--blue);
+}
+/* Home */
+.home-options {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.home-option p {
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+a.btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
 }

@@ -1,6 +1,24 @@
+:root {
+  --blue: #2f6fed;
+  --blue-dark: #2459c4;
+  --text: #1a1a1a;
+  --muted: #666666;
+  --border: #555555;
+  --field-bg: #efeeed;
+  --bg: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  background: #ffffff;
-  color: #000000;
+  background: var(--bg);
+  color: var(--text);
   font-family: Arial, sans-serif;
+}
+
+a {
+  color: var(--blue);
 }

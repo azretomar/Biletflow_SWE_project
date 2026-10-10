@@ -1,28 +1,20 @@
-import { useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./App.css";
+import Home from "./pages/Home";
+import SignUp from "./pages/SignUp";
+import LogIn from "./pages/LogIn";
+import CreateEvent from "./pages/CreateEvent";
 
 function App() {
-  const [text, setText] = useState("");
-
   return (
-    <div className="page">
-      <h1>Create event</h1>
-
-      <label className="tagline" htmlFor="event-name">
-        Event name
-      </label>
-
-      <input
-        id="event-name"
-        className="big-input"
-        type="text"
-        placeholder="Type something..."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
-
-      <p className="tagline">You typed: {text}</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<LogIn />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/create-event" element={<CreateEvent />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

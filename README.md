@@ -5,8 +5,7 @@ Self-service event ticketing platform for Kazakhstan (CSCI 361, Team 5).
 ## Tech stack
 - Backend: Go
 - Web frontend: React (Vite)
-- Mobile check-in app: to be confirmed by 01.10.2026
-- Database: to be confirmed by 01.10.2026
+- Mobile check-in app: Flutter
 - Design: Canva mockups
 - Task tracking: Jira
 

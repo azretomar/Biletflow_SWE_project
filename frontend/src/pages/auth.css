@@ -1,0 +1,154 @@
+/* ===== Sign up / Log in page styles ===== */
+
+.auth {
+  --auth-dark: #16213a;
+  --auth-line: #c4c8d0;
+
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Left dark panel */
+.auth-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 42%;
+  max-width: 560px;
+  padding: 36px 48px;
+  color: #ffffff;
+  background: var(--auth-dark);
+}
+
+.auth-logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.auth-side-text h2 {
+  margin: 0 0 24px;
+  font-size: 34px;
+  line-height: 1.2;
+}
+
+.auth-side-text ul {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  font-size: 17px;
+  color: #c9d1e3;
+  list-style: none;
+}
+
+.auth-side-text li::before {
+  content: "✓";
+  margin-right: 10px;
+  font-weight: bold;
+  color: #7fa6ff;
+}
+
+.auth-side-foot {
+  font-size: 14px;
+  color: #8d97ad;
+}
+
+/* Right side with the form */
+.auth-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: #f5f6f8;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 36px;
+  background: #ffffff;
+  border: 1px solid #e2e4e9;
+  border-radius: 14px;
+}
+
+.auth-back {
+  display: inline-block;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.auth-card h1 {
+  margin: 0 0 6px;
+  font-size: 30px;
+}
+
+.auth-subtitle {
+  margin: 0 0 24px;
+  color: var(--muted);
+}
+
+/* Form fields inside the card */
+.auth .field input {
+  padding: 11px 12px;
+  font-size: 16px;
+  background: #ffffff;
+  border: 1px solid var(--auth-line);
+  border-radius: 8px;
+}
+
+.auth .field input:focus {
+  border-color: var(--blue);
+  outline: 2px solid rgba(47, 111, 237, 0.25);
+}
+
+.auth .field-hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.auth .role-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid var(--auth-line);
+  border-radius: 8px;
+}
+
+.auth .role-btn small {
+  font-weight: normal;
+  color: var(--muted);
+}
+
+.auth .role-btn.active {
+  color: var(--text);
+  background: #eaf0fd;
+  border: 2px solid var(--blue);
+}
+
+.auth .btn {
+  margin-top: 4px;
+  border-radius: 8px;
+}
+
+/* Phones and small screens: hide the dark panel */
+@media (max-width: 800px) {
+  .auth-side {
+    display: none;
+  }
+
+  .auth-main {
+    padding: 24px 16px;
+  }
+
+  .auth-card {
+    padding: 24px;
+  }
+}

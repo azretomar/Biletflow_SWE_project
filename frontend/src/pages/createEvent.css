@@ -1,0 +1,171 @@
+/* ===== Create event page styles ===== */
+
+.ce {
+  --ce-line: #e2e4e9;
+  --ce-field-line: #c4c8d0;
+
+  min-height: 100vh;
+  background: #f5f6f8;
+}
+
+/* Top menu (same look as the home page) */
+.ce-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 40px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--ce-line);
+}
+
+.ce-logo {
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.ce-nav-link {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.ce-nav-link:hover {
+  color: var(--blue);
+}
+
+/* Page content */
+.ce-main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+
+.ce-head h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+}
+
+.ce-head p {
+  margin: 0 0 28px;
+  color: var(--muted);
+}
+
+.ce-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* White boxes for each group of fields */
+.ce-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid var(--ce-line);
+  border-radius: 14px;
+}
+
+.ce-card h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.ce-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.ce-narrow {
+  max-width: 280px;
+}
+
+/* Fields */
+.ce .field input,
+.ce .field textarea,
+.ce .field select {
+  padding: 11px 12px;
+  font-family: inherit;
+  font-size: 16px;
+  background: #ffffff;
+  border: 1px solid var(--ce-field-line);
+  border-radius: 8px;
+}
+
+.ce .field input:focus,
+.ce .field textarea:focus,
+.ce .field select:focus {
+  border-color: var(--blue);
+  outline: 2px solid rgba(47, 111, 237, 0.25);
+}
+
+.ce .field textarea {
+  min-height: 120px;
+}
+
+/* Buttons */
+.ce-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.ce-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  text-decoration: none;
+  background: var(--blue);
+  border: 1px solid var(--blue);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ce-btn:hover {
+  color: #ffffff;
+  background: var(--blue-dark);
+}
+
+.ce-btn-secondary,
+.ce-btn-secondary:hover {
+  color: var(--text);
+  background: #ffffff;
+  border-color: var(--ce-field-line);
+}
+
+.ce-btn-secondary:hover {
+  background: #eef0f4;
+}
+
+/* Phones and small screens */
+@media (max-width: 640px) {
+  .ce-nav {
+    padding: 14px 16px;
+  }
+
+  .ce-main {
+    padding: 24px 16px 48px;
+  }
+
+  .ce-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ce-narrow {
+    max-width: none;
+  }
+
+  .ce-actions {
+    flex-direction: column-reverse;
+  }
+
+  .ce-btn {
+    text-align: center;
+  }
+}

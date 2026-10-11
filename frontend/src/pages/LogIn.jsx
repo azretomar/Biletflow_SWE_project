@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import AuthLayout from "./AuthLayout";
 
 function LogIn() {
   const [form, setForm] = useState({
@@ -17,9 +18,7 @@ function LogIn() {
   };
 
   return (
-    <div className="page narrow">
-      <h1>Log in</h1>
-
+    <AuthLayout title="Welcome back" subtitle="Log in to see your tickets and events.">
       <form className="form" onSubmit={handleSubmit}>
         <div className="field">
           <label htmlFor="email">Email</label>
@@ -27,6 +26,7 @@ function LogIn() {
             id="email"
             name="email"
             type="email"
+            autoComplete="email"
             value={form.email}
             onChange={handleChange}
           />
@@ -38,6 +38,7 @@ function LogIn() {
             id="password"
             name="password"
             type="password"
+            autoComplete="current-password"
             value={form.password}
             onChange={handleChange}
           />
@@ -51,7 +52,7 @@ function LogIn() {
           Don't have an account? <Link to="/signup">Sign up</Link>
         </p>
       </form>
-    </div>
+    </AuthLayout>
   );
 }
 

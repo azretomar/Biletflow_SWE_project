@@ -10,6 +10,7 @@ import AdminEvents from "./pages/admin/AdminEvents";
 import AdminEventDetail from "./pages/admin/AdminEventDetail";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminActivations from "./pages/admin/AdminActivations";
+import PromoCampaigns from "./pages/organizer/PromoCampaigns";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/login" element={<LogIn />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/create-event" element={<CreateEvent />} />
+        <Route path="/organizer/promo" element={<PromoCampaigns />} />
 
         {/* Platform Admin section. Later only users with role "admin" may open it. */}
         <Route path="/admin" element={<AdminLayout />}>

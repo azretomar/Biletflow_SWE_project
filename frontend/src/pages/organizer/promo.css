@@ -1,0 +1,307 @@
+/* ===== Promo campaigns page styles (same look as Create event) ===== */
+
+.pc {
+  --pc-line: #e2e4e9;
+  --pc-field-line: #c4c8d0;
+  --pc-danger: #c62828;
+
+  min-height: 100vh;
+  background: #f5f6f8;
+}
+
+.pc-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 40px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--pc-line);
+}
+
+.pc-logo {
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.pc-nav-link {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.pc-nav-link:hover {
+  color: var(--blue);
+}
+
+.pc-main {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+
+.pc-head h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+}
+
+.pc-head p {
+  margin: 0 0 28px;
+  color: var(--muted);
+}
+
+.pc-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  align-items: start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.pc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid var(--pc-line);
+  border-radius: 14px;
+}
+
+.pc-card h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.pc-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.pc .field input {
+  padding: 11px 12px;
+  font-family: inherit;
+  font-size: 16px;
+  background: #ffffff;
+  border: 1px solid var(--pc-field-line);
+  border-radius: 8px;
+}
+
+.pc .field input:focus {
+  border-color: var(--blue);
+  outline: 2px solid rgba(47, 111, 237, 0.25);
+}
+
+.pc .field input[aria-invalid="true"] {
+  border-color: var(--pc-danger);
+}
+
+.pc-error {
+  font-size: 13px;
+  color: var(--pc-danger);
+}
+
+/* Percentage / fixed toggle */
+.pc-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pc-toggle button {
+  padding: 10px;
+  font-size: 15px;
+  font-weight: bold;
+  color: var(--text);
+  background: #ffffff;
+  border: 1px solid var(--pc-field-line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pc-toggle button.active {
+  background: #eaf0fd;
+  border: 2px solid var(--blue);
+}
+
+/* Buttons */
+.pc-btn {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  background: var(--blue);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pc-btn:hover {
+  background: var(--blue-dark);
+}
+
+.pc-btn-small {
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text);
+  background: #ffffff;
+  border: 1px solid var(--pc-field-line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pc-btn-small:hover {
+  background: #eef0f4;
+}
+
+/* Result panel */
+.pc-muted {
+  margin: -8px 0 0;
+  color: var(--muted);
+}
+
+.pc-label {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pc-code {
+  margin-top: -10px;
+  padding: 14px;
+  font-family: "Courier New", monospace;
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 0.08em;
+  background: #f5f6f8;
+  border: 2px dashed var(--blue);
+  border-radius: 10px;
+}
+
+/* Campaign QR box: dashed and purple-ish so it never looks like an admission ticket (SRS 4.14) */
+.pc-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 180px;
+  margin-top: -10px;
+  padding: 16px;
+  text-align: center;
+  color: #4b3b8f;
+  background: #f3f0ff;
+  border: 2px dashed #8c7ae6;
+  border-radius: 10px;
+}
+
+.pc-qr small {
+  color: var(--muted);
+}
+
+.pc-qr-empty {
+  margin-top: 0;
+  color: var(--muted);
+  background: #f5f6f8;
+  border-color: var(--pc-field-line);
+}
+
+/* Campaign list */
+.pc-table-wrap {
+  overflow-x: auto;
+}
+
+.pc-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.pc-table th {
+  padding: 8px 10px;
+  font-size: 13px;
+  text-align: left;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--pc-line);
+}
+
+.pc-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--pc-line);
+}
+
+.pc-table tr:last-child td {
+  border-bottom: none;
+}
+
+.pc-nowrap {
+  white-space: nowrap;
+}
+
+.pc-actions {
+  text-align: right;
+}
+
+.pc-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: capitalize;
+  border-radius: 999px;
+}
+
+.pc-badge-active {
+  color: #1b5e20;
+  background: #dff3e1;
+}
+
+.pc-badge-scheduled {
+  color: #7a5200;
+  background: #fff0c7;
+}
+
+.pc-badge-expired,
+.pc-badge-exhausted {
+  color: #4a4f5a;
+  background: #e8eaee;
+}
+
+.pc-badge-disabled {
+  color: #ffffff;
+  background: var(--pc-danger);
+}
+
+.pc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* Phones and small screens */
+@media (max-width: 760px) {
+  .pc-nav {
+    padding: 14px 16px;
+  }
+
+  .pc-main {
+    padding: 24px 16px 48px;
+  }
+
+  .pc-layout,
+  .pc-row {
+    grid-template-columns: 1fr;
+  }
+}

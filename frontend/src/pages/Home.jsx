@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import Navbar from "../components/Navbar";
 import "./home.css";
 
 const CATEGORIES = [
@@ -26,15 +27,7 @@ function Home() {
 
   return (
     <div className="home">
-      <header className="home-nav">
-        <Link to="/" className="home-logo">BiletFlow</Link>
-        <nav className="home-nav-links" aria-label="Main">
-          <a href="#events">Events</a>
-          <a href="#organizers">For organizers</a>
-          <Link to="/login">Log in</Link>
-          <Link to="/signup" className="home-btn home-btn-small">Sign up</Link>
-        </nav>
-      </header>
+      <Navbar />
 
       <section className="home-hero">
         <h1>Discover events across Kazakhstan</h1>

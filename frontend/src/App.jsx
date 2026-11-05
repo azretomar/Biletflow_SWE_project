@@ -1,9 +1,13 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./App.css";
+import "./shared.css";
 import Home from "./pages/Home";
 import SignUp from "./pages/SignUp";
 import LogIn from "./pages/LogIn";
 import CreateEvent from "./pages/CreateEvent";
+import EventList from "./pages/EventList";
+import TicketTypeForm from "./pages/TicketTypeForm";
+import ActivationChecklist from "./pages/ActivationChecklist";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEvents from "./pages/admin/AdminEvents";
@@ -17,6 +21,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/events" element={<EventList />} />
+        <Route path="/organizer/events/:id/ticket-types/new" element={<TicketTypeForm />} />
+        <Route path="/organizer/events/:id/activation" element={<ActivationChecklist />} />
         <Route path="/login" element={<LogIn />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/create-event" element={<CreateEvent />} />

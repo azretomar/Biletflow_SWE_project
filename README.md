@@ -53,10 +53,48 @@ Planned:
 
 Shared code: `src/components/Navbar.jsx` (navbar, with a temporary logged-in/logged-out dev switch) and `src/shared.css` (styles for the new pages). Older pages (Home, Sign up, Log in, Create event, Admin, Promo) keep their own CSS files and may be migrated to `shared.css` later.
 
-## Run the frontend locally
+## Run everything with Docker
+
+Requires Docker Desktop (or Docker Engine + Compose v2).
+
+```bash
+cp backend/.env.example backend/.env   # then set JWT_SECRET (32+ chars)
+docker compose up --build
+```
+
+| Service | URL |
+| --- | --- |
+| Web app | http://localhost:5173 |
+| API | http://localhost:8080 (health: `/health`) |
+| PostgreSQL | localhost:5432, user/password/db `biletflow` |
+
+nginx in the frontend container forwards `/api/*` to the backend, so the browser
+talks to one origin and no CORS setup is needed.
+
+Stop with `docker compose down`. **Do not** add `-v` unless you want to wipe the database.
+
+## Local development (hot reload)
+
+Run only the database in Docker, and the backend and frontend on the host, each in its own terminal:
+
+```bash
+docker compose up -d db
+```
+
+```bash
+cd backend
+go run .   # needs DATABASE_URL and JWT_SECRET in the environment (see backend/.env.example)
+```
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
+The Vite dev server proxies `/api` to `http://localhost:8080`.
+
+### Frontend only
+
+To work on pages without the backend, just run the last block (`npm install`, `npm run dev`).
+API calls will fail until the backend is running.

@@ -1,0 +1,167 @@
+/* ===== Event history page (uses shared.css: bf-page, bf-card, bf-chips, bf-btn) ===== */
+
+.eh {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.eh-page {
+  max-width: 860px;
+}
+
+.eh-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.eh-title {
+  margin-bottom: 6px;
+}
+
+.eh-subtitle {
+  margin: 0;
+  font-size: 18px;
+}
+
+.eh-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.eh-actions .bf-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.eh-hint {
+  font-size: 13px;
+}
+
+.eh-card {
+  padding: 8px 24px;
+}
+
+.eh-empty {
+  margin: 0;
+  padding: 40px 0;
+  text-align: center;
+}
+
+/* One block per day */
+.eh-day {
+  padding: 16px 0;
+  border-bottom: 1px solid #e2e4e9;
+}
+
+.eh-day:last-child {
+  border-bottom: none;
+}
+
+.eh-day-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* Timeline: time | dot on a line | text */
+.eh-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eh-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px 16px 1fr;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.eh-item:last-child {
+  padding-bottom: 0;
+}
+
+/* vertical line connecting the dots */
+.eh-item::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  bottom: 0;
+  left: 71px;
+  width: 2px;
+  background: #e2e4e9;
+}
+
+.eh-item:last-child::before {
+  display: none;
+}
+
+.eh-time {
+  padding-top: 1px;
+  font-size: 14px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.eh-dot {
+  position: relative;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  margin: 4px 2px 0;
+  background: #9aa1ad;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #9aa1ad;
+}
+
+/* Dot color is only a hint: the type is always written next to it */
+.eh-dot-event {
+  background: var(--blue);
+  box-shadow: 0 0 0 1px var(--blue);
+}
+
+.eh-dot-payments {
+  background: #0a5c2e;
+  box-shadow: 0 0 0 1px #0a5c2e;
+}
+
+.eh-body {
+  min-width: 0;
+}
+
+.eh-message {
+  margin: 0 0 2px;
+  overflow-wrap: anywhere;
+}
+
+.eh-meta {
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .eh-actions {
+    align-items: flex-start;
+  }
+
+  .eh-card {
+    padding: 4px 16px;
+  }
+
+  .eh-item {
+    grid-template-columns: 44px 16px 1fr;
+    gap: 8px;
+  }
+
+  .eh-item::before {
+    left: 59px;
+  }
+}

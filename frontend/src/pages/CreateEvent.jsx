@@ -1,16 +1,21 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import "./createEvent.css";
 
+const EMPTY_EVENT = {
+  title: "",
+  description: "",
+  date: "",
+  venue: "",
+  capacity: "",
+  category: "",
+};
+
 function CreateEvent() {
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    date: "",
-    venue: "",
-    capacity: "",
-    category: "",
-  });
+  // "Duplicate event" on the Event history page sends the copied details here.
+  const location = useLocation();
+  const duplicate = location.state && location.state.duplicate;
+  const [form, setForm] = useState(duplicate ? { ...EMPTY_EVENT, ...duplicate } : EMPTY_EVENT);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -31,7 +36,11 @@ function CreateEvent() {
       <main className="ce-main">
         <div className="ce-head">
           <h1>Create an event</h1>
-          <p>Fill in the details below. Creating an event and giving out free tickets is free.</p>
+          {duplicate ? (
+            <p>Copied from an existing event. Choose a new date and check the details. Ticket types, orders and attendees are not copied.</p>
+          ) : (
+            <p>Fill in the details below. Creating an event and giving out free tickets is free.</p>
+          )}
         </div>
 
         <form className="ce-form" onSubmit={handleSubmit}>

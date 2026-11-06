@@ -1,0 +1,55 @@
+.ttf {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.ttf-page {
+  max-width: 760px;
+}
+
+.ttf-card {
+  padding: 8px 24px 24px;
+}
+
+.ttf-textarea {
+  min-height: 90px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.ttf-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.ttf-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.ttf-short {
+  max-width: 240px;
+}
+
+.ttf-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.ttf-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+@media (max-width: 760px) {
+  .ttf-row {
+    grid-template-columns: 1fr;
+  }
+}

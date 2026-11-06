@@ -10,40 +10,6 @@
   min-height: 100vh;
 }
 
-/* Top menu */
-.home-nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 40px;
-  border-bottom: 1px solid var(--home-line);
-}
-
-.home-logo {
-  font-size: 22px;
-  font-weight: bold;
-  color: var(--text);
-  text-decoration: none;
-}
-
-.home-nav-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 24px;
-}
-
-.home-nav-links a {
-  color: var(--text);
-  text-decoration: none;
-}
-
-.home-nav-links a:hover {
-  color: var(--blue);
-}
-
 /* Buttons */
 .home .home-btn {
   display: inline-block;
@@ -61,11 +27,6 @@
 .home .home-btn:hover {
   color: #ffffff;
   background: var(--blue-dark);
-}
-
-.home .home-btn-small {
-  padding: 8px 16px;
-  font-size: 15px;
 }
 
 /* Big top section */
@@ -212,16 +173,11 @@
 
 /* Phones and small screens */
 @media (max-width: 760px) {
-  .home-nav,
   .home-hero,
   .home-section,
   .home-footer {
     padding-left: 16px;
     padding-right: 16px;
-  }
-
-  .home-nav-links {
-    gap: 16px;
   }
 
   .home-hero {

@@ -1,0 +1,59 @@
+.checklist {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.checklist-page {
+  max-width: 760px;
+}
+
+.checklist-event {
+  margin: -12px 0 20px;
+}
+
+.checklist-card {
+  padding: 4px 20px;
+}
+
+.checklist-row {
+  display: grid;
+  grid-template-columns: 1fr 130px 150px;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid #e2e4e9;
+}
+
+.checklist-row:last-child {
+  border-bottom: none;
+}
+
+.checklist-label {
+  font-size: 17px;
+}
+
+.checklist-action {
+  text-align: right;
+}
+
+.checklist-note {
+  margin: 16px 0 20px;
+  font-size: 14px;
+}
+
+.checklist-activate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+  .checklist-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .checklist-action {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}

@@ -27,10 +27,12 @@ Self-service event ticketing platform for Kazakhstan (CSCI 361, Team 5).
 Event fields: id, title, description, date, venue, capacity, category, image_url, organizer_name, registration_closes_at.
 Event list extra field: min_price (lowest ticket price in KZT, 0 means free).
 Ticket type fields: id, name, description, price (KZT, 0 for free), quantity, quantity_left.
-Roles: attendee, organizer.
+Organizer event fields (dashboard and Event management): status (upcoming, active, completed, cancelled), sold, checked_in, paid_activated.
+Attendee row fields: name, email, ticket_type, ticket_id, status (valid, checked_in, cancelled, refunded).
+Order row fields: id, buyer, total, status (paid, free, refunded, cancelled).
 
 
-## Frontend pages
+### Frontend pages
 
 Built:
 - / (Home)
@@ -38,20 +40,23 @@ Built:
 - /signup
 - /login
 - /create-event
+- /organizer/dashboard (Organizer dashboard)
+- /organizer/events/:id (Event management)
+- /organizer/events/:id/edit (Edit event)
+- /organizer/events/:id/ticket-types/new (Ticket type form)
+- /organizer/events/:id/activation (Activation checklist)
+- /organizer/events/:id/analytics (Event analytics)
+- /organizer/events/:id/history (Event history, with duplicate event)
+- /organizer/promo (Promo campaigns)
 - /admin and its sub-pages (admin portal)
-- /organizer/promo (promo campaigns)
 
 Planned:
 - /events/:id (Event detail)
-- Registration
-- /my-tickets and the single ticket view
-- /organizer/dashboard
-- Event management
-- Ticket type form
-- Activation checklist
-- Edit event
+- /events/:id/register (Registration)
+- /my-tickets and the single ticket view (/tickets/:id)
 
-Shared code: `src/components/Navbar.jsx` (navbar, with a temporary logged-in/logged-out dev switch) and `src/shared.css` (styles for the new pages). Older pages (Home, Sign up, Log in, Create event, Admin, Promo) keep their own CSS files and may be migrated to `shared.css` later.
+Shared code: `src/components/Navbar.jsx` (navbar, with a temporary logged-in/logged-out dev switch) and `src/shared.css` (styles for the new pages). Older pages (Home, Sign up, Log in, Create event, Admin, Promo) keep their own CSS files and may be migrated to `shared.css` later.    
+
 
 ## Run everything with Docker
 

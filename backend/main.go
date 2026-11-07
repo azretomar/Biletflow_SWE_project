@@ -34,6 +34,7 @@ func main() {
 	mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
 	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
 	mux.Handle("GET /api/me", s.requireAuth(http.HandlerFunc(s.handleMe)))
+	s.registerTicketRoutes(mux)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

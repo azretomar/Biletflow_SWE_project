@@ -20,6 +20,10 @@ import EventHistory from "./pages/organizer/EventHistory";
 import OrganizerDashboard from "./pages/organizer/OrganizerDashboard";
 import EditEvent from "./pages/organizer/EditEvent";
 import EventManagement from "./pages/organizer/EventManagement";
+import MyTickets from "./pages/MyTickets";
+import TicketView from "./pages/TicketView";   
+import EventDetail from "./pages/EventDetail";
+import Registration from "./pages/Registration";
 
 function App() {
   return (
@@ -37,8 +41,12 @@ function App() {
         <Route path="/organizer/events/:id/history" element={<EventHistory />} />
         <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
         <Route path="/organizer/events/:id/edit" element={<EditEvent />} />   
-        <Route path="/organizer/events/:id" element={<EventManagement />} />
-
+        <Route path="/organizer/events/:id" element={<EventManagement />} />   
+        <Route path="/my-tickets" element={<MyTickets />} />
+        <Route path="/tickets/:id" element={<TicketView />} />
+        <Route path="/events/:id" element={<EventDetail />} />
+        <Route path="/events/:id/register" element={<Registration />} />
+        
         {/* Platform Admin section. Later only users with role "admin" may open it. */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />

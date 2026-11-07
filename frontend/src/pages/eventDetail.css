@@ -1,0 +1,114 @@
+.ed {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.ed-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.ed-img {
+  height: 240px;
+  margin-bottom: 20px;
+}
+
+.ed-title {
+  margin: 14px 0 16px;
+  font-size: 34px;
+}
+
+.ed-details {
+  margin: 0 0 24px;
+}
+
+.ed-detail {
+  display: flex;
+  gap: 24px;
+  padding: 6px 0;
+  font-size: 18px;
+}
+
+.ed-detail dt {
+  flex: 0 0 110px;
+}
+
+.ed-detail dd {
+  margin: 0;
+}
+
+.ed-about {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+
+.ed-tickets h2 {
+  margin: 0 0 16px;
+  font-size: 24px;
+}
+
+.ed-type {
+  margin-bottom: 16px;
+}
+
+.ed-type h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.ed-type-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ed-price {
+  font-size: 18px;
+}
+
+.ed-left {
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.ed-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ed-stepper button,
+.ed-stepper span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  color: var(--text);
+  background: #ffffff;
+  border: 1px solid var(--border);
+}
+
+.ed-stepper button {
+  cursor: pointer;
+}
+
+.ed-stepper button:hover {
+  background: var(--field-bg);
+}
+
+.ed-closes {
+  margin: 24px 0 8px;
+}
+
+@media (max-width: 760px) {
+  .ed-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}

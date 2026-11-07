@@ -19,9 +19,16 @@ CREATE TABLE IF NOT EXISTS users (
 );
 `
 
+// Every file adds its own tables here from an init() function:
+//   func init() { schemas = append(schemas, schemaEvents) }
+// So nobody needs to edit this file again.
+var schemas = []string{schema}
+
 func migrate(ctx context.Context, pool *pgxpool.Pool) error {
-	if _, err := pool.Exec(ctx, schema); err != nil {
-		return fmt.Errorf("migrate: %w", err)
+	for _, s := range schemas {
+		if _, err := pool.Exec(ctx, s); err != nil {
+			return fmt.Errorf("migrate: %w", err)
+		}
 	}
 	return nil
 }

@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthContext";
 import AuthLayout from "./AuthLayout";
 
 function LogIn() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -12,14 +17,25 @@ function LogIn() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Logging in:", { ...form, password: "***" });
+    setError("");
+    setLoading(true);
+    try {
+      const user = await login(form.email, form.password);
+      navigate(user.role === "organizer" ? "/organizer/dashboard" : "/events");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <AuthLayout title="Welcome back" subtitle="Log in to see your tickets and events.">
       <form className="form" onSubmit={handleSubmit}>
+        {error && <p className="form-error" role="alert">{error}</p>}
+
         <div className="field">
           <label htmlFor="email">Email</label>
           <input
@@ -44,8 +60,8 @@ function LogIn() {
           />
         </div>
 
-        <button type="submit" className="btn">
-          Log in
+        <button type="submit" className="btn" disabled={loading}>
+          {loading ? "Logging in..." : "Log in"}
         </button>
 
         <p className="form-note">

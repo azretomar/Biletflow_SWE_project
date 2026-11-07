@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import AuthLayout from "./AuthLayout";
+   import { useState } from "react";
+   import { Link, useNavigate } from "react-router-dom";
+   import { useAuth } from "../AuthContext";
+   import AuthLayout from "./AuthLayout";
 
 function SignUp() {
   const [form, setForm] = useState({
@@ -10,18 +11,32 @@ function SignUp() {
     role: "attendee",
   });
 
+  const { signup } = useAuth();
+  const navigate = useNavigate();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Signing up:", { ...form, password: "***" });
+    setError("");
+    setLoading(true);
+    try {
+      const user = await signup(form.fullName, form.email, form.password, form.role);
+      navigate(user.role === "organizer" ? "/organizer/dashboard" : "/events");
+    } catch (err) {
+     setError(err.message);
+    } finally {
+     setLoading(false);
+    }
   };
 
   return (
     <AuthLayout title="Create your account" subtitle="It takes less than a minute.">
       <form className="form" onSubmit={handleSubmit}>
+      {error && <p className="form-error" role="alert">{error}</p>}
         <div className="field">
           <label htmlFor="fullName">Full name</label>
           <input
@@ -84,9 +99,9 @@ function SignUp() {
           </div>
         </div>
 
-        <button type="submit" className="btn">
-          Create account
-        </button>
+      <button type="submit" className="btn" disabled={loading}>
+        {loading ? "Creating account..." : "Create account"}
+      </button>
 
         <p className="form-note">
           Already have an account? <Link to="/login">Log in</Link>

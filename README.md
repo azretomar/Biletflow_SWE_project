@@ -13,16 +13,27 @@ Self-service event ticketing platform for Kazakhstan (CSCI 361, Team 5).
 | Design | Canva mockups |
 | Task tracking | Jira |
 
-## Planned API endpoints (draft, to be confirmed with backend)
+## API endpoints
+
+Implemented in the backend:
 
 | Method | Path | Sends | Returns |
 | --- | --- | --- | --- |
-| POST | /signup | fullName, email, password, role | the created user |
-| POST | /login | email, password | the user (and a login token) |
-| GET | /events | none | list of events, each with min_price |
-| GET | /events/:id | none | one event, with its ticket_types |
-| POST | /events | title, description, date, venue, capacity, category | the created event |
-| POST | /events/:id/ticket-types | name, description, price, quantity | the created ticket type |
+| POST | /api/auth/signup | full_name, email, password, role | token and user |
+| POST | /api/auth/login | email, password | token and user |
+| GET | /api/me | none | the logged-in user |
+| POST | /api/events/{id}/register | ticket_type_id, quantity | order_id and the created tickets (id, qr_code, status) |
+| GET | /api/my-tickets | none | the user's tickets, each with event, ticket_type and status |
+| POST | /api/checkin | qr_code | check-in result and ticket |
+
+Planned (draft, to be confirmed with backend):
+
+| Method | Path | Sends | Returns |
+| --- | --- | --- | --- |
+| GET | /api/events | none | list of events, each with min_price |
+| GET | /api/events/:id | none | one event, with its ticket_types |
+| POST | /api/events | title, description, date, venue, capacity, category | the created event |
+| POST | /api/events/:id/ticket-types | name, description, price, quantity | the created ticket type |
 
 Event fields: id, title, description, date, venue, capacity, category, image_url, organizer_name, registration_closes_at.
 Event list extra field: min_price (lowest ticket price in KZT, 0 means free).
@@ -30,13 +41,18 @@ Ticket type fields: id, name, description, price (KZT, 0 for free), quantity, qu
 Organizer event fields (dashboard and Event management): status (upcoming, active, completed, cancelled), sold, checked_in, paid_activated.
 Attendee row fields: name, email, ticket_type, ticket_id, status (valid, checked_in, cancelled, refunded).
 Order row fields: id, buyer, total, status (paid, free, refunded, cancelled).
-
+Ticket fields (from GET /api/my-tickets): id, qr_code, status, event (id, title, date, venue), ticket_type (name, price), checked_in_at.
+Roles: attendee, organizer.
 
 ### Frontend pages
 
 Built:
 - / (Home)
 - /events (Event list, empty until the backend is connected)
+- /events/:id (Event detail)
+- /events/:id/register (Registration)
+- /my-tickets (My tickets)
+- /tickets/:id (Ticket view)
 - /signup
 - /login
 - /create-event
@@ -50,13 +66,9 @@ Built:
 - /organizer/promo (Promo campaigns)
 - /admin and its sub-pages (admin portal)
 
-Planned:
-- /events/:id (Event detail)
-- /events/:id/register (Registration)
-- /my-tickets and the single ticket view (/tickets/:id)
+Not built: attendee support request page (owner to be confirmed).
 
-Shared code: `src/components/Navbar.jsx` (navbar, with a temporary logged-in/logged-out dev switch) and `src/shared.css` (styles for the new pages). Older pages (Home, Sign up, Log in, Create event, Admin, Promo) keep their own CSS files and may be migrated to `shared.css` later.    
-
+Shared code: `src/components/Navbar.jsx` (navbar, with a temporary logged-in/logged-out dev switch) and `src/shared.css` (styles for the new pages). Older pages (Home, Sign up, Log in, Create event, Admin, Promo) keep their own CSS files and may be migrated to `shared.css` later.
 
 ## Run everything with Docker
 

@@ -152,3 +152,12 @@
     padding: 24px;
   }
 }
+
+.form-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #7a1220;
+  background: #f9c6cb;
+  border-radius: 6px;
+}

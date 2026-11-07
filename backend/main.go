@@ -26,15 +26,28 @@ func main() {
 	}
 
 	s := &Server{db: pool, cfg: cfg}
+	organizerOnly := func(h http.HandlerFunc) http.Handler {
+		return s.requireAuth(s.requireRole("organizer")(h))
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
+
+	// auth
 	mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
 	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
 	mux.Handle("GET /api/me", s.requireAuth(http.HandlerFunc(s.handleMe)))
 	s.registerTicketRoutes(mux)
+
+	// events + ticket types
+	mux.HandleFunc("GET /api/events", s.handleListEvents)
+	mux.HandleFunc("GET /api/events/{id}", s.handleGetEvent)
+	mux.Handle("POST /api/events", organizerOnly(s.handleCreateEvent))
+	mux.Handle("POST /api/events/{id}/ticket-types", organizerOnly(s.handleCreateTicketType))
+
+	// tickets (friend adds his routes below)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

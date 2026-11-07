@@ -1,0 +1,42 @@
+.ee {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.ee-page {
+  max-width: 760px;
+}
+
+.ee-card {
+  padding: 8px 24px 24px;
+}
+
+.ee-textarea {
+  min-height: 100px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.ee-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.ee-short {
+  max-width: 240px;
+}
+
+.ee-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+@media (max-width: 760px) {
+  .ee-row {
+    grid-template-columns: 1fr;
+  }
+}

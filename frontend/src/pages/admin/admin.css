@@ -362,6 +362,33 @@ a.stat-card:hover {
   color: var(--blue);
 }
 
+/* Support case statuses: text + colour */
+.badge-case-open {
+  color: #0b3d91;
+  background: #dce8ff;
+}
+
+.badge-case-in_progress {
+  color: #7a5200;
+  background: #fff0c7;
+}
+
+.badge-case-waiting {
+  color: #4a4f5a;
+  background: #e8eaee;
+}
+
+.badge-case-resolved {
+  color: #1b5e20;
+  background: #dff3e1;
+}
+
+.case-status-select {
+  flex: 0 0 auto;
+  min-width: 0;
+  width: auto;
+}
+
 /* Small buttons */
 .btn-small {
   padding: 7px 14px;

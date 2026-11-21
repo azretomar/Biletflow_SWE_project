@@ -40,6 +40,7 @@ func main() {
 	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
 	mux.Handle("GET /api/me", s.requireAuth(http.HandlerFunc(s.handleMe)))
 	s.registerTicketRoutes(mux)
+	s.registerStaffRoutes(mux)
 
 	// events + ticket types
 	mux.HandleFunc("GET /api/events", s.handleListEvents)

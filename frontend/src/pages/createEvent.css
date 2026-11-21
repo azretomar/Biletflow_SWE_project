@@ -169,3 +169,140 @@
     text-align: center;
   }
 }
+
+/* ----- Added: three columns, hints, errors, visibility, preview ----- */
+.ce-row-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ce-hint {
+  margin: -6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ce-error {
+  font-size: 13px;
+  color: #a11a2b;
+}
+
+.ce .field [aria-invalid="true"] {
+  border-color: #a11a2b;
+}
+
+.ce-message {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #7a1220;
+  background: #f9c6cb;
+  border-radius: 6px;
+}
+
+.ce-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ce-visibility {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.ce-vis {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--ce-field-line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ce-vis-active {
+  background: #eaf0fd;
+  border: 2px solid var(--blue);
+}
+
+.ce-vis input {
+  margin-top: 3px;
+}
+
+.ce-vis span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ce-vis small {
+  color: var(--muted);
+}
+
+.ce-preview-note {
+  margin: -8px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.ce-preview-event {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  padding: 16px;
+  background: #f5f6f8;
+  border-radius: 10px;
+}
+
+.ce-preview-img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.ce-preview-img-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  background: #e3e5e8;
+}
+
+.ce-preview-body h3 {
+  margin: 4px 0 8px;
+  font-size: 22px;
+  overflow-wrap: anywhere;
+}
+
+.ce-preview-meta {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.ce-preview-desc {
+  margin: 10px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ce-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .ce-row-3,
+  .ce-visibility,
+  .ce-preview-event {
+    grid-template-columns: 1fr;
+  }
+}

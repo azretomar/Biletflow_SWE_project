@@ -1,0 +1,205 @@
+/* ===== Printable ticket (A4) ===== */
+
+.pt {
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+  background: #eef0f4;
+}
+
+.pt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 794px;
+  margin: 0 auto 16px;
+}
+
+.pt-toolbar .bf-back {
+  margin: 0;
+}
+
+.pt-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.pt-message {
+  max-width: 794px;
+  margin: 40px auto;
+  text-align: center;
+}
+
+.pt-error {
+  color: #a11a2b;
+}
+
+/* The sheet: A4 proportions on screen, real A4 on paper. Only black and grey,
+   so it prints the same in colour and in grayscale. */
+.pt-sheet {
+  position: relative;
+  max-width: 794px;
+  margin: 0 auto;
+  padding: 40px;
+  color: #000000;
+  background: #ffffff;
+  border: 1px solid #d5d8de;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+}
+
+.pt-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #000000;
+}
+
+.pt-brand {
+  font-size: 26px;
+  font-weight: bold;
+}
+
+.pt-kind {
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pt-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 32px;
+  padding: 28px 0;
+}
+
+.pt-event {
+  margin: 0 0 20px;
+  font-size: 30px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.pt-fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 10px 20px;
+  margin: 0;
+  font-size: 17px;
+}
+
+.pt-fields dt {
+  color: #444444;
+}
+
+.pt-fields dd {
+  margin: 0;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.pt-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #000000;
+}
+
+.pt-qr-hint {
+  font-size: 13px;
+}
+
+.pt-foot {
+  padding-top: 16px;
+  font-size: 13px;
+  border-top: 1px dashed #000000;
+}
+
+.pt-id {
+  display: block;
+  margin: 4px 0 10px;
+  font-size: 15px;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.pt-foot p {
+  margin: 0;
+  color: #444444;
+}
+
+/* Cancelled or refunded: a clear stamp across the ticket */
+.pt-invalid::after {
+  content: "NOT VALID";
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  padding: 8px 24px;
+  font-size: 56px;
+  font-weight: bold;
+  color: #000000;
+  border: 6px solid #000000;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .pt-sheet {
+    padding: 20px;
+  }
+
+  .pt-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pt-qr {
+    justify-self: center;
+  }
+
+  .pt-event {
+    font-size: 24px;
+  }
+}
+
+/* Paper: hide everything except the sheet, fill an A4 page */
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  .pt {
+    min-height: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .pt-toolbar {
+    display: none;
+  }
+
+  .pt-sheet {
+    max-width: none;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  .pt-body {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  /* keep the QR at least ~6 cm wide on paper so it scans from a printout */
+  .pt-qr svg {
+    width: 60mm;
+    height: 60mm;
+  }
+}

@@ -1,0 +1,48 @@
+.cd-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 15, 30, 0.45);
+}
+
+.cd {
+  width: 100%;
+  max-width: 440px;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.cd h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.cd p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.cd-reason {
+  width: 100%;
+  min-height: 80px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.cd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.cd-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

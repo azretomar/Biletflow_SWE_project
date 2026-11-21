@@ -47,6 +47,11 @@ CREATE INDEX IF NOT EXISTS idx_tickets_order ON tickets (order_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_event ON tickets (event_id);
 `
 
+// Registers this file's tables so migrate() creates them.
+func init() {
+	schemas = append(schemas, schemaTickets)
+}
+
 const (
 	maxTicketsPerOrder = 10
 	qrCodeBytes        = 32
@@ -295,7 +300,8 @@ func (s *Server) handleMyTickets(w http.ResponseWriter, r *http.Request) {
 }
 
 type checkinRequest struct {
-	QRCode string `json:"qr_code"`
+	EventID string `json:"event_id"`
+	QRCode  string `json:"qr_code"`
 }
 
 type checkinTicket struct {
@@ -318,6 +324,10 @@ func (s *Server) handleCheckin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "qr_code is required")
 		return
 	}
+	if !isUUID(req.EventID) {
+		writeError(w, http.StatusBadRequest, "event_id is required")
+		return
+	}
 	if len(qr) > maxQRCodeLen {
 		writeJSON(w, http.StatusOK, checkinResponse{Result: "invalid"})
 		return
@@ -326,11 +336,28 @@ func (s *Server) handleCheckin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	adminID := claimsFrom(ctx).Subject
 
+	// Only the event's organizer and staff assigned to it may check tickets in.
+	allowed, exists, err := s.canCheckIn(ctx, adminID, req.EventID)
+	if err != nil {
+		log.Printf("checkin: access: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	if !exists {
+		writeError(w, http.StatusNotFound, "event not found")
+		return
+	}
+	if !allowed {
+		writeError(w, http.StatusForbidden, "you are not assigned to this event")
+		return
+	}
+
+	// A ticket for another event is reported as invalid, without its details.
 	tag, err := s.db.Exec(ctx, `
 		UPDATE tickets
 		SET status = 'checked_in', checked_in_at = now(), checked_in_by = $2
-		WHERE qr_code = $1 AND status = 'valid'`,
-		qr, adminID)
+		WHERE qr_code = $1 AND event_id = $3 AND status = 'valid'`,
+		qr, adminID, req.EventID)
 	if err != nil {
 		log.Printf("checkin: update: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
@@ -342,7 +369,7 @@ func (s *Server) handleCheckin(w http.ResponseWriter, r *http.Request) {
 	v, err := scanTicket(s.db.QueryRow(ctx,
 		ticketSelect+`, u.full_name`+ticketFrom+`
 		JOIN users u ON u.id = t.user_id
-		WHERE t.qr_code = $1`, qr), &attendee)
+		WHERE t.qr_code = $1 AND t.event_id = $2`, qr, req.EventID), &attendee)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeJSON(w, http.StatusOK, checkinResponse{Result: "invalid"})
 		return

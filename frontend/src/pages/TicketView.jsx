@@ -1,8 +1,5 @@
-import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { api } from "../api";
-import { useAuth } from "../AuthContext";
 import "./ticketView.css";
 
 const STATUS_LABELS = {
@@ -20,21 +17,15 @@ const STATUS_CLASSES = {
 };
 
 function TicketView() {
-   const { id } = useParams();
-  const { user } = useAuth();
-  const [ticket, setTicket] = useState(null);
-
-  useEffect(() => {
-    api("/my-tickets").then((list) => {
-      setTicket(list.find((t) => t.id === id) || null);
-    });
-  }, [id]);
+  const { id } = useParams();
+  // The ticket will come from the backend using the id in the URL (/tickets/:id).
+  const ticket = null;
 
   const rows = [
-    ["Date", ticket ? ticket.event.date : "-"],
-    ["Venue", ticket ? ticket.event.venue : "-"],
-    ["Ticket type", ticket ? ticket.ticket_type.name : "-"],
-    ["Attendee", user ? user.full_name : "-"],
+    ["Date", ticket ? ticket.date : "-"],
+    ["Venue", ticket ? ticket.venue : "-"],
+    ["Ticket type", ticket ? ticket.ticket_type : "-"],
+    ["Attendee", ticket ? ticket.attendee : "-"],
     ["Ticket ID", ticket ? ticket.id : "-"],
   ];
 
@@ -66,10 +57,10 @@ function TicketView() {
             </dl>
 
             <div className="tv-actions">
-              <button type="button" className="bf-btn">Download PDF</button>
-              <button type="button" className="bf-btn-outline" onClick={() => window.print()}>
+              <Link to={`/tickets/${id}/print`} className="bf-btn">Download PDF</Link>
+              <Link to={`/tickets/${id}/print`} className="bf-btn-outline">
                 Print
-              </button>
+              </Link>
             </div>
           </section>
 

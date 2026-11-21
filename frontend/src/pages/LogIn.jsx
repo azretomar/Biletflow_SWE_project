@@ -65,6 +65,7 @@ function LogIn() {
             onChange={handleChange}
           />
         </div>
+        <Link to="/forgot-password" className="forgot-link">Forgot password?</Link>
 
         <button type="submit" className="btn" disabled={loading}>
           {loading ? "Logging in..." : "Log in"}

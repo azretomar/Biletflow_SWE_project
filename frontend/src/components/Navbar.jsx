@@ -23,6 +23,8 @@ function Navbar() {
             )}
             {user.role === "platform_admin" && <Link to="/admin">Admin</Link>}
             <Link to="/my-tickets">My tickets</Link>
+            <Link to="/my-orders">My orders</Link>
+            <Link to="/support">Help</Link>
             <button type="button" className="nav-btn" onClick={handleLogout}>
               Log out
             </button>

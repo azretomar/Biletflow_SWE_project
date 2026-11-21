@@ -52,6 +52,7 @@ function AdminSidebar() {
           Paid-sales activations
           {pendingActivations > 0 && <span className="nav-count" title="Pending">{pendingActivations}</span>}
         </NavLink>
+        <NavLink to="/admin/support">Support cases</NavLink>
       </nav>
 
       <div className="admin-user">

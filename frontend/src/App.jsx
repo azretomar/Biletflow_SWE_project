@@ -15,6 +15,15 @@ import AdminEventDetail from "./pages/admin/AdminEventDetail";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminActivations from "./pages/admin/AdminActivations";
 import RequireAdmin from "./pages/admin/RequireAdmin";
+import { AdminSupportList, AdminSupportCase } from "./pages/admin/AdminSupport";
+import RequireLogin from "./components/RequireLogin";
+import PrintTicket from "./pages/PrintTicket";
+import Checkout from "./pages/Checkout";
+import MyOrders from "./pages/MyOrders";
+import EventOrders from "./pages/organizer/EventOrders";
+import OrganizerProfile from "./pages/organizer/OrganizerProfile";
+import { VerifyEmail, ForgotPassword, ResetPassword } from "./pages/AccountPages";
+import { SupportList, SupportNew, SupportCase } from "./pages/Support";
 import PromoCampaigns from "./pages/organizer/PromoCampaigns";
 import EventAnalytics from "./pages/organizer/EventAnalytics";
 import EventHistory from "./pages/organizer/EventHistory";
@@ -36,7 +45,7 @@ function App() {
         <Route path="/organizer/events/:id/activation" element={<ActivationChecklist />} />
         <Route path="/login" element={<LogIn />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/create-event" element={<CreateEvent />} />
+        <Route path="/create-event" element={<RequireLogin roles={["organizer"]}><CreateEvent /></RequireLogin>} />
         <Route path="/organizer/promo" element={<PromoCampaigns />} />
         <Route path="/organizer/events/:id/analytics" element={<EventAnalytics />} />
         <Route path="/organizer/events/:id/history" element={<EventHistory />} />
@@ -45,6 +54,17 @@ function App() {
         <Route path="/organizer/events/:id" element={<EventManagement />} />   
         <Route path="/my-tickets" element={<MyTickets />} />
         <Route path="/tickets/:id" element={<TicketView />} />
+        <Route path="/tickets/:id/print" element={<PrintTicket />} />
+        <Route path="/events/:id/checkout" element={<Checkout />} />
+        <Route path="/my-orders" element={<RequireLogin><MyOrders /></RequireLogin>} />
+        <Route path="/organizer/events/:id/orders" element={<RequireLogin roles={["organizer"]}><EventOrders /></RequireLogin>} />
+        <Route path="/organizer/profile" element={<RequireLogin roles={["organizer"]}><OrganizerProfile /></RequireLogin>} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/support" element={<RequireLogin><SupportList /></RequireLogin>} />
+        <Route path="/support/new" element={<RequireLogin><SupportNew /></RequireLogin>} />
+        <Route path="/support/:id" element={<RequireLogin><SupportCase /></RequireLogin>} />
         <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/events/:id/register" element={<Registration />} />
         
@@ -55,6 +75,8 @@ function App() {
           <Route path="events/:id" element={<AdminEventDetail />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="activations" element={<AdminActivations />} />
+          <Route path="support" element={<AdminSupportList />} />
+          <Route path="support/:id" element={<AdminSupportCase />} />
         </Route>
       </Routes>
     </BrowserRouter>

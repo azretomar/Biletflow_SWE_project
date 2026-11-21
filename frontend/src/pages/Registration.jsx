@@ -1,27 +1,37 @@
-import { useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { api } from "../api";
 import Navbar from "../components/Navbar";
 import "./registration.css";
 
 function Registration() {
   const { id } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // The event and its ticket types will come from the backend: GET /api/events/:id
-  const event = null;
-  const ticketTypes = [];
+  const [event, setEvent] = useState(null);
+  const ticketTypes = event ? event.ticket_types : [];
 
   // Quantities chosen on the Event detail page arrive through the link.
   const chosen = (location.state && location.state.quantities) || {};
-  const firstChosen = ticketTypes.find((t) => chosen[t.id] > 0);
 
   const [form, setForm] = useState({
     full_name: "",
     email: "",
-    ticket_type_id: firstChosen ? String(firstChosen.id) : "",
-    quantity: firstChosen ? chosen[firstChosen.id] : 1,
+    ticket_type_id: "",
+    quantity: 1,
     promo_code: "",
   });
+
+  useEffect(() => {
+    api(`/events/${id}`).then((ev) => {
+      setEvent(ev);
+      const first = ev.ticket_types.find((t) => chosen[t.id] > 0) || ev.ticket_types[0];
+      if (first) {
+        setForm((f) => ({ ...f, ticket_type_id: first.id, quantity: chosen[first.id] || 1 }));
+      }
+    });
+  }, [id]);
 
   const selected = ticketTypes.find((t) => String(t.id) === form.ticket_type_id);
   const maxQuantity = selected ? Math.min(10, selected.quantity_left) : 1;
@@ -38,12 +48,15 @@ function Registration() {
     // TODO: validate the promo code with the backend.
   }
 
-  function handleSubmit(e) {
+    async function handleSubmit(e) {
     e.preventDefault();
-    // TODO: POST /api/events/:id/register when the backend is connected.
-    console.log("Registering:", form);
+    await api(`/events/${id}/register`, {
+      method: "POST",
+      body: { ticket_type_id: form.ticket_type_id, quantity: form.quantity },
+    });
+    navigate("/my-tickets");
   }
-
+  
   return (
     <div className="rg">
       <Navbar />

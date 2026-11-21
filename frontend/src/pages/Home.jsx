@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { api } from "../api";
+import { kzt, shortDateTime } from "../lib/format";
 import "./home.css";
 
 const CATEGORIES = [
@@ -11,14 +13,16 @@ const CATEGORIES = [
   { value: "other", label: "Other" },
 ];
 
-// Home page: where attendees discover events (SRS 1.2, 2.3)
-// and organizers find out how to create one.
+
 function Home() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
 
-  // Events will come from the backend later: GET /api/events
-  const events = [];
+  const [events, setEvents] = useState([]);
+
+  useEffect(() => {
+    api("/events").then(setEvents);
+  }, []);
 
   function handleSearch(e) {
     e.preventDefault();
@@ -59,7 +63,18 @@ function Home() {
             <p>No events yet. Check back soon.</p>
           </div>
         ) : (
-          <div className="home-event-grid">{/* Event cards go here */}</div>
+          <div className="home-event-grid">
+            {events.map((ev) => (
+              <article key={ev.id} className="bf-card">
+                <div className="bf-img">Event image</div>
+                <span className="bf-category">{ev.category}</span>
+                <h3>{ev.title}</h3>
+                <p className="bf-muted">{shortDateTime(ev.date)} · {ev.venue}</p>
+                <strong>{kzt(ev.min_price)}</strong>
+                <Link to={`/events/${ev.id}`}>View event &gt;</Link>
+              </article>
+            ))}
+          </div>
         )}
       </section>
 

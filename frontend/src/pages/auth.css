@@ -161,3 +161,24 @@
   background: #f9c6cb;
   border-radius: 6px;
 }
+.form-success {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #0a4d26;
+  background: #d6f2df;
+  border-radius: 6px;
+}
+
+/* A link styled as the main button (e.g. "Log in" after a reset) */
+.auth a.btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.forgot-link {
+  align-self: flex-end;
+  margin-top: -6px;
+  font-size: 14px;
+}

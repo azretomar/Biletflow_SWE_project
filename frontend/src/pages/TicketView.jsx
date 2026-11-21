@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import "./ticketView.css";
 
@@ -17,6 +17,7 @@ const STATUS_CLASSES = {
 };
 
 function TicketView() {
+  const { id } = useParams();
   // The ticket will come from the backend using the id in the URL (/tickets/:id).
   const ticket = null;
 
@@ -56,10 +57,10 @@ function TicketView() {
             </dl>
 
             <div className="tv-actions">
-              <button type="button" className="bf-btn">Download PDF</button>
-              <button type="button" className="bf-btn-outline" onClick={() => window.print()}>
+              <Link to={`/tickets/${id}/print`} className="bf-btn">Download PDF</Link>
+              <Link to={`/tickets/${id}/print`} className="bf-btn-outline">
                 Print
-              </button>
+              </Link>
             </div>
           </section>
 

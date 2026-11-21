@@ -1,0 +1,170 @@
+/* ===== My orders + organizer Orders and refunds (uses shared.css) ===== */
+
+.ord {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.ord-sub {
+  margin: -4px 0 16px;
+}
+
+.ord-note {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.ord-flash {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: #eaf0fd;
+  border-radius: 6px;
+}
+
+.ord-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+}
+
+.ord-empty p {
+  margin: 0;
+}
+
+.ord-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ord-card {
+  padding: 20px;
+}
+
+.ord-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ord-event {
+  font-size: 18px;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.ord-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.ord-items {
+  margin: 14px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ord-items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.ord-total {
+  margin-top: 4px;
+  padding-top: 8px !important;
+  font-weight: bold;
+  border-top: 1px solid #e2e4e9;
+}
+
+.ord-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.ord-help {
+  font-size: 14px;
+}
+
+/* Organizer page */
+.ord-policy {
+  margin-bottom: 20px;
+  padding: 20px;
+}
+
+.ord-policy .bf-label {
+  margin-top: 0;
+}
+
+.ord-policy-text {
+  width: 100%;
+  min-height: 70px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.ord-policy-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.ord-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ord-search {
+  flex: 1;
+  min-width: 220px;
+}
+
+.ord-table-card {
+  padding: 8px 16px;
+}
+
+.ord-cell-sub {
+  display: block;
+  font-size: 13px;
+}
+
+.ord-row-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bf-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.ord-toolbar .ord-search {
+  margin: 0;
+}
+
+/* keep the hidden screen-reader label inside the scrollable table */
+.ord-table-card .bf-table-wrap {
+  position: relative;
+}

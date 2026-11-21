@@ -14,6 +14,7 @@ import AdminEvents from "./pages/admin/AdminEvents";
 import AdminEventDetail from "./pages/admin/AdminEventDetail";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminActivations from "./pages/admin/AdminActivations";
+import RequireAdmin from "./pages/admin/RequireAdmin";
 import PromoCampaigns from "./pages/organizer/PromoCampaigns";
 import EventAnalytics from "./pages/organizer/EventAnalytics";
 import EventHistory from "./pages/organizer/EventHistory";
@@ -47,8 +48,8 @@ function App() {
         <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/events/:id/register" element={<Registration />} />
         
-        {/* Platform Admin section. Later only users with role "admin" may open it. */}
-        <Route path="/admin" element={<AdminLayout />}>
+        {/* Platform Admin section: only users with role "platform_admin" may open it. */}
+        <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
           <Route index element={<AdminDashboard />} />
           <Route path="events" element={<AdminEvents />} />
           <Route path="events/:id" element={<AdminEventDetail />} />

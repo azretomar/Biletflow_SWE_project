@@ -1,4 +1,5 @@
-import { NavLink, Outlet, Link } from "react-router-dom";
+import { NavLink, Outlet, Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../AuthContext";
 import { AdminDataProvider, useAdminData } from "./AdminDataContext";
 import "./admin.css";
 
@@ -19,6 +20,14 @@ function AdminLayout() {
 
 function AdminSidebar() {
   const { events } = useAdminData();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate("/");
+  }
+
   const pendingActivations = events.filter(
     (e) => e.activation && e.activation.paid_sales === "pending"
   ).length;
@@ -44,6 +53,14 @@ function AdminSidebar() {
           {pendingActivations > 0 && <span className="nav-count" title="Pending">{pendingActivations}</span>}
         </NavLink>
       </nav>
+
+      <div className="admin-user">
+        <span className="admin-user-label">Logged in as</span>
+        <span className="admin-user-name">{user.full_name || user.email}</span>
+        <button type="button" className="admin-logout" onClick={handleLogout}>
+          Log out
+        </button>
+      </div>
     </aside>
   );
 }

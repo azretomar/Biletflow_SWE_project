@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import AuthLayout from "./AuthLayout";
 
 function LogIn() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  // Set when a protected page (e.g. /admin) sent the user here to log in first.
+  const location = useLocation();
+  const from = location.state && location.state.from;
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -23,7 +26,10 @@ function LogIn() {
     setLoading(true);
     try {
       const user = await login(form.email, form.password);
-      navigate(user.role === "organizer" ? "/organizer/dashboard" : "/events");
+      const home =
+        user.role === "platform_admin" ? "/admin" :
+        user.role === "organizer" ? "/organizer/dashboard" : "/events";
+      navigate(from || home, { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {

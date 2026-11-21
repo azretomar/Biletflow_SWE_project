@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import QrCode from "../components/QrCode";
-import { api } from "../api";
 import { useAuth } from "../AuthContext";
+import { useApi, statusNote } from "../lib/useApi";
 import { shortDateTime } from "../lib/format";
 import "./ticketView.css";
 
@@ -24,13 +23,9 @@ const STATUS_CLASSES = {
 function TicketView() {
     const { id } = useParams();
   const { user } = useAuth();
-  const [ticket, setTicket] = useState(null);
-
-  useEffect(() => {
-    api("/my-tickets").then((list) => {
-      setTicket(list.find((t) => t.id === id) || null);
-    });
-  }, [id]);
+  // The ticket comes from GET /api/my-tickets (only the owner's tickets).
+  const { data: tickets, status, error, reload } = useApi("/my-tickets", []);
+  const ticket = (tickets || []).find((t) => String(t.id) === String(id)) || null;
 
   const rows = [
     ["Date", ticket ? shortDateTime(ticket.event.date) : "-"],
@@ -47,6 +42,18 @@ function TicketView() {
       <main className="bf-page">
         <Link to="/my-tickets" className="bf-back">&lt;Back to My tickets</Link>
 
+        {status === "loading" && <p className="bf-muted">Loading ticket...</p>}
+        {status !== "loading" && status !== "ready" && (
+          <div role="alert">
+            <p>{statusNote(status, error)}</p>
+            <button type="button" className="bf-btn-outline" onClick={reload}>Try again</button>
+          </div>
+        )}
+        {status === "ready" && !ticket && (
+          <p role="alert">This ticket is not in your account. <Link to="/my-tickets">Go to My tickets</Link></p>
+        )}
+
+        {ticket && (
         <div className="tv-grid">
           <section>
             <div className="tv-head">
@@ -81,6 +88,7 @@ function TicketView() {
             <p>Show this at the entrance</p>
           </aside>
         </div>
+        )}
       </main>
     </div>
   );

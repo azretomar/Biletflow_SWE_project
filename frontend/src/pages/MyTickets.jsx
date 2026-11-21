@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { api } from "../api";
+import EventImage from "../components/EventImage";
+import { useApi, statusNote } from "../lib/useApi";
 import { shortDateTime } from "../lib/format";
 import "./myTickets.css";
 
@@ -30,11 +31,7 @@ const STATUS_CLASSES = {
 function MyTickets() {
   const [filter, setFilter] = useState("all");
 
-  const [tickets, setTickets] = useState([]);
-
-  useEffect(() => {
-    api("/my-tickets").then(setTickets);
-  }, []);
+  const { data: tickets, status, error, reload } = useApi("/my-tickets", []);
 
   const visible = filter === "all" ? tickets : tickets.filter((t) => t.status === filter);
 
@@ -50,6 +47,7 @@ function MyTickets() {
             <button
               key={f.value}
               type="button"
+              aria-pressed={filter === f.value}
               className={filter === f.value ? "bf-chip bf-chip-active" : "bf-chip"}
               onClick={() => setFilter(f.value)}
             >
@@ -58,18 +56,28 @@ function MyTickets() {
           ))}
         </div>
 
-        {visible.length === 0 ? (
+        {status === "loading" ? (
+          <p className="bf-muted">Loading your tickets...</p>
+        ) : status !== "ready" ? (
+          <div className="mt-empty" role="alert">
+            <p>{statusNote(status, error)}</p>
+            <button type="button" className="bf-btn-outline" onClick={reload}>Try again</button>
+          </div>
+        ) : visible.length === 0 ? (
           <div className="mt-empty">
-            <p>No tickets yet. Register for an event to get one.</p>
+            <p>
+              {tickets.length === 0 ? "No tickets yet. " : "No tickets with this status. "}
+              <Link to="/events">Find an event</Link>
+            </p>
           </div>
         ) : (
           <div className="mt-list">
             {visible.map((t) => (
               <article key={t.id} className="bf-card mt-row">
-                <div className="bf-img mt-img">Event image</div>
+                <EventImage src={t.event.image_url} className="mt-img" />
                 <div className="mt-info">
                   <h3>{t.event.title}</h3>
-                  <p>{shortDateTime(t.event.date)}</p>
+                  <p>{shortDateTime(t.event.date)}{t.event.venue ? ` · ${t.event.venue}` : ""}</p>
                   <p className="mt-type">{t.ticket_type.name}</p>
                 </div>
                 <div className="mt-side">

@@ -31,26 +31,26 @@ function AdminEventDetail() {
       message: "The event will be hidden from attendees and all ticket sales will stop.",
       confirmLabel: "Suspend event",
       danger: true,
-      run: () => setEventSuspended(event.id, true),
+      run: (reason) => setEventSuspended(event.id, true, reason),
     },
     restore: {
       title: "Restore event?",
       message: "The event will be visible again. Paid sales stay stopped until you resume them.",
       confirmLabel: "Restore",
-      run: () => setEventSuspended(event.id, false),
+      run: (reason) => setEventSuspended(event.id, false, reason),
     },
     "stop-sales": {
       title: "Stop paid sales?",
       message: "Attendees will not be able to buy paid tickets. The event page stays visible.",
       confirmLabel: "Stop paid sales",
       danger: true,
-      run: () => setPaidSalesStopped(event.id, true),
+      run: (reason) => setPaidSalesStopped(event.id, true, reason),
     },
     "resume-sales": {
       title: "Resume paid sales?",
       message: "Attendees will be able to buy paid tickets again.",
       confirmLabel: "Resume sales",
-      run: () => setPaidSalesStopped(event.id, false),
+      run: (reason) => setPaidSalesStopped(event.id, false, reason),
     },
   };
   const current = dialog ? dialogs[dialog] : null;
@@ -176,8 +176,8 @@ function AdminEventDetail() {
           confirmLabel={current.confirmLabel}
           danger={current.danger}
           needsReason
-          onConfirm={() => {
-            current.run();
+          onConfirm={(reason) => {
+            current.run(reason);
             setDialog(null);
           }}
           onCancel={() => setDialog(null)}

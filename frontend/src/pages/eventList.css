@@ -122,3 +122,21 @@
     flex-direction: column;
   }
 }
+.events-count {
+  margin: 0 0 16px;
+}
+
+.events-clear {
+  padding: 0;
+  font: inherit;
+  color: var(--blue);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+img.events-card-img {
+  height: 120px;
+  aspect-ratio: auto;
+}

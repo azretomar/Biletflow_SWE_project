@@ -31,8 +31,8 @@ function AdminEvents() {
     return eventDisplayStatus(e) === filter;
   });
 
-  function confirmAction() {
-    setEventSuspended(confirming.id, !confirming.suspended);
+  function confirmAction(reason) {
+    setEventSuspended(confirming.id, !confirming.suspended, reason);
     setConfirming(null);
   }
 

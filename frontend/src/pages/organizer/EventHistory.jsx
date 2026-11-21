@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar";
+import { useApi, statusNote } from "../../lib/useApi";
 import "./eventHistory.css";
 
 // Event history for organizers (SRS 4.16): a timeline of what happened to one
@@ -56,7 +57,8 @@ function groupByDay(entries) {
 function EventHistory() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [data] = useState(EMPTY_HISTORY);
+  const { data, status, error } = useApi(`/organizer/events/${id}/history`, EMPTY_HISTORY);
+  const note = statusNote(status, error);
   const [filter, setFilter] = useState("");
 
   const visible = data.activity.filter((a) => !filter || a.type === filter);
@@ -100,6 +102,8 @@ function EventHistory() {
             {!data.event && <span className="bf-muted eh-hint">Available once the event is loaded.</span>}
           </div>
         </div>
+
+        {note && <p className="bf-muted eh-note" role="status">{note}</p>}
 
         <div className="bf-chips" role="group" aria-label="Filter activity">
           {FILTERS.map((f) => (

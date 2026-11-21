@@ -1,15 +1,39 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useApi, send, NOT_CONNECTED_TEXT } from "../../lib/useApi";
 import "./promo.css";
 
 // Promo campaigns for an organizer's event (SRS 4.14).
 //
-// For now campaigns live only in memory and start empty. When the backend
-// has promo endpoints, load them here (e.g. GET /api/events/:id/campaigns)
-// and send the form with POST. The server must generate the real promo code,
-// the campaign QR image and check every discount (SRS 4.14, 7).
+// Needs (proposal; the server generates the real code and the campaign QR,
+// and checks every discount, SRS 4.14 and 7):
+//   GET   /api/organizer/campaigns  -> [{ id, event_id, name, code, discount_type, amount, starts_at,
+//                                         ends_at, max_redemptions, redemptions, disabled, qr_url }]
+//   POST  /api/organizer/campaigns    { event_id, name, discount_type, amount, starts_at, ends_at, max_redemptions }
+//   PATCH /api/organizer/campaigns/{id} { disabled }
+// The event list for the form comes from GET /api/organizer/events.
+// Until these exist, new campaigns are only shown on this page and are not saved.
+
+// Server (snake_case) -> page shape
+function fromApi(c) {
+  return {
+    id: c.id,
+    eventId: c.event_id,
+    name: c.name,
+    code: c.code,
+    discountType: c.discount_type,
+    amount: c.amount,
+    startsAt: c.starts_at,
+    endsAt: c.ends_at,
+    maxRedemptions: c.max_redemptions,
+    redemptions: c.redemptions || 0,
+    disabled: Boolean(c.disabled),
+    qrUrl: c.qr_url || "",
+  };
+}
 
 const EMPTY_FORM = {
+  eventId: "",
   name: "",
   discountType: "percent", // "percent" or "fixed"
   amount: "",
@@ -64,7 +88,12 @@ function validate(form) {
 }
 
 function PromoCampaigns() {
-  const [campaigns, setCampaigns] = useState([]);
+  const list = useApi("/organizer/campaigns", []);
+  const eventsReq = useApi("/organizer/events", []);
+  const [localCampaigns, setLocalCampaigns] = useState([]);
+  const campaigns = [...localCampaigns, ...(list.data || []).map(fromApi)];
+  const connected = list.status === "ready";
+  const [saveNote, setSaveNote] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [created, setCreated] = useState(null); // the campaign just created
@@ -73,12 +102,36 @@ function PromoCampaigns() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const found = validate(form);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
+    setSaveNote("");
 
+    const body = {
+      event_id: form.eventId || null,
+      name: form.name.trim(),
+      discount_type: form.discountType,
+      amount: Number(form.amount),
+      starts_at: form.startsAt,
+      ends_at: form.endsAt + "T23:59:59",
+      max_redemptions: Number(form.maxRedemptions),
+    };
+    const r = await send("/organizer/campaigns", "POST", body);
+    if (r.ok) {
+      const saved = fromApi(r.data);
+      list.setData([r.data, ...(list.data || [])]);
+      setCreated(saved);
+      setForm(EMPTY_FORM);
+      return;
+    }
+    if (r.message !== NOT_CONNECTED_TEXT) {
+      setSaveNote(r.message);
+      return;
+    }
+    // Not connected yet: show it on this page only, clearly marked as not saved.
+    setSaveNote("Shown here only: promo campaigns are not saved to the server yet.");
     const campaign = {
       id: Date.now(),
       name: form.name.trim(),
@@ -91,13 +144,21 @@ function PromoCampaigns() {
       redemptions: 0,
       disabled: false,
     };
-    setCampaigns([campaign, ...campaigns]);
+    setLocalCampaigns([campaign, ...localCampaigns]);
     setCreated(campaign);
     setForm(EMPTY_FORM);
   };
 
-  const toggleDisabled = (id) => {
-    setCampaigns(campaigns.map((c) => (c.id === id ? { ...c, disabled: !c.disabled } : c)));
+  const toggleDisabled = async (id) => {
+    const local = localCampaigns.find((c) => c.id === id);
+    if (local) {
+      setLocalCampaigns(localCampaigns.map((c) => (c.id === id ? { ...c, disabled: !c.disabled } : c)));
+      return;
+    }
+    const current = campaigns.find((c) => c.id === id);
+    const r = await send(`/organizer/campaigns/${id}`, "PATCH", { disabled: !current.disabled });
+    if (r.ok) list.setData((list.data || []).map((c) => (c.id === id ? { ...c, disabled: !current.disabled } : c)));
+    else setSaveNote(r.message);
   };
 
   const fieldError = (name) =>
@@ -119,6 +180,18 @@ function PromoCampaigns() {
         <div className="pc-layout">
           <form className="pc-card" onSubmit={handleSubmit} noValidate>
             <h2>Create a campaign</h2>
+
+            {eventsReq.status === "ready" && eventsReq.data.length > 0 && (
+              <div className="field">
+                <label htmlFor="eventId">Event</label>
+                <select id="eventId" name="eventId" value={form.eventId} onChange={handleChange}>
+                  <option value="">Choose an event...</option>
+                  {eventsReq.data.map((ev) => (
+                    <option key={ev.id} value={ev.id}>{ev.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="field">
               <label htmlFor="name">Campaign name</label>
@@ -220,6 +293,7 @@ function PromoCampaigns() {
               </div>
             </div>
 
+            {saveNote && <p className="pc-save-note" role="status">{saveNote}</p>}
             <button type="submit" className="pc-btn">Create campaign</button>
           </form>
 
@@ -232,7 +306,11 @@ function PromoCampaigns() {
                 <div className="pc-code">{created.code}</div>
                 <span className="pc-label">Campaign QR</span>
                 <div className="pc-qr">
-                  <span>The QR image will be generated by the server.</span>
+                  {created.qrUrl ? (
+                    <img src={created.qrUrl} alt={`Campaign QR for code ${created.code}`} className="pc-qr-img" />
+                  ) : (
+                    <span>The QR image will be generated by the server.</span>
+                  )}
                   <small>It opens the event page with this code applied. It is not an admission ticket.</small>
                 </div>
               </>
@@ -248,6 +326,9 @@ function PromoCampaigns() {
 
         <section className="pc-card pc-list">
           <h2>Your campaigns</h2>
+          {!connected && list.status !== "loading" && (
+            <p className="pc-muted" role="status">{list.status === "not_connected" ? NOT_CONNECTED_TEXT : list.error}</p>
+          )}
           {campaigns.length === 0 ? (
             <p className="pc-muted">No campaigns yet.</p>
           ) : (

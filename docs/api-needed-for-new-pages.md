@@ -13,6 +13,10 @@ All amounts are whole KZT. All times are ISO 8601 with time zone.
 | Printable ticket `/tickets/:id/print` | `GET /api/my-tickets` |
 | Checkout, free tickets `/events/:id/checkout` | `GET /api/events/{id}`, `POST /api/events/{id}/register` |
 | Create event, Publish (public) `/create-event` | `POST /api/events` |
+| Home, Events, Event page, My tickets, Ticket view | `GET /api/events`, `GET /api/events/{id}`, `GET /api/my-tickets` |
+| Event management: details, ticket types, check-in staff | `GET /api/events/{id}`, `GET/POST/DELETE /api/events/{id}/staff` |
+| Edit event (loading the current details) | `GET /api/events/{id}` |
+| Organizer dashboard, event list in Promo campaigns | `GET /api/organizer/events` |
 
 ## Checkout and promo codes (SRS 4.6, 4.14)
 
@@ -65,3 +69,37 @@ Platform admins:
 - `POST /api/admin/support/cases/{id}/messages` `{ body }`
 
 Statuses: `open`, `in_progress`, `waiting` (for customer), `resolved`.
+
+## Organizer events (SRS 4.2, 4.16)
+
+- ~~`GET /api/organizer/events`~~ done (`backend/organizer.go`): own events with `sold`, `total_quantity`, `ticket_type_count`, `min_price`. Still to add: `status: "cancelled"` once events can be cancelled.
+- `PUT /api/events/{id}` same fields as `POST /api/events` (Edit event)
+- `POST /api/organizer/events/{id}/cancel` `{ reason }`
+- `GET /api/organizer/events/{id}/attendees` -> `[{ ticket_id, full_name, email, ticket_type, status }]`
+- Small addition: include `image_url` in the `event` object of `GET /api/my-tickets`, so My tickets can show the cover.
+
+## Paid sales activation (SRS 3.2, 4.5)
+
+- `GET /api/organizer/events/{id}/activation` -> `{ identity_verified, payout_connected, fee_paid, terms_accepted, activated, fee_kzt }`
+- `POST /api/organizer/events/{id}/activation/{step}` (step = `identity` | `payout` | `fee` | `terms`), all simulated
+- `POST /api/organizer/events/{id}/activation/activate`
+
+## Promo campaigns (SRS 4.14)
+
+- `GET /api/organizer/campaigns` -> `[{ id, event_id, name, code, discount_type, amount, starts_at, ends_at, max_redemptions, redemptions, disabled, qr_url }]`
+- `POST /api/organizer/campaigns` `{ event_id, name, discount_type, amount, starts_at, ends_at, max_redemptions }` (server generates `code` and the campaign QR)
+- `PATCH /api/organizer/campaigns/{id}` `{ disabled }`
+
+## Analytics and history (SRS 4.15, 4.16)
+
+- `GET /api/organizer/events/{id}/analytics` -> format at the top of `frontend/src/pages/organizer/EventAnalytics.jsx`
+- `GET /api/organizer/events/{id}/history` -> format at the top of `frontend/src/pages/organizer/EventHistory.jsx`
+
+## Platform admin (SRS 4.12) - platform_admin only, every action logged with its reason
+
+- `GET /api/admin/users` -> `[{ id, full_name, email, role, suspended, created_at }]`
+- `GET /api/admin/events` -> `[{ id, title, organizer_id, category, venue, start_at, status, suspended, capacity, tickets_sold, revenue_kzt, reports: [{ id, reason, reporter, created_at }], activation: null | { paid_sales: "pending" | "active" | "stopped", identity_verified, fee_paid, payout_account, terms_accepted, requested_at } }]`
+- `GET /api/admin/stats` -> `{ failed_payments_7d }`
+- `POST /api/admin/users/{id}/suspend` and `/unsuspend` `{ reason }` (a suspended user cannot log in)
+- `POST /api/admin/events/{id}/suspend` and `/restore` `{ reason }` (suspend hides the event and stops sales)
+- `POST /api/admin/events/{id}/stop-sales` and `/resume-sales` `{ reason }`

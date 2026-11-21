@@ -110,6 +110,15 @@
   gap: 20px;
 }
 
+.home-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: auto;
+}
+
 /* Organizer section */
 .home-organizers {
   display: grid;
@@ -197,4 +206,8 @@
   .home-features {
     grid-template-columns: 1fr;
   }
+}
+.home-all-link {
+  margin: 20px 0 0;
+  text-align: right;
 }

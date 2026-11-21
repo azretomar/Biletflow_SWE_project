@@ -96,3 +96,17 @@
     gap: 10px;
   }
 }
+.dash-top-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dash-note {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+img.dash-img {
+  aspect-ratio: auto;
+}

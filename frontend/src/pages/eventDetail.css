@@ -112,3 +112,20 @@
     gap: 24px;
   }
 }
+.ed-type-desc {
+  margin: -4px 0 8px;
+  font-size: 14px;
+}
+
+.ed-description {
+  white-space: pre-wrap;
+}
+
+.ed-blocked {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  text-align: center;
+  background: #eef0f4;
+  border-radius: 6px;
+}

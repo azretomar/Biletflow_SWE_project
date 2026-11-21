@@ -41,6 +41,7 @@ func main() {
 	mux.Handle("GET /api/me", s.requireAuth(http.HandlerFunc(s.handleMe)))
 	s.registerTicketRoutes(mux)
 	s.registerStaffRoutes(mux)
+	s.registerOrganizerRoutes(mux)
 
 	// events + ticket types
 	mux.HandleFunc("GET /api/events", s.handleListEvents)

@@ -21,6 +21,7 @@ function Navbar() {
             {user.role === "organizer" && (
               <Link to="/organizer/dashboard">For organizers</Link>
             )}
+            {user.role === "platform_admin" && <Link to="/admin">Admin</Link>}
             <Link to="/my-tickets">My tickets</Link>
             <button type="button" className="nav-btn" onClick={handleLogout}>
               Log out

@@ -1,5 +1,10 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import QrCode from "../components/QrCode";
+import { api } from "../api";
+import { useAuth } from "../AuthContext";
+import { shortDateTime } from "../lib/format";
 import "./ticketView.css";
 
 const STATUS_LABELS = {
@@ -17,15 +22,21 @@ const STATUS_CLASSES = {
 };
 
 function TicketView() {
-  const { id } = useParams();
-  // The ticket will come from the backend using the id in the URL (/tickets/:id).
-  const ticket = null;
+    const { id } = useParams();
+  const { user } = useAuth();
+  const [ticket, setTicket] = useState(null);
+
+  useEffect(() => {
+    api("/my-tickets").then((list) => {
+      setTicket(list.find((t) => t.id === id) || null);
+    });
+  }, [id]);
 
   const rows = [
-    ["Date", ticket ? ticket.date : "-"],
-    ["Venue", ticket ? ticket.venue : "-"],
-    ["Ticket type", ticket ? ticket.ticket_type : "-"],
-    ["Attendee", ticket ? ticket.attendee : "-"],
+    ["Date", ticket ? shortDateTime(ticket.event.date) : "-"],
+    ["Venue", ticket ? ticket.event.venue : "-"],
+    ["Ticket type", ticket ? ticket.ticket_type.name : "-"],
+    ["Attendee", user ? user.full_name : "-"],
     ["Ticket ID", ticket ? ticket.id : "-"],
   ];
 
@@ -39,7 +50,7 @@ function TicketView() {
         <div className="tv-grid">
           <section>
             <div className="tv-head">
-              <h1>{ticket ? ticket.event_title : "Event name"}</h1>
+              <h1>{ticket ? ticket.event.title : "Event name"}</h1>
               {ticket && (
                 <span className={`bf-badge ${STATUS_CLASSES[ticket.status]}`}>
                   {STATUS_LABELS[ticket.status]}
@@ -65,7 +76,7 @@ function TicketView() {
           </section>
 
           <aside className="bf-panel tv-qr">
-            <div className="bf-img tv-qr-img">QR code</div>
+            <QrCode value={ticket ? ticket.qr_code : ""} />
             <p className="tv-qr-id">{ticket ? ticket.id : "-"}</p>
             <p>Show this at the entrance</p>
           </aside>

@@ -81,7 +81,7 @@ function EventList() {
                 <h3>{ev.title}</h3>
                 <p className="bf-muted">{ev.date} · {ev.venue}</p>
                 <div className="events-card-foot">
-                  <strong>{ev.price}</strong>
+                  <strong>{ev.min_price === 0 ? "Free" : `${ev.min_price} KZT`}</strong>
                   <Link to={`/events/${ev.id}`}>View event &gt;</Link>
                 </div>
               </article>

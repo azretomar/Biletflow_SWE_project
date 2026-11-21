@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { api } from "../api";
+import { shortDateTime } from "../lib/format";
 import "./myTickets.css";
 
 const FILTERS = [
@@ -28,8 +30,11 @@ const STATUS_CLASSES = {
 function MyTickets() {
   const [filter, setFilter] = useState("all");
 
-  // Tickets will come from the backend: GET /api/my-tickets
-  const tickets = [];
+  const [tickets, setTickets] = useState([]);
+
+  useEffect(() => {
+    api("/my-tickets").then(setTickets);
+  }, []);
 
   const visible = filter === "all" ? tickets : tickets.filter((t) => t.status === filter);
 
@@ -63,9 +68,9 @@ function MyTickets() {
               <article key={t.id} className="bf-card mt-row">
                 <div className="bf-img mt-img">Event image</div>
                 <div className="mt-info">
-                  <h3>{t.event_title}</h3>
-                  <p>{t.date}</p>
-                  <p className="mt-type">{t.ticket_type}</p>
+                  <h3>{t.event.title}</h3>
+                  <p>{shortDateTime(t.event.date)}</p>
+                  <p className="mt-type">{t.ticket_type.name}</p>
                 </div>
                 <div className="mt-side">
                   <span className={`bf-badge ${STATUS_CLASSES[t.status]}`}>

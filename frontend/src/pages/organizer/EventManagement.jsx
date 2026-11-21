@@ -7,14 +7,14 @@ import { kzt, shortDateTime } from "../../lib/format";
 import "./eventManagement.css";
 
 // Event management for the organizer.
-// Already in the backend:
 //   GET    /api/events/{id}                  event + ticket types (sold = quantity - quantity_left)
+//   PUT    /api/events/{id}                  (used here only to publish a draft)
+//   DELETE /api/events/{id}/ticket-types/{typeId}  (only while none of its tickets were issued)
 //   GET    /api/events/{id}/staff            check-in staff
 //   POST   /api/events/{id}/staff            { email }  (the person must have an account)
 //   DELETE /api/events/{id}/staff/{userId}
-// Still needed (proposal):
-//   GET  /api/organizer/events/{id}/attendees -> [{ ticket_id, full_name, email, ticket_type, status }]
-//   POST /api/organizer/events/{id}/cancel    { reason }
+//   GET    /api/organizer/events/{id}/attendees -> [{ ticket_id, full_name, email, ticket_type, status }]
+//   POST   /api/organizer/events/{id}/cancel    { reason }
 //   (orders and refunds: see the Orders and refunds page)
 
 const TABS = [
@@ -33,6 +33,7 @@ const TICKET_STATUS = {
 function eventStatus(ev) {
   if (!ev || !ev.date) return null;
   if (ev.status === "cancelled") return { key: "cancelled", label: "Cancelled" };
+  if (ev.status === "draft") return { key: "draft", label: "Draft" };
   const start = new Date(ev.date);
   const now = new Date();
   if (start > now) return { key: "upcoming", label: "Upcoming" };
@@ -186,9 +187,10 @@ function EventManagement() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [tab, setTab] = useState("types");
-  const { data: event, status, error, code } = useApi(`/events/${id}`, null);
+  const { data: event, setData: setEvent, status, error, code } = useApi(`/events/${id}`, null);
   const notFound = status === "not_connected" || code === 404 || code === 400;
   const [cancelling, setCancelling] = useState(false);
+  const [deleting, setDeleting] = useState(null); // ticket type to delete
   const [msg, setMsg] = useState("");
 
   const types = (event && event.ticket_types) || [];
@@ -197,10 +199,30 @@ function EventManagement() {
   const st = eventStatus(event);
   const subtitle = event ? [shortDateTime(event.date), event.venue].filter(Boolean).join(" | ") : "";
 
+  const cancelled = Boolean(event && event.status === "cancelled");
+
   async function cancelEvent(reason) {
     const r = await send(`/organizer/events/${id}/cancel`, "POST", { reason });
     setCancelling(false);
     if (r.ok) navigate("/organizer/dashboard");
+    else setMsg(r.message);
+  }
+
+  async function publish() {
+    setMsg("");
+    const r = await send(`/events/${id}`, "PUT", {
+      title: event.title, description: event.description, date: event.date, venue: event.venue,
+      capacity: event.capacity, category: event.category, image_url: event.image_url, status: "published",
+    });
+    if (r.ok) setEvent({ ...event, ...r.data });
+    else setMsg(r.message);
+  }
+
+  async function deleteType() {
+    const t = deleting;
+    const r = await send(`/events/${id}/ticket-types/${t.id}`, "DELETE");
+    setDeleting(null);
+    if (r.ok) setEvent({ ...event, ticket_types: types.filter((x) => x.id !== t.id) });
     else setMsg(r.message);
   }
 
@@ -226,12 +248,28 @@ function EventManagement() {
                 </div>
                 <p className="bf-muted em-sub">{subtitle}</p>
               </div>
-              <div className="em-buttons">
-                <button type="button" className="bf-btn-danger" onClick={() => setCancelling(true)}>Cancel event</button>
-                <Link to={`/organizer/events/${id}/edit`} className="bf-btn-outline">Edit event</Link>
-                <Link to={`/organizer/events/${id}/ticket-types/new`} className="bf-btn">Add ticket type</Link>
-              </div>
+              {!cancelled && (
+                <div className="em-buttons">
+                  <button type="button" className="bf-btn-danger" onClick={() => setCancelling(true)}>Cancel event</button>
+                  <Link to={`/organizer/events/${id}/edit`} className="bf-btn-outline">Edit event</Link>
+                  {event.status === "draft" && (
+                    <button type="button" className="bf-btn-outline" onClick={publish}>Publish</button>
+                  )}
+                  <Link to={`/organizer/events/${id}/ticket-types/new`} className="bf-btn">Add ticket type</Link>
+                </div>
+              )}
             </div>
+            {cancelled && (
+              <p className="em-note" role="status">
+                This event was cancelled. Paid orders were refunded (simulated) and free registrations cancelled.
+              </p>
+            )}
+            {event.status === "draft" && (
+              <p className="em-note" role="status">This is a draft: only you can see it. Publish it to start selling tickets.</p>
+            )}
+            {event.suspended && (
+              <p className="em-error" role="alert">BiletFlow suspended this event: it is hidden and sales are stopped. Contact support.</p>
+            )}
             {msg && <p className="em-error" role="alert">{msg}</p>}
 
             <div className="bf-stats">
@@ -277,12 +315,13 @@ function EventManagement() {
                       <th>Price</th>
                       <th>Sold</th>
                       <th>Left</th>
+                      {!cancelled && <th><span className="bf-sr-only">Actions</span></th>}
                     </tr>
                   </thead>
                   <tbody>
                     {types.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="bf-muted">
+                        <td colSpan={5} className="bf-muted">
                           No ticket types yet. <Link to={`/organizer/events/${id}/ticket-types/new`}>Add one</Link> so people can register.
                         </td>
                       </tr>
@@ -296,6 +335,14 @@ function EventManagement() {
                           <td>{kzt(t.price)}</td>
                           <td>{t.quantity - t.quantity_left}</td>
                           <td>{t.quantity_left}</td>
+                          {!cancelled && (
+                            <td className="em-row-actions">
+                              <Link to={`/organizer/events/${id}/ticket-types/${t.id}/edit`} className="em-link">Edit</Link>
+                              {t.quantity === t.quantity_left && (
+                                <button type="button" className="em-link" onClick={() => setDeleting(t)}>Delete</button>
+                              )}
+                            </td>
+                          )}
                         </tr>
                       ))
                     )}
@@ -316,6 +363,17 @@ function EventManagement() {
           </>
         )}
       </main>
+
+      {deleting && (
+        <ConfirmDialog
+          title={`Delete "${deleting.name}"?`}
+          message="Nobody has this ticket type yet, so it can be deleted."
+          confirmLabel="Delete"
+          danger
+          onConfirm={deleteType}
+          onCancel={() => setDeleting(null)}
+        />
+      )}
 
       {cancelling && (
         <ConfirmDialog

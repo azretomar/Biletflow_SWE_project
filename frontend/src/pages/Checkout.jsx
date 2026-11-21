@@ -3,20 +3,20 @@ import { Link, Navigate, useLocation, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
+import { isNotConnected } from "../lib/useApi";
 import "./checkout.css";
 
 // Checkout with simulated KZT payment (SRS 3.2, 4.6). No real money and no card
 // data: the attendee only chooses whether the test payment succeeds or fails.
 //
-// Already in the backend:
-//   GET  /api/events/{id}            event and its ticket types
+// Backend:
+//   GET  /api/events/{id}            event and its ticket types (paid_sales says if paid tickets are on sale)
 //   POST /api/events/{id}/register   free tickets (one ticket type per call)
-// Still needed (proposal, agree with backend):
 //   POST /api/promo/validate   { event_id, code } -> { code, discount_type, amount }
 //   POST /api/orders/checkout  { event_id, items: [{ ticket_type_id, quantity }],
 //                                promo_code, simulate: "success" | "failure" }
-//        -> { order_id, status: "paid" | "failed", total, tickets: [{ id, qr_code, status }] }
-// The server, not this page, must calculate prices and discounts.
+//        -> { order_id, status: "paid" | "free" | "failed", subtotal, discount, total, tickets }
+// The server, not this page, calculates prices and discounts; the numbers here are a preview.
 
 const MAX_PER_TYPE = 10;
 
@@ -25,7 +25,7 @@ function kzt(n) {
 }
 
 function notConnected(err) {
-  return err.status === 404 || err.status === 405;
+  return isNotConnected(err);
 }
 
 function Checkout() {
@@ -36,7 +36,8 @@ function Checkout() {
   const [event, setEvent] = useState(null);
   const [loadError, setLoadError] = useState("");
   const [quantities, setQuantities] = useState((location.state && location.state.quantities) || {});
-  const [promo, setPromo] = useState("");
+  const initialPromo = (location.state && location.state.promo) || "";
+  const [promo, setPromo] = useState(initialPromo);
   const [discount, setDiscount] = useState(null); // { code, discount_type, amount }
   const [promoMessage, setPromoMessage] = useState("");
   const [simulate, setSimulate] = useState("success");
@@ -54,11 +55,34 @@ function Checkout() {
     };
   }, [id]);
 
+  // A campaign QR brings its code along: check it once, as if "Apply" was pressed.
+  useEffect(() => {
+    if (!initialPromo || !user) return undefined;
+    let active = true;
+    api("/promo/validate", { method: "POST", body: { event_id: id, code: initialPromo } })
+      .then((data) => {
+        if (!active) return;
+        setDiscount(data);
+        setPromoMessage(`Code ${data.code} applied.`);
+      })
+      .catch((err) => active && setPromoMessage(err.message));
+    return () => {
+      active = false;
+    };
+  }, [id, initialPromo, user]);
+
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
   const types = (event && event.ticket_types) || [];
+  // Paid tickets are sold only after the organizer finished the paid-sales checklist (SRS 3.2).
+  const paidOnSale = Boolean(event && event.paid_sales === "active");
+  const closedNote =
+    event && event.status === "cancelled" ? "This event was cancelled."
+      : event && event.suspended ? "Ticket sales for this event are paused by BiletFlow."
+        : event && event.status === "draft" ? "This event is not published yet."
+          : "";
   const lines = types
     .map((t) => ({ type: t, qty: Number(quantities[t.id]) || 0 }))
     .filter((l) => l.qty > 0);
@@ -173,7 +197,8 @@ function Checkout() {
         <p className="bf-muted co-sub">{event ? event.title : loadError ? "" : "Loading event..."}</p>
         {loadError && <p className="co-error" role="alert">{loadError}</p>}
 
-        {event && (
+        {closedNote && <p className="co-error" role="alert">{closedNote}</p>}
+        {event && !closedNote && (
           <form className="co-grid" onSubmit={pay}>
             <div className="co-main">
               <section className="bf-card co-card">
@@ -183,14 +208,15 @@ function Checkout() {
                 ) : (
                   <ul className="co-types">
                     {types.map((t) => {
-                      const max = Math.min(MAX_PER_TYPE, t.quantity_left);
+                      const onSale = t.price === 0 || paidOnSale;
+                      const max = onSale ? Math.min(MAX_PER_TYPE, t.quantity_left) : 0;
                       return (
                         <li key={t.id} className="co-type">
                           <div>
                             <strong>{t.name}</strong>
                             {t.description && <span className="bf-muted co-type-desc">{t.description}</span>}
                             <span className="bf-muted co-type-left">
-                              {t.quantity_left > 0 ? `${t.quantity_left} left` : "Sold out"}
+                              {!onSale ? "On sale soon" : t.quantity_left > 0 ? `${t.quantity_left} left` : "Sold out"}
                             </span>
                           </div>
                           <span className="co-price">{kzt(t.price)}</span>

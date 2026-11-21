@@ -6,7 +6,7 @@ import "./activationChecklist.css";
 
 // Paid sales activation checklist (SRS 3.2, 4.5). Everything is simulated: no real money,
 // no real identity check. The paid-ticket step is read from GET /api/events/{id} (already exists).
-// Needs (proposal):
+// Backend (docs/api.md):
 //   GET  /api/organizer/events/{id}/activation -> { identity_verified, payout_connected, fee_paid,
 //                                                   terms_accepted, activated, fee_kzt }
 //   POST /api/organizer/events/{id}/activation/{step}   step = identity | payout | fee | terms

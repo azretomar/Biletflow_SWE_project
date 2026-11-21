@@ -9,6 +9,7 @@ type Config struct {
 	DatabaseURL string
 	JWTSecret   []byte
 	Port        string
+	AppURL      string // website address used in email links
 }
 
 func loadConfig() Config {
@@ -16,12 +17,16 @@ func loadConfig() Config {
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		JWTSecret:   []byte(os.Getenv("JWT_SECRET")),
 		Port:        os.Getenv("PORT"),
+		AppURL:      os.Getenv("APP_URL"),
 	}
 	if cfg.DatabaseURL == "" {
 		log.Fatal("DATABASE_URL is required")
 	}
 	if len(cfg.JWTSecret) < 32 {
 		log.Fatal("JWT_SECRET is required and must be at least 32 characters")
+	}
+	if cfg.AppURL == "" {
+		cfg.AppURL = "http://localhost:5173"
 	}
 	if cfg.Port == "" {
 		cfg.Port = "8080"

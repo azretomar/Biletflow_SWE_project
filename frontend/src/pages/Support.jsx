@@ -8,7 +8,7 @@ import "./support.css";
 
 // Asynchronous support chat for attendees and organizers (SRS 4.13).
 // A case can point at the event, order or ticket it is about.
-// Needs (proposal; only the case's author and staff may read a case):
+// Backend (docs/api.md; only the case's author and staff may read a case):
 //   GET  /api/support/cases            -> [{ id, subject, status, category, updated_at, context }]
 //   POST /api/support/cases              { category, subject, message, context: { type, id } } -> { id }
 //   GET  /api/support/cases/{id}       -> { id, subject, status, category, context, created_at,

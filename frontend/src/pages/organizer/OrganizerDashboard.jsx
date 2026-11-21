@@ -13,6 +13,7 @@ import "./organizerDashboard.css";
 
 const FILTERS = [
   { value: "all", label: "All" },
+  { value: "draft", label: "Drafts" },
   { value: "upcoming", label: "Upcoming" },
   { value: "active", label: "Active" },
   { value: "completed", label: "Completed" },
@@ -20,6 +21,7 @@ const FILTERS = [
 ];
 
 const STATUS_LABELS = {
+  draft: "Draft",
   upcoming: "Upcoming",
   active: "Active",
   completed: "Completed",
@@ -28,6 +30,7 @@ const STATUS_LABELS = {
 
 function statusOf(ev, now) {
   if (ev.status === "cancelled") return "cancelled";
+  if (ev.status === "draft") return "draft";
   const start = new Date(ev.date);
   if (start > now) return "upcoming";
   return now - start < 12 * 60 * 60 * 1000 ? "active" : "completed";
@@ -92,7 +95,7 @@ function OrganizerDashboard() {
                 <div className="dash-side">
                   <span className={`bf-badge bf-badge-${ev.status}`}>{STATUS_LABELS[ev.status]}</span>
                   <div className="dash-links">
-                    {ev.status === "upcoming" && (
+                    {(ev.status === "upcoming" || ev.status === "draft") && (
                       <Link to={`/organizer/events/${ev.id}/edit`}>Edit&gt;</Link>
                     )}
                     {(ev.status === "completed" || ev.status === "cancelled") && (

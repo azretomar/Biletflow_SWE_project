@@ -26,30 +26,7 @@ func main() {
 	}
 
 	s := &Server{db: pool, cfg: cfg}
-	organizerOnly := func(h http.HandlerFunc) http.Handler {
-		return s.requireAuth(s.requireRole("organizer")(h))
-	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	})
-
-	// auth
-	mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
-	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
-	mux.Handle("GET /api/me", s.requireAuth(http.HandlerFunc(s.handleMe)))
-	s.registerTicketRoutes(mux)
-	s.registerStaffRoutes(mux)
-	s.registerOrganizerRoutes(mux)
-
-	// events + ticket types
-	mux.HandleFunc("GET /api/events", s.handleListEvents)
-	mux.HandleFunc("GET /api/events/{id}", s.handleGetEvent)
-	mux.Handle("POST /api/events", organizerOnly(s.handleCreateEvent))
-	mux.Handle("POST /api/events/{id}/ticket-types", organizerOnly(s.handleCreateTicketType))
-
-	// tickets (friend adds his routes below)
+	mux := s.routes()
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -60,4 +37,29 @@ func main() {
 	}
 	log.Printf("BiletFlow API listening on :%s", cfg.Port)
 	log.Fatal(srv.ListenAndServe())
+}
+
+// routes builds every API route. Tests use it too.
+func (s *Server) routes() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+
+	// auth
+	mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
+	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
+	mux.Handle("GET /api/me", s.requireAuth(http.HandlerFunc(s.handleMe)))
+	s.registerAccountRoutes(mux)
+	s.registerEventRoutes(mux)
+	s.registerTicketRoutes(mux)
+	s.registerStaffRoutes(mux)
+	s.registerOrganizerRoutes(mux)
+	s.registerOrderRoutes(mux)
+	s.registerPromoRoutes(mux)
+	s.registerSupportRoutes(mux)
+	s.registerAdminRoutes(mux)
+
+	// tickets (friend adds his routes below)
+	return mux
 }

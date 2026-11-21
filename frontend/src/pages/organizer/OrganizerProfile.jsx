@@ -7,7 +7,7 @@ import "./organizerProfile.css";
 
 // Organizer profile (SRS 4.1): public contact details and payout details.
 // Payouts are simulated in the MVP (SRS 8): no real money is sent.
-// Needs (proposal):
+// Backend (docs/api.md):
 //   GET /api/organizer/profile -> { display_name, bio, contact_email, phone, website, city,
 //                                   payout: { holder_name, bank_name, iban, bin_iin } }
 //   PUT /api/organizer/profile    same shape

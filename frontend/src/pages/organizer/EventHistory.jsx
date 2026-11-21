@@ -8,7 +8,7 @@ import "./eventHistory.css";
 // event, and "Duplicate event" to start a new event from this one.
 //
 // Until the endpoint exists the page starts empty. Expected response of
-// GET /api/organizer/events/:id/history (proposal, agree with backend):
+// GET /api/organizer/events/:id/history (docs/api.md):
 // {
 //   event: { title, description, category, venue, capacity, date },
 //   activity: [{ id, at: "2026-11-01T14:05", actor: "Aigerim N.", type, message }]

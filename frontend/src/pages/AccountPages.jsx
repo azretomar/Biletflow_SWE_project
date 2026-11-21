@@ -6,7 +6,7 @@ import { send } from "../lib/useApi";
 
 // Account pages from SRS 4.1: email verification and password reset.
 // They use the same two-panel layout as Sign up and Log in.
-// Needs (proposal; the emails themselves are sent by the backend):
+// Backend (docs/api.md; the emails themselves are sent by the backend):
 //   POST /api/auth/verify-email          { token }
 //   POST /api/auth/resend-verification   (logged in)
 //   POST /api/auth/forgot-password       { email }          always answers 200

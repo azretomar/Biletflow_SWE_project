@@ -102,6 +102,7 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
+	s.sendVerificationEmail(r.Context(), u)
 	writeJSON(w, http.StatusCreated, authResponse{Token: token, User: u})
 }
 
@@ -121,10 +122,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	var u User
 	var hash string
+	var suspended bool
 	err := s.db.QueryRow(r.Context(), `
-		SELECT id, email, full_name, role, email_verified, created_at, password_hash
+		SELECT id, email, full_name, role, email_verified, created_at, password_hash, suspended
 		FROM users WHERE email = $1`, email,
-	).Scan(&u.ID, &u.Email, &u.FullName, &u.Role, &u.EmailVerified, &u.CreatedAt, &hash)
+	).Scan(&u.ID, &u.Email, &u.FullName, &u.Role, &u.EmailVerified, &u.CreatedAt, &hash, &suspended)
 
 	if errors.Is(err, pgx.ErrNoRows) {
 		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(req.Password))
@@ -137,6 +139,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Password)) != nil {
 		writeError(w, http.StatusUnauthorized, "invalid email or password")
+		return
+	}
+	if suspended {
+		writeError(w, http.StatusForbidden, "this account is suspended; contact support")
 		return
 	}
 
@@ -202,6 +208,28 @@ func (s *Server) requireAuth(next http.Handler) http.Handler {
 		if err != nil || !tok.Valid {
 			writeError(w, http.StatusUnauthorized, "invalid or expired token")
 			return
+		}
+		// A suspended account loses access at once, even with a token issued before.
+		// (Unit tests run without a database.)
+		if s.db != nil {
+			if !isUUID(claims.Subject) {
+				writeError(w, http.StatusUnauthorized, "invalid or expired token")
+				return
+			}
+			var suspended bool
+			err := s.db.QueryRow(r.Context(), `SELECT suspended FROM users WHERE id = $1`, claims.Subject).Scan(&suspended)
+			if errors.Is(err, pgx.ErrNoRows) {
+				writeError(w, http.StatusUnauthorized, "user not found")
+				return
+			}
+			if err != nil {
+				internalError(w, "auth: load user", err)
+				return
+			}
+			if suspended {
+				writeError(w, http.StatusForbidden, "this account is suspended; contact support")
+				return
+			}
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKey{}, claims)))
 	})

@@ -116,6 +116,20 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := claimsFrom(ctx).Subject
 
+	ev, err := s.loadEvent(ctx, eventID)
+	if err != nil {
+		notFoundOr500(w, "register: load event", "event", err)
+		return
+	}
+	if !s.canSeeEvent(ctx, ev, claimsFrom(ctx)) {
+		writeError(w, http.StatusNotFound, "event not found")
+		return
+	}
+	if msg := registrationBlocked(ev, time.Now()); msg != "" {
+		writeError(w, http.StatusBadRequest, msg)
+		return
+	}
+
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		log.Printf("register: begin: %v", err)
@@ -150,7 +164,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if price > 0 {
-		writeError(w, http.StatusBadRequest, "paid tickets are not available yet; only free ticket types can be registered")
+		writeError(w, http.StatusBadRequest, "this is a paid ticket; buy it through checkout")
 		return
 	}
 	if left < req.Quantity {
@@ -217,10 +231,12 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 type ticketEvent struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
-	Date  string `json:"date"`
-	Venue string `json:"venue"`
+	ID       string `json:"id"`
+	Title    string `json:"title"`
+	Date     string `json:"date"`
+	Venue    string `json:"venue"`
+	ImageURL string `json:"image_url"`
+	Status   string `json:"status"`
 }
 
 type ticketTypeBrief struct {
@@ -239,7 +255,7 @@ type ticketView struct {
 
 const ticketSelect = `
 	SELECT t.id, t.qr_code, t.status, t.checked_in_at,
-	       e.id, e.title, e.date::text::timestamptz, COALESCE(e.venue, ''),
+	       e.id, e.title, e.date::text::timestamptz, COALESCE(e.venue, ''), e.image_url, e.status,
 	       tt.name, tt.price`
 
 const ticketFrom = `
@@ -255,7 +271,7 @@ func scanTicket(row rowScanner, extra ...any) (ticketView, error) {
 	var checkedInAt *time.Time
 	dest := []any{
 		&v.ID, &v.QRCode, &v.Status, &checkedInAt,
-		&v.Event.ID, &v.Event.Title, &eventDate, &v.Event.Venue,
+		&v.Event.ID, &v.Event.Title, &eventDate, &v.Event.Venue, &v.Event.ImageURL, &v.Event.Status,
 		&v.TicketType.Name, &v.TicketType.Price,
 	}
 	if err := row.Scan(append(dest, extra...)...); err != nil {
@@ -389,4 +405,24 @@ func (s *Server) handleCheckin(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeJSON(w, http.StatusOK, checkinResponse{Result: "invalid", Ticket: ticket})
 	}
+}
+
+// registrationBlocked explains why nobody can get tickets for ev right now ("" = open).
+// Used by free registration and by checkout.
+func registrationBlocked(ev Event, now time.Time) string {
+	switch {
+	case ev.Status == "cancelled":
+		return "this event was cancelled"
+	case ev.Status != "published":
+		return "this event is not published yet"
+	case ev.Suspended:
+		return "ticket sales for this event are paused by BiletFlow"
+	case ev.RegistrationOpens != nil && now.Before(*ev.RegistrationOpens):
+		return "registration for this event has not opened yet"
+	case ev.RegistrationCloses != nil && now.After(*ev.RegistrationCloses):
+		return "registration for this event is closed"
+	case now.After(ev.Date):
+		return "this event has already started"
+	}
+	return ""
 }

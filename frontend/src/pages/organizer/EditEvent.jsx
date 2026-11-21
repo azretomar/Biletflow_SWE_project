@@ -5,7 +5,7 @@ import { useApi, send, statusNote } from "../../lib/useApi";
 import "./editEvent.css";
 
 // Edit event. The current details are loaded from GET /api/events/{id} (already in the backend).
-// Saving needs (proposal): PUT /api/events/{id} with the same fields as POST /api/events
+// Saving: PUT /api/events/{id} with the same fields as POST /api/events
 //   { title, description, date, venue, capacity, category, image_url, registration_closes_at }
 // Times are Kazakhstan time (UTC+5).
 const TZ = "+05:00";

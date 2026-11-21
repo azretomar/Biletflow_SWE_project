@@ -129,3 +129,12 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
 }
+
+.em-row-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.em-row-actions .em-link:last-child {
+  margin-right: 0;
+}

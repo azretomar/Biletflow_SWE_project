@@ -148,6 +148,12 @@
   background: #e3e5e8;
 }
 
+.bf-badge-draft {
+  color: #5b3e00;
+  background: #fff1c2;
+  border: 1px dashed #c99a1a;
+}
+
 .bf-category {
   display: inline-block;
   padding: 4px 14px;

@@ -6,7 +6,8 @@
 
 .ed-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
+  /* minmax(0, ...) lets the columns shrink below their content (the image placeholder) on phones */
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 40px;
   align-items: start;
 }
@@ -108,7 +109,7 @@
 
 @media (max-width: 760px) {
   .ed-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 24px;
   }
 }
@@ -128,4 +129,41 @@
   text-align: center;
   background: #eef0f4;
   border-radius: 6px;
+}
+
+.ed-report {
+  margin: 24px 0 0;
+  font-size: 14px;
+}
+
+.ed-report-link {
+  padding: 0;
+  font: inherit;
+  color: var(--muted);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.ed-report-form {
+  margin-top: 24px;
+}
+
+.ed-report-form textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.ed-report-msg {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #b42318;
+}
+
+.ed-report-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
 }

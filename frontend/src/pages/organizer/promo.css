@@ -330,3 +330,18 @@
   border: 1px solid var(--pc-field-line);
   border-radius: 8px;
 }
+
+.pc-qr-link {
+  max-width: 100%;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  color: #4b3b8f;
+}
+
+.pc-actions {
+  white-space: nowrap;
+}
+
+.pc-actions .pc-btn-small + .pc-btn-small {
+  margin-left: 6px;
+}

@@ -24,8 +24,13 @@ CREATE TABLE IF NOT EXISTS users (
 // So nobody needs to edit this file again.
 var schemas = []string{schema}
 
+// Changes to tables that already exist (new columns, wider CHECKs). They run after
+// every CREATE TABLE above and must be safe to run again on each start
+// (ADD COLUMN IF NOT EXISTS, DROP CONSTRAINT IF EXISTS + ADD CONSTRAINT, ...).
+var alterSchemas []string
+
 func migrate(ctx context.Context, pool *pgxpool.Pool) error {
-	for _, s := range schemas {
+	for _, s := range append(append([]string{}, schemas...), alterSchemas...) {
 		if _, err := pool.Exec(ctx, s); err != nil {
 			return fmt.Errorf("migrate: %w", err)
 		}

@@ -7,7 +7,7 @@ import { CATEGORIES, ContextLink, Thread, ReplyBox } from "../Support";
 import "../support.css";
 
 // Platform Admin: support cases (SRS 4.12, 4.13).
-// Needs (proposal, platform_admin only):
+// Backend (docs/api.md, platform_admin only):
 //   GET   /api/admin/support/cases?status=   -> [{ id, subject, status, category, requester: { full_name, email },
 //                                                 assignee: { id, full_name } | null, updated_at, context }]
 //   GET   /api/admin/support/cases/{id}      -> same as one case + messages

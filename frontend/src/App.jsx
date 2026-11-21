@@ -80,6 +80,7 @@ function App() {
         <Route path="/organizer/events/:id" element={organizer(<EventManagement />)} />
         <Route path="/organizer/events/:id/edit" element={organizer(<EditEvent />)} />
         <Route path="/organizer/events/:id/ticket-types/new" element={organizer(<TicketTypeForm />)} />
+        <Route path="/organizer/events/:id/ticket-types/:typeId/edit" element={organizer(<TicketTypeForm />)} />
         <Route path="/organizer/events/:id/activation" element={organizer(<ActivationChecklist />)} />
         <Route path="/organizer/events/:id/orders" element={organizer(<EventOrders />)} />
         <Route path="/organizer/events/:id/analytics" element={organizer(<EventAnalytics />)} />

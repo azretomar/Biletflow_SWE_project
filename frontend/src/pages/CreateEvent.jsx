@@ -1,17 +1,14 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { send } from "../lib/useApi";
 import "./createEvent.css";
 
 // Create event (SRS 4.2): details, time and place, visibility, registration window,
 // image, preview, and "Save as draft" or "Publish".
 //
-// Publish uses POST /api/events, which already exists. The backend currently accepts only
-// title, description, date, venue, capacity, category, image_url, registration_closes_at
-// and publishes every event as public. Still needed (proposal):
-//   POST /api/events with also { status: "draft" | "published", visibility: "public" | "unlisted" | "private",
-//                                ends_at, registration_opens_at, venue_address }
+// Both buttons use POST /api/events with { title, description, date, venue, capacity, category,
+// image_url, registration_closes_at, status: "draft" | "published",
+// visibility: "public" | "unlisted" | "private", ends_at, registration_opens_at, venue_address }.
 // Kazakhstan uses one time zone (UTC+5), so times are sent with +05:00.
 
 const TZ = "+05:00";
@@ -145,25 +142,9 @@ function CreateEvent() {
       registration_opens_at: localIso(form.registration_opens_at),
       venue_address: form.venue_address.trim(),
     };
-    const needsExtended = mode === "draft" || form.visibility !== "public";
-
     setBusy(true);
     try {
-      if (needsExtended) {
-        // Drafts and non-public events need the extended endpoint (not built yet).
-        const r = await send("/events", "POST", extended);
-        if (!r.ok) {
-          setMessage(
-            r.message === "invalid JSON body"
-              ? "The server does not support drafts or unlisted/private events yet. Choose Public and Publish for now."
-              : r.message
-          );
-          return;
-        }
-        navigate(`/organizer/events/${r.data.id}`);
-        return;
-      }
-      const ev = await api("/events", { method: "POST", body: base });
+      const ev = await api("/events", { method: "POST", body: extended });
       navigate(`/organizer/events/${ev.id}`, { state: { created: true } });
     } catch (err) {
       setMessage(err.status === 401 || err.status === 403 ? "Log in with an organizer account to create events." : err.message);

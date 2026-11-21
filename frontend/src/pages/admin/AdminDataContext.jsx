@@ -5,7 +5,7 @@ import { useApi, send, statusNote } from "../../lib/useApi";
 // sees the same users and events. When you suspend an event on one page,
 // the other pages see the change too.
 //
-// Needs (proposal, platform_admin only; every action is written to the audit log with its reason):
+// Backend (docs/api.md, platform_admin only; every action is written to the audit log with its reason):
 //   GET  /api/admin/users  -> [{ id, full_name, email, role, suspended, created_at }]
 //   GET  /api/admin/events -> [{ id, title, organizer_id, category, venue, start_at, status, suspended,
 //                                capacity, tickets_sold, revenue_kzt,

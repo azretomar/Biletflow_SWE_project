@@ -7,7 +7,7 @@ import { kzt, shortDateTime, ORDER_STATUS } from "../../lib/format";
 import "../orders.css";
 
 // Organizer: orders of one event, refund policy, cancellations and refunds (SRS 4.9).
-// Needs (proposal):
+// Backend (docs/api.md):
 //   GET  /api/organizer/events/{id}/orders  -> [{ id, created_at, status, total,
 //          attendee: { full_name, email }, items: [{ ticket_type, quantity, price }] }]
 //   GET  /api/organizer/events/{id}/refund-policy -> { policy }

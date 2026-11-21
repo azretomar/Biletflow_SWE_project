@@ -8,7 +8,7 @@ import "./eventAnalytics.css";
 //
 // The page shows what the backend will send for one event. Until the endpoint
 // exists, everything starts at zero / empty. Expected response of
-// GET /api/organizer/events/:id/analytics (proposal, agree with backend):
+// GET /api/organizer/events/:id/analytics (docs/api.md):
 // {
 //   event: { title, starts_at, venue },
 //   capacity, sold, checked_in,

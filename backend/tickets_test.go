@@ -82,10 +82,12 @@ func TestCheckinValidation(t *testing.T) {
 	mux := ticketMux(s)
 	for _, role := range []string{"event_admin", "organizer"} {
 		for name, body := range map[string]string{
-			"malformed json": `{"qr_code":`,
-			"missing qr":     `{}`,
-			"blank qr":       `{"qr_code":"   "}`,
-			"unknown field":  `{"qr_code":"abc","qrCode":"abc"}`,
+			"malformed json":      `{"qr_code":`,
+			"missing qr":          `{"event_id":"` + sampleEventID + `"}`,
+			"blank qr":            `{"event_id":"` + sampleEventID + `","qr_code":"   "}`,
+			"unknown field":       `{"event_id":"` + sampleEventID + `","qr_code":"abc","qrCode":"abc"}`,
+			"missing event_id":    `{"qr_code":"abc"}`,
+			"event_id not a uuid": `{"event_id":"42","qr_code":"abc"}`,
 		} {
 			rec := httptest.NewRecorder()
 			mux.ServeHTTP(rec, authedRequest(t, s, role, "POST", "/api/checkin", body))
@@ -99,7 +101,7 @@ func TestCheckinValidation(t *testing.T) {
 
 func TestCheckinOversizedCodeIsInvalid(t *testing.T) {
 	s := newTestServer()
-	body := `{"qr_code":"` + strings.Repeat("x", maxQRCodeLen+1) + `"}`
+	body := `{"event_id":"` + sampleEventID + `","qr_code":"` + strings.Repeat("x", maxQRCodeLen+1) + `"}`
 	rec := httptest.NewRecorder()
 	ticketMux(s).ServeHTTP(rec, authedRequest(t, s, "event_admin", "POST", "/api/checkin", body))
 	if rec.Code != http.StatusOK {

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../api";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import "./eventList.css";
@@ -23,7 +24,11 @@ function EventList() {
   const [category, setCategory] = useState("");
   const [date, setDate] = useState("");
 
-  const events = [];
+   const [events, setEvents] = useState([]);
+
+  useEffect(() => {
+    api("/events").then(setEvents);
+  }, []);
 
   function handleSearch(e) {
     e.preventDefault();

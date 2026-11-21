@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../api";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import "./eventDetail.css";
@@ -6,11 +7,14 @@ import "./eventDetail.css";
 function EventDetail() {
   const { id } = useParams();
 
-  // The event and its ticket types will come from the backend: GET /api/events/:id
-  const event = null;
-  const ticketTypes = [];
-
+  const [event, setEvent] = useState(null);
   const [quantities, setQuantities] = useState({});
+
+  useEffect(() => {
+    api(`/events/${id}`).then(setEvent);
+  }, [id]);
+
+  const ticketTypes = event ? event.ticket_types : [];
 
   function changeQuantity(typeId, delta, max) {
     const current = quantities[typeId] || 0;
@@ -87,7 +91,9 @@ function EventDetail() {
             )}
 
             <p className="bf-muted ed-closes">
-              {event ? `Registration open until ${event.registration_closes_at}` : "Registration open until -"}
+              {event && event.registration_closes_at
+              ? `Registration open until ${event.registration_closes_at}`
+              : "Registration open until -"}
             </p>
             <Link
               to={`/events/${id}/register`}

@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { api } from "../api";
 import Navbar from "../components/Navbar";
 import "./ticketTypeForm.css";
 
 function TicketTypeForm() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -14,8 +16,13 @@ function TicketTypeForm() {
   const [maxPerOrder, setMaxPerOrder] = useState("");
   const [hidden, setHidden] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    await api(`/events/${id}/ticket-types`, {
+      method: "POST",
+      body: { name, description, price: Number(price), quantity: Number(quantity) },
+    });
+    navigate(`/organizer/events/${id}`);
   }
 
   return (

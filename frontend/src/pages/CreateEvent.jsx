@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { api } from "../api";
 import "./createEvent.css";
 
 const EMPTY_EVENT = {
@@ -12,8 +13,8 @@ const EMPTY_EVENT = {
 };
 
 function CreateEvent() {
-  // "Duplicate event" on the Event history page sends the copied details here.
   const location = useLocation();
+  const navigate = useNavigate();
   const duplicate = location.state && location.state.duplicate;
   const [form, setForm] = useState(duplicate ? { ...EMPTY_EVENT, ...duplicate } : EMPTY_EVENT);
 
@@ -21,10 +22,21 @@ function CreateEvent() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Creating event:", form);
-  };
+    const created = await api("/events", {
+      method: "POST",
+      body: {
+        title: form.title,
+        description: form.description,
+        date: new Date(form.date).toISOString(),
+        venue: form.venue,
+        capacity: Number(form.capacity),
+        category: form.category,
+      },
+    });
+    navigate(`/organizer/events/${created.id}`);
+  }; 
 
   return (
     <div className="ce">

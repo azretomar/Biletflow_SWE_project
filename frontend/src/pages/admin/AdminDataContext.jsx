@@ -1,19 +1,34 @@
 import { createContext, useContext, useState } from "react";
+import { useApi, send, statusNote } from "../../lib/useApi";
 
 // This "context" keeps the admin data in one place, so every admin page
 // sees the same users and events. When you suspend an event on one page,
 // the other pages see the change too.
 //
-// The lists start empty. When the backend admin API is ready, load the
-// users and events here (e.g. GET /api/admin/users, GET /api/admin/events),
-// and make the functions below (setEventSuspended, setUserSuspended, ...)
-// call the backend too. For now they only change the data in memory.
+// Needs (proposal, platform_admin only; every action is written to the audit log with its reason):
+//   GET  /api/admin/users  -> [{ id, full_name, email, role, suspended, created_at }]
+//   GET  /api/admin/events -> [{ id, title, organizer_id, category, venue, start_at, status, suspended,
+//                                capacity, tickets_sold, revenue_kzt,
+//                                reports: [{ id, reason, reporter, created_at }],
+//                                activation: null | { paid_sales: "pending" | "active" | "stopped",
+//                                  identity_verified, fee_paid, payout_account, terms_accepted, requested_at } }]
+//   GET  /api/admin/stats  -> { failed_payments_7d }
+//   POST /api/admin/users/{id}/suspend | /unsuspend          { reason }
+//   POST /api/admin/events/{id}/suspend | /restore           { reason }   (suspend also stops paid sales)
+//   POST /api/admin/events/{id}/stop-sales | /resume-sales   { reason }
+// The lists stay empty with a short note until the endpoints exist. A change is shown only
+// after the server accepts it.
 
 const AdminDataContext = createContext(null);
 
 export function AdminDataProvider({ children }) {
-  const [users, setUsers] = useState([]);
-  const [events, setEvents] = useState([]);
+  const usersReq = useApi("/admin/users", []);
+  const eventsReq = useApi("/admin/events", []);
+  const statsReq = useApi("/admin/stats", { failed_payments_7d: 0 });
+  const [notice, setNotice] = useState("");
+
+  const users = usersReq.data || [];
+  const events = eventsReq.data || [];
 
   function getUser(id) {
     return users.find((u) => u.id === id);
@@ -24,39 +39,57 @@ export function AdminDataProvider({ children }) {
   }
 
   function updateEvent(id, changes) {
-    setEvents((list) => list.map((e) => (e.id === id ? { ...e, ...changes } : e)));
+    eventsReq.setData((list) => (list || []).map((e) => (e.id === id ? { ...e, ...changes } : e)));
   }
 
-  function setEventSuspended(id, suspended) {
-    const event = getEvent(id);
-    const changes = { suspended };
-    // Suspending an event also stops its paid sales (SRS 4.5 / 4.12).
-    if (suspended && event.activation && event.activation.paid_sales === "active") {
-      changes.activation = { ...event.activation, paid_sales: "stopped" };
-    }
-    updateEvent(id, changes);
+  // Sends one admin action; changes the screen only when the server says OK.
+  async function act(path, reason, apply) {
+    setNotice("");
+    const r = await send(path, "POST", { reason: reason || "" });
+    if (r.ok) apply();
+    else setNotice(r.message);
+    return r;
   }
 
-  function setPaidSalesStopped(id, stopped) {
+  function setEventSuspended(id, suspended, reason) {
     const event = getEvent(id);
-    updateEvent(id, {
-      activation: { ...event.activation, paid_sales: stopped ? "stopped" : "active" },
+    return act(`/admin/events/${id}/${suspended ? "suspend" : "restore"}`, reason, () => {
+      const changes = { suspended };
+      // Suspending an event also stops its paid sales (SRS 4.5 / 4.12).
+      if (suspended && event && event.activation && event.activation.paid_sales === "active") {
+        changes.activation = { ...event.activation, paid_sales: "stopped" };
+      }
+      updateEvent(id, changes);
     });
   }
 
-  function setUserSuspended(id, suspended) {
-    setUsers((list) => list.map((u) => (u.id === id ? { ...u, suspended } : u)));
+  function setPaidSalesStopped(id, stopped, reason) {
+    const event = getEvent(id);
+    return act(`/admin/events/${id}/${stopped ? "stop-sales" : "resume-sales"}`, reason, () =>
+      updateEvent(id, { activation: { ...(event && event.activation), paid_sales: stopped ? "stopped" : "active" } })
+    );
   }
+
+  function setUserSuspended(id, suspended, reason) {
+    return act(`/admin/users/${id}/${suspended ? "suspend" : "unsuspend"}`, reason, () =>
+      usersReq.setData((list) => (list || []).map((u) => (u.id === id ? { ...u, suspended } : u)))
+    );
+  }
+
+  // One short line for the admin pages: loading, not connected, or the last failed action.
+  const loadNote = statusNote(eventsReq.status, eventsReq.error) || statusNote(usersReq.status, usersReq.error);
 
   const value = {
     users,
     events,
-    failedPayments: 0,
+    failedPayments: (statsReq.data && statsReq.data.failed_payments_7d) || 0,
     getUser,
     getEvent,
     setEventSuspended,
     setPaidSalesStopped,
     setUserSuspended,
+    notice: notice || loadNote,
+    clearNotice: () => setNotice(""),
   };
 
   return <AdminDataContext.Provider value={value}>{children}</AdminDataContext.Provider>;

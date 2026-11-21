@@ -47,6 +47,7 @@
 
 .em-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 16px;
   margin-top: 20px;
@@ -61,4 +62,70 @@
   .em-title {
     font-size: 26px;
   }
+}
+.em-table-wrap {
+  position: relative;
+  margin-top: 12px;
+}
+
+.em-cell-sub {
+  display: block;
+  font-size: 13px;
+}
+
+.em-actions-cell {
+  text-align: right;
+}
+
+.em-error {
+  margin: 12px 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #7a1220;
+  background: #f9c6cb;
+  border-radius: 6px;
+}
+
+.em-msg {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: #eaf0fd;
+  border-radius: 6px;
+}
+
+.em-note {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+
+.em-search {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.em-staff-intro {
+  margin: 12px 0;
+  font-size: 15px;
+}
+
+.em-staff-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.em-staff-form .bf-input {
+  flex: 1;
+  min-width: 200px;
+  margin: 0;
+}
+
+.bf-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }

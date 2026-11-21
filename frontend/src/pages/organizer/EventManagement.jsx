@@ -1,31 +1,27 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar";
+import ConfirmDialog from "../../components/ConfirmDialog";
+import { useApi, send, statusNote } from "../../lib/useApi";
+import { kzt, shortDateTime } from "../../lib/format";
 import "./eventManagement.css";
 
+// Event management for the organizer.
+// Already in the backend:
+//   GET    /api/events/{id}                  event + ticket types (sold = quantity - quantity_left)
+//   GET    /api/events/{id}/staff            check-in staff
+//   POST   /api/events/{id}/staff            { email }  (the person must have an account)
+//   DELETE /api/events/{id}/staff/{userId}
+// Still needed (proposal):
+//   GET  /api/organizer/events/{id}/attendees -> [{ ticket_id, full_name, email, ticket_type, status }]
+//   POST /api/organizer/events/{id}/cancel    { reason }
+//   (orders and refunds: see the Orders and refunds page)
+
 const TABS = [
-  { value: "attendees", label: "Attendees" },
-  { value: "orders", label: "Orders" },
   { value: "types", label: "Ticket types" },
+  { value: "attendees", label: "Attendees" },
+  { value: "staff", label: "Check-in staff" },
 ];
-
-const EMPTY_EVENT = {
-  title: "Event name",
-  status: "upcoming",
-  date: "",
-  venue: "",
-  capacity: 0,
-  sold: 0,
-  checked_in: 0,
-  paid_activated: false,
-};
-
-const STATUS_LABELS = {
-  upcoming: "Upcoming",
-  active: "Active",
-  completed: "Completed",
-  cancelled: "Cancelled",
-};
 
 const TICKET_STATUS = {
   valid: { label: "Valid", cls: "bf-badge-valid" },
@@ -34,29 +30,179 @@ const TICKET_STATUS = {
   refunded: { label: "Refunded", cls: "bf-badge-refunded" },
 };
 
-const ORDER_STATUS = {
-  paid: { label: "Paid", cls: "bf-badge-valid" },
-  free: { label: "Free", cls: "bf-badge-completed" },
-  refunded: { label: "Refunded", cls: "bf-badge-refunded" },
-  cancelled: { label: "Cancelled", cls: "bf-badge-cancelled" },
-};
+function eventStatus(ev) {
+  if (!ev || !ev.date) return null;
+  if (ev.status === "cancelled") return { key: "cancelled", label: "Cancelled" };
+  const start = new Date(ev.date);
+  const now = new Date();
+  if (start > now) return { key: "upcoming", label: "Upcoming" };
+  if (now - start < 12 * 60 * 60 * 1000) return { key: "active", label: "Active" };
+  return { key: "completed", label: "Completed" };
+}
 
-function Badge({ map, status }) {
-  const item = map[status] || { label: status, cls: "bf-badge-completed" };
-  return <span className={`bf-badge ${item.cls}`}>{item.label}</span>;
+function StaffSection({ eventId }) {
+  const { data: staff, setData, status, error } = useApi(`/events/${eventId}/staff`, []);
+  const [email, setEmail] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [removing, setRemoving] = useState(null);
+
+  async function add(e) {
+    e.preventDefault();
+    setMsg("");
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setMsg("Enter the email the person signed up with.");
+      return;
+    }
+    setBusy(true);
+    const r = await send(`/events/${eventId}/staff`, "POST", { email: email.trim() });
+    setBusy(false);
+    if (r.ok) {
+      setData([...staff, r.data]);
+      setEmail("");
+      setMsg(`${r.data.full_name || r.data.email} can now check in tickets for this event in the mobile app.`);
+    } else {
+      setMsg(r.message);
+    }
+  }
+
+  async function remove() {
+    const m = removing;
+    const r = await send(`/events/${eventId}/staff/${m.user_id}`, "DELETE");
+    if (r.ok) setData(staff.filter((s) => s.user_id !== m.user_id));
+    setMsg(r.ok ? `${m.full_name || m.email} was removed from check-in staff.` : r.message);
+    setRemoving(null);
+  }
+
+  const note = statusNote(status, error);
+
+  return (
+    <div className="em-staff">
+      <p className="bf-muted em-staff-intro">
+        Check-in staff use the BiletFlow mobile app to scan tickets at the door. They only see this event.
+        The person needs a BiletFlow account first.
+      </p>
+      <form className="em-staff-form" onSubmit={add}>
+        <label className="bf-sr-only" htmlFor="staff-email">Staff email</label>
+        <input id="staff-email" type="email" className="bf-input" placeholder="staff@example.kz"
+          value={email} onChange={(e) => setEmail(e.target.value)} />
+        <button type="submit" className="bf-btn" disabled={busy}>{busy ? "Adding..." : "Add staff"}</button>
+      </form>
+      {msg && <p className="em-msg" role="status">{msg}</p>}
+      {note && <p className="bf-muted em-note" role="status">{note}</p>}
+
+      <div className="bf-table-wrap em-table-wrap">
+        <table className="bf-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Added</th>
+              <th><span className="bf-sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {staff.length === 0 ? (
+              <tr><td colSpan={4} className="bf-muted">No check-in staff yet.</td></tr>
+            ) : (
+              staff.map((m) => (
+                <tr key={m.user_id}>
+                  <td>{m.full_name || "-"}</td>
+                  <td>{m.email}</td>
+                  <td>{shortDateTime(m.assigned_at)}</td>
+                  <td className="em-actions-cell">
+                    <button type="button" className="em-link" onClick={() => setRemoving(m)}>Remove</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {removing && (
+        <ConfirmDialog
+          title="Remove from check-in staff?"
+          message={`${removing.full_name || removing.email} will no longer be able to check in tickets for this event.`}
+          confirmLabel="Remove"
+          danger
+          onConfirm={remove}
+          onCancel={() => setRemoving(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function AttendeesSection({ eventId }) {
+  const { data: attendees, status, error } = useApi(`/organizer/events/${eventId}/attendees`, []);
+  const [search, setSearch] = useState("");
+  const note = statusNote(status, error);
+  const visible = attendees.filter((a) =>
+    !search || (a.full_name + " " + a.email + " " + a.ticket_id).toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <>
+      <input type="search" className="bf-input em-search" placeholder="Search attendees by name, email or ticket"
+        aria-label="Search attendees" value={search} onChange={(e) => setSearch(e.target.value)} />
+      {note && <p className="bf-muted em-note" role="status">{note}</p>}
+      <div className="bf-table-wrap em-table-wrap">
+        <table className="bf-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Ticket type</th>
+              <th>Ticket ID</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.length === 0 ? (
+              <tr><td colSpan={5} className="bf-muted">{attendees.length === 0 ? "No attendees yet." : "No attendees match your search."}</td></tr>
+            ) : (
+              visible.map((a) => {
+                const s = TICKET_STATUS[a.status] || { label: a.status, cls: "bf-badge-completed" };
+                return (
+                  <tr key={a.ticket_id}>
+                    <td>{a.full_name}</td>
+                    <td>{a.email}</td>
+                    <td>{a.ticket_type}</td>
+                    <td><code>{a.ticket_id}</code></td>
+                    <td><span className={`bf-badge ${s.cls}`}>{s.label}</span></td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
 }
 
 function EventManagement() {
   const { id } = useParams();
-  const [tab, setTab] = useState("attendees");
+  const navigate = useNavigate();
+  const [tab, setTab] = useState("types");
+  const { data: event, status, error, code } = useApi(`/events/${id}`, null);
+  const notFound = status === "not_connected" || code === 404 || code === 400;
+  const [cancelling, setCancelling] = useState(false);
+  const [msg, setMsg] = useState("");
 
-  const event = EMPTY_EVENT;
-  const attendees = [];
-  const orders = [];
-  const ticketTypes = [];
+  const types = (event && event.ticket_types) || [];
+  const sold = types.reduce((sum, t) => sum + (t.quantity - t.quantity_left), 0);
+  const capacity = event ? event.capacity : 0;
+  const st = eventStatus(event);
+  const subtitle = event ? [shortDateTime(event.date), event.venue].filter(Boolean).join(" | ") : "";
 
-  const remaining = event.capacity - event.sold;
-  const subtitle = [event.date, event.venue].filter(Boolean).join(" | ");
+  async function cancelEvent(reason) {
+    const r = await send(`/organizer/events/${id}/cancel`, "POST", { reason });
+    setCancelling(false);
+    if (r.ok) navigate("/organizer/dashboard");
+    else setMsg(r.message);
+  }
 
   return (
     <div className="em">
@@ -65,175 +211,123 @@ function EventManagement() {
       <main className="bf-page">
         <Link to="/organizer/dashboard" className="bf-back">&lt;Back to dashboard</Link>
 
-        <div className="em-head">
-          <div>
-            <div className="em-title-row">
-              <h1 className="em-title">{event.title}</h1>
-              <span className={`bf-badge bf-badge-${event.status}`}>{STATUS_LABELS[event.status]}</span>
+        {status === "loading" && <p className="bf-muted">Loading event...</p>}
+        {(status === "error" || status === "not_connected") && (
+          <p className="em-error" role="alert">{notFound ? "Event not found." : error}</p>
+        )}
+
+        {event && (
+          <>
+            <div className="em-head">
+              <div>
+                <div className="em-title-row">
+                  <h1 className="em-title">{event.title}</h1>
+                  {st && <span className={`bf-badge bf-badge-${st.key}`}>{st.label}</span>}
+                </div>
+                <p className="bf-muted em-sub">{subtitle}</p>
+              </div>
+              <div className="em-buttons">
+                <button type="button" className="bf-btn-danger" onClick={() => setCancelling(true)}>Cancel event</button>
+                <Link to={`/organizer/events/${id}/edit`} className="bf-btn-outline">Edit event</Link>
+                <Link to={`/organizer/events/${id}/ticket-types/new`} className="bf-btn">Add ticket type</Link>
+              </div>
             </div>
-            <p className="bf-muted em-sub">{subtitle || "Date and venue"}</p>
-          </div>
-          <div className="em-buttons">
-            <button type="button" className="bf-btn-danger">Cancel event</button>
-            <Link to={`/organizer/events/${id}/edit`} className="bf-btn-outline">Edit event</Link>
-            <Link to={`/organizer/events/${id}/ticket-types/new`} className="bf-btn">Add ticket type</Link>
-          </div>
-        </div>
+            {msg && <p className="em-error" role="alert">{msg}</p>}
 
-        <div className="bf-stats">
-          <div className="bf-stat">
-            <div className="bf-stat-label">Capacity</div>
-            <div className="bf-stat-value">{event.capacity}</div>
-          </div>
-          <div className="bf-stat">
-            <div className="bf-stat-label">Sold</div>
-            <div className="bf-stat-value">{event.sold}</div>
-          </div>
-          <div className="bf-stat">
-            <div className="bf-stat-label">Remaining</div>
-            <div className="bf-stat-value">{remaining}</div>
-          </div>
-          <div className="bf-stat">
-            <div className="bf-stat-label">Checked in</div>
-            <div className="bf-stat-value">{event.checked_in}</div>
-          </div>
-        </div>
+            <div className="bf-stats">
+              <div className="bf-stat">
+                <div className="bf-stat-label">Capacity</div>
+                <div className="bf-stat-value">{capacity}</div>
+              </div>
+              <div className="bf-stat">
+                <div className="bf-stat-label">Sold</div>
+                <div className="bf-stat-value">{sold}</div>
+              </div>
+              <div className="bf-stat">
+                <div className="bf-stat-label">Remaining</div>
+                <div className="bf-stat-value">{Math.max(capacity - sold, 0)}</div>
+              </div>
+              <div className="bf-stat">
+                <div className="bf-stat-label">Ticket types</div>
+                <div className="bf-stat-value">{types.length}</div>
+              </div>
+            </div>
 
-        <div className="bf-chips">
-          {TABS.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              className={tab === t.value ? "bf-chip bf-chip-active" : "bf-chip"}
-              onClick={() => setTab(t.value)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+            <div className="bf-chips" role="tablist" aria-label="Event sections">
+              {TABS.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === t.value}
+                  className={tab === t.value ? "bf-chip bf-chip-active" : "bf-chip"}
+                  onClick={() => setTab(t.value)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
 
-        <div className="bf-table-wrap">
-          {tab === "attendees" && (
-            <table className="bf-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Ticket type</th>
-                  <th>Ticket ID</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attendees.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="bf-muted">No attendees yet.</td>
-                  </tr>
-                ) : (
-                  attendees.map((a) => (
-                    <tr key={a.ticket_id}>
-                      <td>{a.name}</td>
-                      <td>{a.email}</td>
-                      <td>{a.ticket_type}</td>
-                      <td>{a.ticket_id}</td>
-                      <td><Badge map={TICKET_STATUS} status={a.status} /></td>
-                      <td>
-                        {a.status === "valid" && (
-                          <button type="button" className="em-link">Cancel</button>
-                        )}
-                      </td>
+            {tab === "types" && (
+              <div className="bf-table-wrap em-table-wrap">
+                <table className="bf-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Price</th>
+                      <th>Sold</th>
+                      <th>Left</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
+                  </thead>
+                  <tbody>
+                    {types.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="bf-muted">
+                          No ticket types yet. <Link to={`/organizer/events/${id}/ticket-types/new`}>Add one</Link> so people can register.
+                        </td>
+                      </tr>
+                    ) : (
+                      types.map((t) => (
+                        <tr key={t.id}>
+                          <td>
+                            {t.name}
+                            {t.description && <span className="bf-muted em-cell-sub">{t.description}</span>}
+                          </td>
+                          <td>{kzt(t.price)}</td>
+                          <td>{t.quantity - t.quantity_left}</td>
+                          <td>{t.quantity_left}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {tab === "attendees" && <AttendeesSection eventId={id} />}
+            {tab === "staff" && <StaffSection eventId={id} />}
 
-          {tab === "orders" && (
-            <table className="bf-table">
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Buyer</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="bf-muted">No orders yet.</td>
-                  </tr>
-                ) : (
-                  orders.map((o) => (
-                    <tr key={o.id}>
-                      <td>{o.id}</td>
-                      <td>{o.buyer}</td>
-                      <td>{o.total} KZT</td>
-                      <td><Badge map={ORDER_STATUS} status={o.status} /></td>
-                      <td>
-                        {o.status === "paid" && (
-                          <button type="button" className="em-link">Refund</button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
-
-          {tab === "types" && (
-            <table className="bf-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Price</th>
-                  <th>Sold</th>
-                  <th>Left</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ticketTypes.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="bf-muted">No ticket types yet.</td>
-                  </tr>
-                ) : (
-                  ticketTypes.map((t) => (
-                    <tr key={t.id}>
-                      <td>{t.name}</td>
-                      <td>{t.price === 0 ? "Free" : `${t.price} KZT`}</td>
-                      <td>{t.sold}</td>
-                      <td>{t.quantity_left}</td>
-                      <td>
-                        <button type="button" className="em-link">Edit</button>
-                        <button type="button" className="em-link">Hide</button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        <div className="em-foot">
-          <span className="bf-muted">
-            Paid sales: {event.paid_activated ? "Activated" : "Not activated"}
-          </span>
-          {!event.paid_activated && (
-            <Link to={`/organizer/events/${id}/activation`}>Activate&gt;</Link>
-          )}
-        </div>
-
-        <div className="em-foot">
-          <Link to={`/organizer/events/${id}/analytics`}>Analytics&gt;</Link>
-          <Link to={`/organizer/events/${id}/history`}>History&gt;</Link>
-        </div>
+            <nav className="em-foot" aria-label="More for this event">
+              <Link to={`/organizer/events/${id}/orders`}>Orders and refunds&gt;</Link>
+              <Link to={`/organizer/events/${id}/activation`}>Paid sales activation&gt;</Link>
+              <Link to={`/organizer/events/${id}/analytics`}>Analytics&gt;</Link>
+              <Link to={`/organizer/events/${id}/history`}>History&gt;</Link>
+              <Link to={`/events/${id}`}>View public page&gt;</Link>
+            </nav>
+          </>
+        )}
       </main>
+
+      {cancelling && (
+        <ConfirmDialog
+          title="Cancel this event?"
+          message="The event will be marked as cancelled, ticket sales stop, and attendees are notified. This cannot be undone."
+          confirmLabel="Cancel event"
+          danger
+          needsReason
+          onConfirm={cancelEvent}
+          onCancel={() => setCancelling(false)}
+        />
+      )}
     </div>
   );
 }

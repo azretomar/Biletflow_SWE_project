@@ -104,8 +104,8 @@ function AdminUsers() {
           confirmLabel={confirming.suspended ? "Unsuspend" : "Suspend user"}
           danger={!confirming.suspended}
           needsReason
-          onConfirm={() => {
-            setUserSuspended(confirming.id, !confirming.suspended);
+          onConfirm={(reason) => {
+            setUserSuspended(confirming.id, !confirming.suspended, reason);
             setConfirming(null);
           }}
           onCancel={() => setConfirming(null)}

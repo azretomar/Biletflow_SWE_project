@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar";
+import { useApi, statusNote } from "../../lib/useApi";
 import "./eventAnalytics.css";
 
 // Event analytics for organizers (SRS 4.15).
@@ -86,7 +87,8 @@ function SalesChart({ days }) {
 
 function EventAnalytics() {
   const { id } = useParams();
-  const [data] = useState(EMPTY_ANALYTICS);
+  const { data, status, error } = useApi(`/organizer/events/${id}/analytics`, EMPTY_ANALYTICS);
+  const note = statusNote(status, error);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [ticketType, setTicketType] = useState("");
@@ -111,6 +113,8 @@ function EventAnalytics() {
           {data.event.starts_at && " | " + eventDate(data.event.starts_at)}
           {data.event.venue && " | " + data.event.venue}
         </p>
+
+        {note && <p className="bf-muted ea-note" role="status">{note}</p>}
 
         <form className="ea-filters" onSubmit={(e) => e.preventDefault()} aria-label="Filters">
           <div>

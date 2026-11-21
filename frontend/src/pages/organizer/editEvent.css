@@ -40,3 +40,16 @@
     grid-template-columns: 1fr;
   }
 }
+.ee-message {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #7a1220;
+  background: #f9c6cb;
+  border-radius: 6px;
+}
+
+.ee-hint {
+  margin: 12px 0 0;
+  font-size: 14px;
+}

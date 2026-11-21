@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { api } from "../api";
+import EventImage from "../components/EventImage";
+import { useApi, statusNote } from "../lib/useApi";
 import { kzt, shortDateTime } from "../lib/format";
+import { sortUpcoming } from "../lib/events";
 import "./home.css";
 
 const CATEGORIES = [
@@ -18,15 +20,18 @@ function Home() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
 
-  const [events, setEvents] = useState([]);
+  const navigate = useNavigate();
+  const { data: events, status, error } = useApi("/events", []);
+  // The six nearest upcoming events; the full list with filters is on /events.
+  const upcoming = sortUpcoming(events || []).filter((ev) => new Date(ev.date) >= new Date()).slice(0, 6);
 
-  useEffect(() => {
-    api("/events").then(setEvents);
-  }, []);
-
+  // The search opens the Events page with the filters filled in.
   function handleSearch(e) {
     e.preventDefault();
-    // TODO: when the events API is ready, load events filtered by search and category.
+    const q = new URLSearchParams();
+    if (search.trim()) q.set("q", search.trim());
+    if (category) q.set("category", category);
+    navigate(`/events${q.toString() ? `?${q}` : ""}`);
   }
 
   return (
@@ -58,23 +63,30 @@ function Home() {
 
       <section id="events" className="home-section">
         <h2>Upcoming events</h2>
-        {events.length === 0 ? (
+        {status === "loading" ? (
+          <p className="bf-muted">Loading events...</p>
+        ) : upcoming.length === 0 ? (
           <div className="home-empty">
-            <p>No events yet. Check back soon.</p>
+            <p>{status === "ready" ? "No upcoming events yet. Check back soon." : statusNote(status, error)}</p>
           </div>
         ) : (
           <div className="home-event-grid">
-            {events.map((ev) => (
+            {upcoming.map((ev) => (
               <article key={ev.id} className="bf-card">
-                <div className="bf-img">Event image</div>
+                <EventImage src={ev.image_url} />
                 <span className="bf-category">{ev.category}</span>
                 <h3>{ev.title}</h3>
                 <p className="bf-muted">{shortDateTime(ev.date)} · {ev.venue}</p>
-                <strong>{kzt(ev.min_price)}</strong>
-                <Link to={`/events/${ev.id}`}>View event &gt;</Link>
+                <div className="home-card-foot">
+                  <strong>{ev.min_price === 0 ? "Free" : `from ${kzt(ev.min_price)}`}</strong>
+                  <Link to={`/events/${ev.id}`}>View event &gt;</Link>
+                </div>
               </article>
             ))}
           </div>
+        )}
+        {upcoming.length > 0 && (
+          <p className="home-all-link"><Link to="/events">See all events &gt;</Link></p>
         )}
       </section>
 

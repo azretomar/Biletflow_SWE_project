@@ -627,3 +627,12 @@ a.stat-card:hover {
     padding: 16px;
   }
 }
+
+.admin-notice {
+  margin: 0 0 16px;
+  padding: 8px 14px;
+  font-size: 14px;
+  color: #4a4f5a;
+  background: #e8eaee;
+  border-radius: 6px;
+}

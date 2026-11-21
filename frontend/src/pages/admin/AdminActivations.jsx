@@ -94,8 +94,8 @@ function AdminActivations() {
           confirmLabel={confirming.activation.paid_sales === "active" ? "Stop paid sales" : "Resume sales"}
           danger={confirming.activation.paid_sales === "active"}
           needsReason
-          onConfirm={() => {
-            setPaidSalesStopped(confirming.id, confirming.activation.paid_sales === "active");
+          onConfirm={(reason) => {
+            setPaidSalesStopped(confirming.id, confirming.activation.paid_sales === "active", reason);
             setConfirming(null);
           }}
           onCancel={() => setConfirming(null)}

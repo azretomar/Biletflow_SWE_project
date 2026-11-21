@@ -15,14 +15,30 @@ function TicketTypeForm() {
   const [salesEnd, setSalesEnd] = useState("");
   const [maxPerOrder, setMaxPerOrder] = useState("");
   const [hidden, setHidden] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    await api(`/events/${id}/ticket-types`, {
-      method: "POST",
-      body: { name, description, price: Number(price), quantity: Number(quantity) },
-    });
-    navigate(`/organizer/events/${id}`);
+    setError("");
+    const p = Number(price);
+    const q = Number(quantity);
+    if (!name.trim()) return setError("Enter a ticket name.");
+    if (!Number.isInteger(p) || p < 0) return setError("Price must be 0 (free) or a whole number of KZT.");
+    if (!Number.isInteger(q) || q < 1) return setError("Quantity must be at least 1.");
+    setBusy(true);
+    try {
+      // Sales dates, max per order and "hidden" are not stored by the backend yet.
+      await api(`/events/${id}/ticket-types`, {
+        method: "POST",
+        body: { name: name.trim(), description, price: p, quantity: q },
+      });
+      navigate(`/organizer/events/${id}`);
+    } catch (err) {
+      setError(err.status === 401 || err.status === 403 ? "Only the organizer of this event can add ticket types." : err.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -127,9 +143,10 @@ function TicketTypeForm() {
             Hide this ticket type
           </label>
 
+          {error && <p className="ttf-error" role="alert">{error}</p>}
           <div className="ttf-actions">
             <Link to={`/organizer/events/${id}`} className="bf-btn-outline">Cancel</Link>
-            <button type="submit" className="bf-btn">Save ticket type</button>
+            <button type="submit" className="bf-btn" disabled={busy}>{busy ? "Saving..." : "Save ticket type"}</button>
           </div>
         </form>
       </main>

@@ -41,6 +41,8 @@ export async function api(path, { method = "GET", body } = {}) {
   if (!res.ok) {
     const error = new Error((data && data.error) || "Something went wrong.");
     error.status = res.status;
+    // true when the backend itself answered with a message (the endpoint exists)
+    error.fromServer = Boolean(data && data.error);
     throw error;
   }
   return data;

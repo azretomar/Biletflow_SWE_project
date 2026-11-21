@@ -11,11 +11,19 @@ function AdminLayout() {
       <div className="admin">
         <AdminSidebar />
         <main className="admin-main">
+          <AdminNotice />
           <Outlet />
         </main>
       </div>
     </AdminDataProvider>
   );
+}
+
+// Shows loading, "not connected yet", or why the last admin action failed.
+function AdminNotice() {
+  const { notice } = useAdminData();
+  if (!notice) return null;
+  return <p className="admin-notice" role="status">{notice}</p>;
 }
 
 function AdminSidebar() {

@@ -6,11 +6,11 @@ import { StatusBadge, ConfirmDialog } from "./AdminComponents";
 // Screen 3: Event detail (admin view) - info, organizer, sales, reports,
 // and the two admin actions: suspend event / stop paid sales.
 function AdminEventDetail() {
-  const { id } = useParams(); // the number in the address, e.g. /admin/events/103
+  const { id } = useParams();
   const { getEvent, getUser, setEventSuspended, setPaidSalesStopped } = useAdminData();
   const [dialog, setDialog] = useState(null); // "suspend" | "restore" | "stop-sales" | "resume-sales"
 
-  const event = getEvent(Number(id));
+  const event = getEvent(id);
 
   if (!event) {
     return (

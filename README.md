@@ -1,109 +1,88 @@
 # BiletFlow
 
-Self-service event ticketing platform for Kazakhstan (CSCI 361, Team 5).
+Self-service event ticketing platform for Kazakhstan (CSCI 361, Team 5). This is an academic prototype: payments, identity checks, payouts and emails are simulated, and no real money moves.
 
 ## Tech stack
 
-| Area | Choice |
-| --- | --- |
-| Backend | Go |
-| Database | PostgreSQL |
-| Web frontend | React (Vite) |
-| Mobile check-in app | Flutter |
-| Design | Canva mockups |
-| Task tracking | Jira |
+| Area                | Choice        |
+| ------------------- | ------------- |
+| Backend             | Go            |
+| Database            | PostgreSQL    |
+| Web frontend        | React (Vite)  |
+| Mobile check-in app | Flutter (in progress) |
+| Design              | Canva mockups |
+| Task tracking       | Jira          |
 
-## API endpoints
+## Features (web part)
 
-Implemented in the backend:
+- Accounts: sign up, log in, email verification, password reset, roles (attendee, organizer, event admin, platform admin).
+- Events: create, edit, publish, cancel, duplicate into a new draft, report an event. Organizer profile and refund policy.
+- Ticket types: free and paid, price, quantity, sale period, per-order limit.
+- Free registration and simulated checkout (success or failure), with ticket inventory locked during checkout.
+- Paid sales activation per event (identity check, payout account, activation fee and terms, all simulated).
+- QR-code tickets, ticket page, and a printable ticket (Print / Save as PDF through the browser).
+- Promo codes and campaign QR codes (`/events/:id?promo=CODE`). Discounts are calculated and limited on the server. A campaign QR is rejected at check-in.
+- Check-in endpoint for the organizer and staff assigned to the event. Staff assignment per event.
+- Orders, order cancellation and full refunds (simulated).
+- Organizer analytics (capacity, sales over time, revenue, ticket types, campaigns, attendance) and event history with activity timeline.
+- Support cases with a message thread (attendee and platform admin).
+- Admin portal: users, events, paid-sales activations, support cases, suspend and restore users and events, audit log of admin actions (API: `/api/admin/audit`).
 
-| Method | Path | Sends | Returns |
-| --- | --- | --- | --- |
-| POST | /api/auth/signup | full_name, email, password, role | token and user |
-| POST | /api/auth/login | email, password | token and user |
-| GET | /api/me | none | the logged-in user |
-| POST | /api/events/{id}/register | ticket_type_id, quantity | order_id and the created tickets (id, qr_code, status) |
-| GET | /api/my-tickets | none | the user's tickets, each with event, ticket_type and status |
-| POST | /api/checkin | qr_code | check-in result and ticket |
+## API
 
-Planned (draft, to be confirmed with backend):
+The full list of endpoints is in [docs/api.md](docs/api.md). Errors always look like `{ "error": "message" }`. Send `Authorization: Bearer <token>` where a role is required.
 
-| Method | Path | Sends | Returns |
-| --- | --- | --- | --- |
-| GET | /api/events | none | list of events, each with min_price |
-| GET | /api/events/:id | none | one event, with its ticket_types |
-| POST | /api/events | title, description, date, venue, capacity, category | the created event |
-| POST | /api/events/:id/ticket-types | name, description, price, quantity | the created ticket type |
+## Frontend pages
 
-Event fields: id, title, description, date, venue, capacity, category, image_url, organizer_name, registration_closes_at.
-Event list extra field: min_price (lowest ticket price in KZT, 0 means free).
-Ticket type fields: id, name, description, price (KZT, 0 for free), quantity, quantity_left.
-Organizer event fields (dashboard and Event management): status (upcoming, active, completed, cancelled), sold, checked_in, paid_activated.
-Attendee row fields: name, email, ticket_type, ticket_id, status (valid, checked_in, cancelled, refunded).
-Order row fields: id, buyer, total, status (paid, free, refunded, cancelled).
-Ticket fields (from GET /api/my-tickets): id, qr_code, status, event (id, title, date, venue), ticket_type (name, price), checked_in_at.
-Roles: attendee, organizer.
+Public: `/`, `/events`, `/events/:id`, `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password`
 
-### Frontend pages
+Logged-in users: `/events/:id/checkout`, `/my-tickets`, `/tickets/:id`, `/tickets/:id/print`, `/my-orders`, `/support`, `/support/new`, `/support/:id`
 
-Built:
-- / (Home)
-- /events (Event list, empty until the backend is connected)
-- /events/:id (Event detail)
-- /events/:id/register (Registration)
-- /my-tickets (My tickets)
-- /tickets/:id (Ticket view)
-- /signup
-- /login
-- /create-event
-- /organizer/dashboard (Organizer dashboard)
-- /organizer/events/:id (Event management)
-- /organizer/events/:id/edit (Edit event)
-- /organizer/events/:id/ticket-types/new (Ticket type form)
-- /organizer/events/:id/activation (Activation checklist)
-- /organizer/events/:id/analytics (Event analytics)
-- /organizer/events/:id/history (Event history, with duplicate event)
-- /organizer/promo (Promo campaigns)
-- /admin and its sub-pages (admin portal)
+Organizer: `/create-event`, `/organizer/dashboard`, `/organizer/profile`, `/organizer/promo`, `/organizer/events/:id` (management, `/edit`, `/ticket-types/new`, `/ticket-types/:typeId/edit`, `/activation`, `/orders`, `/analytics`, `/history`)
 
-Not built: attendee support request page (owner to be confirmed).
+Platform admin: `/admin` (dashboard, `/events`, `/events/:id`, `/users`, `/activations`, `/support`, `/support/:id`)
 
-Shared code: `src/components/Navbar.jsx` (navbar, with a temporary logged-in/logged-out dev switch) and `src/shared.css` (styles for the new pages). Older pages (Home, Sign up, Log in, Create event, Admin, Promo) keep their own CSS files and may be migrated to `shared.css` later.
+## Simulations and known limitations
+
+- Payments, identity verification, payouts and the activation fee are simulated (allowed by SRS 3.2 and 4.6).
+- Emails (verification, password reset, refunds, cancellations) are written to the backend log instead of being sent: `docker compose logs backend`. The links in them work. No mail service is connected, and ticket confirmation emails are not sent; tickets are available in the attendee's account.
+- Kazakh and Russian interface languages are not implemented (localization polish is cut under SRS 13.4). The interface is in English.
+- Not implemented: check-in undo, assigned seating, calendar (.ics) export, server-generated PDF tickets (the printable page uses the browser's print dialog), an admin page for the audit log, configurable activation fee.
+- The mobile verification app is not part of this web release.
 
 ## Run everything with Docker
 
 Requires Docker Desktop (or Docker Engine + Compose v2).
 
-```bash
+```
 cp backend/.env.example backend/.env   # then set JWT_SECRET (32+ chars)
 docker compose up --build
 ```
 
-| Service | URL |
-| --- | --- |
-| Web app | http://localhost:5173 |
-| API | http://localhost:8080 (health: `/health`) |
-| PostgreSQL | localhost:5432, user/password/db `biletflow` |
+| Service    | URL                                            |
+| ---------- | ---------------------------------------------- |
+| Web app    | http://localhost:5173                          |
+| API        | http://localhost:8080 (health: `/health`)      |
+| PostgreSQL | localhost:5432, user/password/db `biletflow`   |
 
-nginx in the frontend container forwards `/api/*` to the backend, so the browser
-talks to one origin and no CORS setup is needed.
+nginx in the frontend container forwards `/api/*` to the backend, so the browser talks to one origin and no CORS setup is needed.
 
-Stop with `docker compose down`. **Do not** add `-v` unless you want to wipe the database.
+Stop with `docker compose down`. Do not add `-v` unless you want to wipe the database.
 
 ## Local development (hot reload)
 
 Run only the database in Docker, and the backend and frontend on the host, each in its own terminal:
 
-```bash
+```
 docker compose up -d db
 ```
 
-```bash
+```
 cd backend
 go run .   # needs DATABASE_URL and JWT_SECRET in the environment (see backend/.env.example)
 ```
 
-```bash
+```
 cd frontend
 npm install
 npm run dev
@@ -113,5 +92,13 @@ The Vite dev server proxies `/api` to `http://localhost:8080`.
 
 ### Frontend only
 
-To work on pages without the backend, just run the last block (`npm install`, `npm run dev`).
-API calls will fail until the backend is running.
+To work on pages without the backend, run only `npm install` and `npm run dev` in `frontend`. API calls will fail until the backend is running.
+
+## Tests
+
+```
+cd backend
+go test ./...
+```
+
+Backend tests use a real PostgreSQL database through `TEST_DATABASE_URL`. CI (`.github/workflows/ci.yml`) runs `go vet`, `go build` and `go test` on every push to `main` and on pull requests.

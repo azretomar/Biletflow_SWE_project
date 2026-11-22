@@ -83,9 +83,15 @@ function TicketView() {
           </section>
 
           <aside className="bf-panel tv-qr">
-            <QrCode value={ticket ? ticket.qr_code : ""} />
-            <p className="tv-qr-id">{ticket ? ticket.id : "-"}</p>
-            <p>Show this at the entrance</p>
+            {ticket && (ticket.status === "refunded" || ticket.status === "cancelled") ? (
+              <p>This ticket is no longer valid.</p>
+            ) : (
+              <>
+                <QrCode value={ticket ? ticket.qr_code : ""} />
+                <p className="tv-qr-id">{ticket ? ticket.id : "-"}</p>
+                <p>Show this at the entrance</p>
+              </>
+            )}
           </aside>
         </div>
         )}

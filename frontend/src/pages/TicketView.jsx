@@ -80,6 +80,9 @@ function TicketView() {
                 Print
               </Link>
             </div>
+            <p className="tv-help">
+              Problem with this ticket? <Link to={`/support/new?ticket=${id}`}>Contact support</Link>
+            </p>
           </section>
 
           <aside className="bf-panel tv-qr">

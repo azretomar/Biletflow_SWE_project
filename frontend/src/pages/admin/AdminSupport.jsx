@@ -6,8 +6,11 @@ import { shortDateTime, CASE_STATUS } from "../../lib/format";
 import { CATEGORIES, ContextLink, Thread, ReplyBox } from "../Support";
 import "../support.css";
 
-// Platform Admin: support cases (SRS 4.12, 4.13).
-// Backend (docs/api.md, platform_admin only):
+// Support cases for staff (SRS 4.12, 4.13). Used twice:
+//   scope="admin":     platform admins, every case       (/admin/support)
+//   scope="organizer": organizers, cases about their events (/organizer/support), same API under
+//                      /api/organizer/support/cases (planned: frontend ready, backend not built yet)
+// Backend (docs/api.md):
 //   GET   /api/admin/support/cases?status=   -> [{ id, subject, status, category, requester: { full_name, email },
 //                                                 assignee: { id, full_name } | null, updated_at, context }]
 //   GET   /api/admin/support/cases/{id}      -> same as one case + messages
@@ -27,16 +30,24 @@ function categoryLabel(v) {
   return c ? c.label : v || "-";
 }
 
+const SCOPES = {
+  admin: { api: "/admin/support/cases", base: "/admin/support", title: "Support cases",
+    empty: "No support cases.", reply: "Reply to the customer..." },
+  organizer: { api: "/organizer/support/cases", base: "/organizer/support", title: "Support requests about your events",
+    empty: "No support requests about your events yet.", reply: "Reply to the attendee..." },
+};
+
 function CaseStatusBadge({ status }) {
   const s = CASE_STATUS[status] || { label: status };
   return <span className={"badge badge-case-" + status}>{s.label}</span>;
 }
 
-export function AdminSupportList() {
+export function AdminSupportList({ scope = "admin" }) {
+  const sc = SCOPES[scope];
   const [params, setParams] = useSearchParams();
   const filter = params.get("status") || "";
   const [search, setSearch] = useState("");
-  const { data: cases, status, error } = useApi(`/admin/support/cases${filter ? `?status=${filter}` : ""}`, []);
+  const { data: cases, status, error } = useApi(`${sc.api}${filter ? `?status=${filter}` : ""}`, []);
   const note = statusNote(status, error);
 
   const visible = cases.filter((c) => {
@@ -46,7 +57,7 @@ export function AdminSupportList() {
 
   return (
     <div className="admin-page">
-      <h1>Support cases</h1>
+      <h1>{sc.title}</h1>
       <div className="toolbar">
         <input type="search" className="search-input" placeholder="Search by subject, person or case number..."
           aria-label="Search support cases" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -64,7 +75,7 @@ export function AdminSupportList() {
 
       <div className="panel">
         {visible.length === 0 ? (
-          <p className="empty">{cases.length === 0 ? "No support cases." : "No cases match your search."}</p>
+          <p className="empty">{cases.length === 0 ? sc.empty : "No cases match your search."}</p>
         ) : (
           <table className="table">
             <thead>
@@ -81,7 +92,7 @@ export function AdminSupportList() {
               {visible.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    <Link to={`/admin/support/${c.id}`}>{c.subject}</Link>
+                    <Link to={`${sc.base}/${c.id}`}>{c.subject}</Link>
                     <span className="cell-sub">#{c.id}</span>
                   </td>
                   <td>
@@ -102,22 +113,23 @@ export function AdminSupportList() {
   );
 }
 
-export function AdminSupportCase() {
+export function AdminSupportCase({ scope = "admin" }) {
+  const sc = SCOPES[scope];
   const { id } = useParams();
   const { user } = useAuth();
-  const { data: c, setData, status, error } = useApi(`/admin/support/cases/${id}`, null);
+  const { data: c, setData, status, error } = useApi(`${sc.api}/${id}`, null);
   const [msg, setMsg] = useState("");
   const note = statusNote(status, error);
 
   async function patch(body, apply) {
     setMsg("");
-    const r = await send(`/admin/support/cases/${id}`, "PATCH", body);
+    const r = await send(`${sc.api}/${id}`, "PATCH", body);
     if (r.ok) setData({ ...c, ...apply, ...(r.data || {}) });
     else setMsg(r.message);
   }
 
   async function reply(body) {
-    const r = await send(`/admin/support/cases/${id}/messages`, "POST", { body });
+    const r = await send(`${sc.api}/${id}/messages`, "POST", { body });
     if (r.ok) {
       const created = r.data && r.data.id ? r.data : {
         id: Date.now(), author_name: user.full_name || user.email, author_role: user.role, body,
@@ -130,7 +142,7 @@ export function AdminSupportCase() {
 
   return (
     <div className="admin-page">
-      <Link to="/admin/support" className="back-link">← All support cases</Link>
+      <Link to={sc.base} className="back-link">← All support cases</Link>
       {note && <p className="page-intro" role="status">{note}</p>}
       {!c ? (
         status !== "loading" && <h1>Support case #{id}</h1>
@@ -183,7 +195,7 @@ export function AdminSupportCase() {
           <section className="panel">
             <h2>Conversation</h2>
             <Thread messages={c.messages} meRole="staff" />
-            <ReplyBox onSend={reply} placeholder="Reply to the customer..." />
+            <ReplyBox onSend={reply} placeholder={sc.reply} />
           </section>
         </>
       )}

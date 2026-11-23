@@ -214,6 +214,8 @@
 
 /* Campaign list */
 .pc-table-wrap {
+  /* relative: keeps the hidden screen-reader labels inside the scrolling box on phones */
+  position: relative;
   overflow-x: auto;
 }
 

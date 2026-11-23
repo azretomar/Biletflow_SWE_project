@@ -103,6 +103,11 @@ function EventDetail() {
 
             <h2 className="ed-about">About this event</h2>
             <p className="bf-muted ed-description">{event.description || "No description."}</p>
+            {user && !isOwner && (
+              <p className="ed-help">
+                Questions about this event? <Link to={`/support/new?event=${id}`}>Contact support</Link>
+              </p>
+            )}
             {user && !isOwner && <ReportEvent eventId={id} />}
           </section>
 

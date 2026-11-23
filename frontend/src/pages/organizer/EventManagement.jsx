@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { useApi, send, statusNote } from "../../lib/useApi";
@@ -13,7 +13,9 @@ import "./eventManagement.css";
 //   GET    /api/events/{id}/staff            check-in staff
 //   POST   /api/events/{id}/staff            { email }  (the person must have an account)
 //   DELETE /api/events/{id}/staff/{userId}
-//   GET    /api/organizer/events/{id}/attendees -> [{ ticket_id, full_name, email, ticket_type, status }]
+//   GET    /api/organizer/events/{id}/attendees -> [{ ticket_id, full_name, email, ticket_type, status, checked_in_at }]
+//   Planned (frontend ready, backend not built yet; see docs/api.md):
+//   POST   /api/checkin/undo { event_id, ticket_id }  (undo an accidental check-in, SRS 4.8)
 //   POST   /api/organizer/events/{id}/cancel    { reason }
 //   (orders and refunds: see the Orders and refunds page)
 
@@ -135,10 +137,24 @@ function StaffSection({ eventId }) {
   );
 }
 
-function AttendeesSection({ eventId }) {
-  const { data: attendees, status, error } = useApi(`/organizer/events/${eventId}/attendees`, []);
+function AttendeesSection({ eventId, list }) {
+  const { data: attendees, setData, status, error } = list;
   const [search, setSearch] = useState("");
+  const [undoing, setUndoing] = useState(null); // attendee whose check-in to undo
+  const [msg, setMsg] = useState("");
   const note = statusNote(status, error);
+
+  async function undo() {
+    const a = undoing;
+    setUndoing(null);
+    const r = await send("/checkin/undo", "POST", { event_id: eventId, ticket_id: a.ticket_id });
+    if (r.ok) {
+      setData(attendees.map((x) => (x.ticket_id === a.ticket_id ? { ...x, status: "valid", checked_in_at: null } : x)));
+      setMsg(`Check-in undone for ${a.full_name}. The ticket can be scanned again.`);
+    } else {
+      setMsg(r.message);
+    }
+  }
   const visible = attendees.filter((a) =>
     !search || (a.full_name + " " + a.email + " " + a.ticket_id).toLowerCase().includes(search.toLowerCase())
   );
@@ -148,6 +164,7 @@ function AttendeesSection({ eventId }) {
       <input type="search" className="bf-input em-search" placeholder="Search attendees by name, email or ticket"
         aria-label="Search attendees" value={search} onChange={(e) => setSearch(e.target.value)} />
       {note && <p className="bf-muted em-note" role="status">{note}</p>}
+      {msg && <p className="em-msg" role="status">{msg}</p>}
       <div className="bf-table-wrap em-table-wrap">
         <table className="bf-table">
           <thead>
@@ -157,11 +174,12 @@ function AttendeesSection({ eventId }) {
               <th>Ticket type</th>
               <th>Ticket ID</th>
               <th>Status</th>
+              <th><span className="bf-sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
             {visible.length === 0 ? (
-              <tr><td colSpan={5} className="bf-muted">{attendees.length === 0 ? "No attendees yet." : "No attendees match your search."}</td></tr>
+              <tr><td colSpan={6} className="bf-muted">{attendees.length === 0 ? "No attendees yet." : "No attendees match your search."}</td></tr>
             ) : (
               visible.map((a) => {
                 const s = TICKET_STATUS[a.status] || { label: a.status, cls: "bf-badge-completed" };
@@ -171,7 +189,15 @@ function AttendeesSection({ eventId }) {
                     <td>{a.email}</td>
                     <td>{a.ticket_type}</td>
                     <td><code>{a.ticket_id}</code></td>
-                    <td><span className={`bf-badge ${s.cls}`}>{s.label}</span></td>
+                    <td>
+                      <span className={`bf-badge ${s.cls}`}>{s.label}</span>
+                      {a.checked_in_at && <span className="bf-muted em-cell-sub">{shortDateTime(a.checked_in_at)}</span>}
+                    </td>
+                    <td className="em-actions-cell">
+                      {a.status === "checked_in" && (
+                        <button type="button" className="em-link" onClick={() => setUndoing(a)}>Undo check-in</button>
+                      )}
+                    </td>
                   </tr>
                 );
               })
@@ -179,8 +205,29 @@ function AttendeesSection({ eventId }) {
           </tbody>
         </table>
       </div>
+      {undoing && (
+        <ConfirmDialog
+          title="Undo this check-in?"
+          message={`${undoing.full_name}'s ticket becomes valid again and can be scanned at the door. Use this only for a check-in made by mistake.`}
+          confirmLabel="Undo check-in"
+          onConfirm={undo}
+          onCancel={() => setUndoing(null)}
+        />
+      )}
     </>
   );
+}
+
+// Per ticket type: how many tickets are checked in and how many were refunded or cancelled.
+// Keyed by ticket type name, which the attendee list gives for every ticket.
+function countByType(attendees) {
+  const out = {};
+  for (const a of attendees) {
+    const c = out[a.ticket_type] || (out[a.ticket_type] = { checkedIn: 0, returned: 0 });
+    if (a.status === "checked_in") c.checkedIn += 1;
+    if (a.status === "refunded" || a.status === "cancelled") c.returned += 1;
+  }
+  return out;
 }
 
 function EventManagement() {
@@ -188,6 +235,11 @@ function EventManagement() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("types");
   const { data: event, setData: setEvent, status, error, code } = useApi(`/events/${id}`, null);
+  const attendeeList = useApi(`/organizer/events/${id}/attendees`, []);
+  const location = useLocation();
+  // After "Duplicate event": ticket types that could not be copied (e.g. capacity was lowered).
+  const copyErrors = (location.state && location.state.copyErrors) || [];
+  const counts = countByType(attendeeList.data);
   const notFound = status === "not_connected" || code === 404 || code === 400;
   const [cancelling, setCancelling] = useState(false);
   const [deleting, setDeleting] = useState(null); // ticket type to delete
@@ -208,11 +260,13 @@ function EventManagement() {
     else setMsg(r.message);
   }
 
-  async function publish() {
+  // Publish a draft, or take a published event back to draft while nobody has a ticket (SRS 4.2).
+  async function setPublished(published) {
     setMsg("");
     const r = await send(`/events/${id}`, "PUT", {
       title: event.title, description: event.description, date: event.date, venue: event.venue,
-      capacity: event.capacity, category: event.category, image_url: event.image_url, status: "published",
+      capacity: event.capacity, category: event.category, image_url: event.image_url,
+      status: published ? "published" : "draft",
     });
     if (r.ok) setEvent({ ...event, ...r.data });
     else setMsg(r.message);
@@ -253,7 +307,10 @@ function EventManagement() {
                   <button type="button" className="bf-btn-danger" onClick={() => setCancelling(true)}>Cancel event</button>
                   <Link to={`/organizer/events/${id}/edit`} className="bf-btn-outline">Edit event</Link>
                   {event.status === "draft" && (
-                    <button type="button" className="bf-btn-outline" onClick={publish}>Publish</button>
+                    <button type="button" className="bf-btn-outline" onClick={() => setPublished(true)}>Publish</button>
+                  )}
+                  {event.status === "published" && sold === 0 && (
+                    <button type="button" className="bf-btn-outline" onClick={() => setPublished(false)}>Unpublish</button>
                   )}
                   <Link to={`/organizer/events/${id}/ticket-types/new`} className="bf-btn">Add ticket type</Link>
                 </div>
@@ -271,6 +328,11 @@ function EventManagement() {
               <p className="em-error" role="alert">BiletFlow suspended this event: it is hidden and sales are stopped. Contact support.</p>
             )}
             {msg && <p className="em-error" role="alert">{msg}</p>}
+            {copyErrors.length > 0 && (
+              <p className="em-error" role="alert">
+                Some ticket types were not copied: {copyErrors.join("; ")}. Add them again with "Add ticket type".
+              </p>
+            )}
 
             <div className="bf-stats">
               <div className="bf-stat">
@@ -315,13 +377,15 @@ function EventManagement() {
                       <th>Price</th>
                       <th>Sold</th>
                       <th>Left</th>
+                      <th>Checked in</th>
+                      <th>Refunded / cancelled</th>
                       {!cancelled && <th><span className="bf-sr-only">Actions</span></th>}
                     </tr>
                   </thead>
                   <tbody>
                     {types.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="bf-muted">
+                        <td colSpan={7} className="bf-muted">
                           No ticket types yet. <Link to={`/organizer/events/${id}/ticket-types/new`}>Add one</Link> so people can register.
                         </td>
                       </tr>
@@ -335,6 +399,8 @@ function EventManagement() {
                           <td>{kzt(t.price)}</td>
                           <td>{t.quantity - t.quantity_left}</td>
                           <td>{t.quantity_left}</td>
+                          <td>{counts[t.name] ? counts[t.name].checkedIn : 0}</td>
+                          <td>{counts[t.name] ? counts[t.name].returned : 0}</td>
                           {!cancelled && (
                             <td className="em-row-actions">
                               <Link to={`/organizer/events/${id}/ticket-types/${t.id}/edit`} className="em-link">Edit</Link>
@@ -350,7 +416,7 @@ function EventManagement() {
                 </table>
               </div>
             )}
-            {tab === "attendees" && <AttendeesSection eventId={id} />}
+            {tab === "attendees" && <AttendeesSection eventId={id} list={attendeeList} />}
             {tab === "staff" && <StaffSection eventId={id} />}
 
             <nav className="em-foot" aria-label="More for this event">

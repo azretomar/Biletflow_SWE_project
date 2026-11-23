@@ -153,6 +153,7 @@
   background: var(--panel-bg);
   border: 1px solid var(--line);
   border-radius: 10px;
+  position: relative;
   overflow-x: auto;
 }
 

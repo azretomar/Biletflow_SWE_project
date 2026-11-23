@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAdminData, formatDate } from "./AdminDataContext";
 import { StatusBadge, ConfirmDialog } from "./AdminComponents";
+import { downloadCsv, today } from "../../lib/csv";
 
 const ROLE_FILTERS = ["all", "attendee", "organizer", "admin"];
 
@@ -14,6 +15,7 @@ function AdminUsers() {
   const visibleUsers = users.filter((u) => {
     const text = (u.full_name + " " + u.email).toLowerCase();
     if (search && !text.includes(search.toLowerCase())) return false;
+    if (role === "admin") return u.role === "platform_admin" || u.role === "event_admin";
     return role === "all" || u.role === role;
   });
 
@@ -47,6 +49,17 @@ function AdminUsers() {
             </button>
           ))}
         </div>
+        <button type="button" className="btn-small btn-secondary" disabled={visibleUsers.length === 0}
+          onClick={() => downloadCsv(`biletflow-users-${today()}.csv`, [
+            { label: "Name", value: (u) => u.full_name },
+            { label: "Email", value: (u) => u.email },
+            { label: "Role", value: (u) => u.role },
+            { label: "Suspended", value: (u) => (u.suspended ? "yes" : "no") },
+            { label: "Events organized", value: (u) => eventCount(u.id) },
+            { label: "Joined", value: (u) => u.created_at },
+          ], visibleUsers)}>
+          Export CSV
+        </button>
       </div>
 
       <div className="panel">

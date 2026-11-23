@@ -1,0 +1,14 @@
+/* The admin support pages, shown inside the normal site layout. */
+.admin.org-support {
+  display: block;
+  min-height: 100vh;
+}
+
+.org-support-page {
+  padding-top: 24px;
+  padding-bottom: 48px;
+}
+
+.org-support-page .admin-page {
+  padding: 0;
+}

@@ -120,3 +120,41 @@ Then log out and log in again.
 
 `go test ./...` in `backend`. The database tests (including `TestFullFlowsDB`, which walks through
 every endpoint above) run when `TEST_DATABASE_URL` is set; CI starts a Postgres for them.
+
+## Planned: frontend ready, backend not built yet
+
+The website already calls these. Until they exist the pages say "This part is not connected to
+the server yet"; once they are added, the pages work with no frontend change.
+
+### Organizer support inbox (SRS 4.13, UC9, section 11)
+
+A support case is "about an event" when its context is that event, or an order or ticket of that
+event. The event's organizer answers it like platform admins do. Organizers must not see cases
+about other organizers' events or cases they opened themselves (those go to platform admins).
+Suggested: store `event_id` on `support_cases` when the case is created.
+
+| Method and path | Role | Body / answer |
+|---|---|---|
+| `GET /organizer/support/cases?status=` | organizer | same list shape as `GET /admin/support/cases`, only cases about their events |
+| `GET /organizer/support/cases/{id}` | organizer | same as the admin one; 404 for other cases |
+| `PATCH /organizer/support/cases/{id}` | organizer | `{ status }` or `{ assign_to_me: true }` |
+| `POST /organizer/support/cases/{id}/messages` | organizer | `{ body }`; the case then waits for the customer |
+
+Status changes should also appear in the event history with `type: "support"` (SRS 4.16).
+The page also needs "Support inbox" on the organizer dashboard (done) and a reply notification
+for the attendee (SRS 4.10).
+
+### Undo check-in (SRS 4.8, 4.16)
+
+| Method and path | Role | Body / answer |
+|---|---|---|
+| `POST /checkin/undo` | organizer of the event or assigned staff | `{ event_id, ticket_id }` -> `{ ticket_id, status: "valid" }`; 409 if the ticket is not checked in |
+
+The ticket goes back to `valid` (`checked_in_at` and `checked_in_by` cleared) and the history gets
+a "Check-in undone: Name (ticket type)" entry with `type: "checkin"`.
+
+### For the mobile app (SRS 4.8): door search and counts
+
+| Method and path | Role | Body / answer |
+|---|---|---|
+| `GET /staff/events/{id}/attendees?q=` | organizer of the event or assigned staff | `{ registered, checked_in, attendees: [{ ticket_id, full_name, email, ticket_type, status, checked_in_at }] }`, up to 50 matches by name, email or ticket id |

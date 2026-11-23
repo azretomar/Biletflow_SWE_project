@@ -100,6 +100,8 @@ function CreateEvent() {
   const location = useLocation();
   const navigate = useNavigate();
   const duplicate = location.state && location.state.duplicate;
+  // Ticket types of the event being duplicated; created right after the new event is saved.
+  const copyTypes = (location.state && location.state.ticketTypes) || [];
   const [form, setForm] = useState(duplicate ? { ...EMPTY_EVENT, ...duplicate, date: "" } : EMPTY_EVENT);
   const [errors, setErrors] = useState({});
   const [showPreview, setShowPreview] = useState(false);
@@ -145,12 +147,29 @@ function CreateEvent() {
     setBusy(true);
     try {
       const ev = await api("/events", { method: "POST", body: extended });
-      navigate(`/organizer/events/${ev.id}`, { state: { created: true } });
+      const copyErrors = await copyTicketTypes(ev);
+      navigate(`/organizer/events/${ev.id}`, { state: { created: true, copyErrors } });
     } catch (err) {
       setMessage(err.status === 401 || err.status === 403 ? "Log in with an organizer account to create events." : err.message);
     } finally {
       setBusy(false);
     }
+  }
+
+  // Creates the duplicated ticket types for the new event (sold counts start at zero).
+  async function copyTicketTypes(ev) {
+    const failed = [];
+    for (const t of copyTypes) {
+      try {
+        await api(`/events/${ev.id}/ticket-types`, {
+          method: "POST",
+          body: { name: t.name, description: t.description, price: t.price, quantity: t.quantity },
+        });
+      } catch (err) {
+        failed.push(`${t.name}: ${err.message}`);
+      }
+    }
+    return failed;
   }
 
   function fieldError(name) {
@@ -172,7 +191,13 @@ function CreateEvent() {
         <div className="ce-head">
           <h1>Create an event</h1>
           {duplicate ? (
-            <p>Copied from an existing event. Choose a new date and check the details. Ticket types, orders and attendees are not copied.</p>
+            <p>
+              Copied from an existing event. Choose a new date and check the details.
+              {copyTypes.length > 0
+                ? ` Its ${copyTypes.length} ticket type${copyTypes.length === 1 ? "" : "s"} (${copyTypes.map((t) => t.name).join(", ")}) will be added with nothing sold.`
+                : ""}{" "}
+              Orders, tickets and attendees are not copied.
+            </p>
           ) : (
             <p>Fill in the details below. Creating an event and giving out free tickets is free.</p>
           )}

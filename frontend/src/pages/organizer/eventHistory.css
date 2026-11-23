@@ -170,3 +170,39 @@
   margin: 0 0 12px;
   font-size: 14px;
 }
+
+.eh-dot-support {
+  background: #8a4b00;
+  box-shadow: 0 0 0 1px #8a4b00;
+}
+
+.eh-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.eh-dates .bf-label {
+  margin: 0;
+}
+
+.eh-dates .bf-input {
+  width: auto;
+}
+
+.eh-clear {
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--blue);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.eh-error {
+  color: #b42318;
+}

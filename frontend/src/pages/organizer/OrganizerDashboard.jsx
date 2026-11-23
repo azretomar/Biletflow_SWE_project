@@ -68,6 +68,7 @@ function OrganizerDashboard() {
           <div className="dash-top-links">
             <Link to="/organizer/profile" className="bf-btn-outline">Profile</Link>
             <Link to="/organizer/promo" className="bf-btn-outline">Promo campaigns</Link>
+            <Link to="/organizer/support" className="bf-btn-outline">Support inbox</Link>
             <Link to="/create-event" className="bf-btn">Create event</Link>
           </div>
         </div>

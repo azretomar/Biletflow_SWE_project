@@ -188,6 +188,8 @@
 }
 
 .bf-table-wrap {
+  /* relative keeps hidden screen-reader labels inside the scrolling box (no sideways page scroll) */
+  position: relative;
   overflow-x: auto;
 }
 

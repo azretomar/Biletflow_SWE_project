@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAdminData, eventDisplayStatus, formatDateTime } from "./AdminDataContext";
 import { StatusBadge, ConfirmDialog } from "./AdminComponents";
+import { downloadCsv, today } from "../../lib/csv";
 
 const FILTERS = [
   { value: "all", label: "All" },
@@ -62,6 +63,20 @@ function AdminEvents() {
             </button>
           ))}
         </div>
+        <button type="button" className="btn-small btn-secondary" disabled={visibleEvents.length === 0}
+          onClick={() => downloadCsv(`biletflow-events-${today()}.csv`, [
+            { label: "Title", value: (e) => e.title },
+            { label: "Organizer", value: (e) => (getUser(e.organizer_id) || {}).email || "" },
+            { label: "Starts", value: (e) => e.start_at },
+            { label: "Status", value: (e) => eventDisplayStatus(e) },
+            { label: "Capacity", value: (e) => e.capacity },
+            { label: "Tickets sold", value: (e) => e.tickets_sold },
+            { label: "Revenue KZT (simulated)", value: (e) => e.revenue_kzt },
+            { label: "Reports", value: (e) => e.reports.length },
+            { label: "Paid sales", value: (e) => (e.activation ? e.activation.paid_sales : "none") },
+          ], visibleEvents)}>
+          Export CSV
+        </button>
       </div>
 
       <div className="panel">

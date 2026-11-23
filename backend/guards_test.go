@@ -31,6 +31,10 @@ func TestRouteGuards(t *testing.T) {
 		{"GET", "/api/organizer/campaigns"},
 		{"POST", "/api/organizer/campaigns"},
 		{"PATCH", "/api/organizer/campaigns/" + ev},
+		{"GET", "/api/organizer/support/cases"},
+		{"GET", "/api/organizer/support/cases/1"},
+		{"PATCH", "/api/organizer/support/cases/1"},
+		{"POST", "/api/organizer/support/cases/1/messages"},
 	}
 	admin := []struct{ method, path string }{
 		{"GET", "/api/admin/users"},

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -61,6 +62,15 @@ func (s *Server) registerSupportRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /api/admin/support/cases/{id}", adminOnly(s.handleAdminGetCase))
 	mux.Handle("PATCH /api/admin/support/cases/{id}", adminOnly(s.handleAdminPatchCase))
 	mux.Handle("POST /api/admin/support/cases/{id}/messages", adminOnly(s.handleAdminCaseMessage))
+
+	// Organizer inbox: cases about the organizer's own events (SRS 4.13, UC9).
+	organizerOnly := func(h http.HandlerFunc) http.Handler {
+		return s.requireAuth(s.requireRole("organizer")(h))
+	}
+	mux.Handle("GET /api/organizer/support/cases", organizerOnly(s.handleOrganizerCases))
+	mux.Handle("GET /api/organizer/support/cases/{id}", organizerOnly(s.handleOrganizerGetCase))
+	mux.Handle("PATCH /api/organizer/support/cases/{id}", organizerOnly(s.handleOrganizerPatchCase))
+	mux.Handle("POST /api/organizer/support/cases/{id}/messages", organizerOnly(s.handleOrganizerCaseMessage))
 }
 
 type caseContext struct {
@@ -82,12 +92,19 @@ type caseMessage struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+// caseEvent is the organizer's event a case is about (organizer inbox only).
+type caseEvent struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+}
+
 type supportCase struct {
 	ID        int64         `json:"id"`
 	Subject   string        `json:"subject"`
 	Status    string        `json:"status"`
 	Category  string        `json:"category"`
 	Context   *caseContext  `json:"context"`
+	Event     *caseEvent    `json:"event,omitempty"`
 	CreatedAt time.Time     `json:"created_at"`
 	UpdatedAt time.Time     `json:"updated_at"`
 	Requester *caseUser     `json:"requester,omitempty"`
@@ -96,20 +113,26 @@ type supportCase struct {
 	userID    string
 }
 
-const caseSelect = `
-	SELECT c.id, c.subject, c.status, c.category, c.context_type, c.context_id, c.created_at, c.updated_at,
-	       c.user_id, ru.full_name, ru.email, c.assignee_id, COALESCE(au.full_name, '')
+const caseColumns = `c.id, c.subject, c.status, c.category, c.context_type, c.context_id, c.created_at, c.updated_at,
+	       c.user_id, ru.full_name, ru.email, c.assignee_id, COALESCE(au.full_name, '')`
+
+const caseFrom = `
 	FROM support_cases c
 	JOIN users ru ON ru.id = c.user_id
 	LEFT JOIN users au ON au.id = c.assignee_id`
 
-func scanCase(row rowScanner) (supportCase, error) {
+const caseSelect = `
+	SELECT ` + caseColumns + caseFrom
+
+// scanCase scans the caseColumns, followed by any extra columns.
+func scanCase(row rowScanner, extra ...any) (supportCase, error) {
 	var c supportCase
 	var ctxType, ctxID, assigneeID *string
 	var req caseUser
 	var assigneeName string
-	err := row.Scan(&c.ID, &c.Subject, &c.Status, &c.Category, &ctxType, &ctxID, &c.CreatedAt, &c.UpdatedAt,
-		&c.userID, &req.FullName, &req.Email, &assigneeID, &assigneeName)
+	dest := []any{&c.ID, &c.Subject, &c.Status, &c.Category, &ctxType, &ctxID, &c.CreatedAt, &c.UpdatedAt,
+		&c.userID, &req.FullName, &req.Email, &assigneeID, &assigneeName}
+	err := row.Scan(append(dest, extra...)...)
 	if err != nil {
 		return c, err
 	}
@@ -146,23 +169,28 @@ func (s *Server) loadCase(ctx context.Context, id string) (supportCase, error) {
 	if err != nil {
 		return c, err
 	}
+	return c, s.loadMessages(ctx, &c)
+}
+
+// loadMessages fills c.Messages with the case's thread, oldest first.
+func (s *Server) loadMessages(ctx context.Context, c *supportCase) error {
 	rows, err := s.db.Query(ctx, `
 		SELECT m.id, u.full_name, u.role, m.body, m.created_at
 		FROM support_messages m JOIN users u ON u.id = m.author_id
-		WHERE m.case_id = $1 ORDER BY m.created_at, m.id`, id)
+		WHERE m.case_id = $1 ORDER BY m.created_at, m.id`, c.ID)
 	if err != nil {
-		return c, err
+		return err
 	}
 	defer rows.Close()
 	c.Messages = []caseMessage{}
 	for rows.Next() {
 		var m caseMessage
 		if err := rows.Scan(&m.ID, &m.AuthorName, &m.AuthorRole, &m.Body, &m.CreatedAt); err != nil {
-			return c, err
+			return err
 		}
 		c.Messages = append(c.Messages, m)
 	}
-	return c, rows.Err()
+	return rows.Err()
 }
 
 // caseID returns the numeric case id from the path, or "" if it is not a number.
@@ -389,6 +417,12 @@ type casePatch struct {
 
 // PATCH /api/admin/support/cases/{id} { status } or { assign_to_me: true }
 func (s *Server) handleAdminPatchCase(w http.ResponseWriter, r *http.Request) {
+	s.patchCase(w, r, false)
+}
+
+// patchCase changes the status and/or the assignee of a case. With organizerScope the
+// caller is an organizer, who may only touch cases about their own events (404 otherwise).
+func (s *Server) patchCase(w http.ResponseWriter, r *http.Request, organizerScope bool) {
 	id := caseID(r)
 	if id == "" {
 		writeError(w, http.StatusNotFound, "case not found")
@@ -407,7 +441,13 @@ func (s *Server) handleAdminPatchCase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	adminID := claimsFrom(ctx).Subject
+	adminID := claimsFrom(ctx).Subject // the organizer's id in the organizer inbox
+	if organizerScope {
+		if _, _, err := s.organizerCaseAccess(ctx, adminID, id); err != nil {
+			notFoundOr500(w, "patch case: access", "case", err)
+			return
+		}
+	}
 	var tag interface{ RowsAffected() int64 }
 	var err error
 	switch {
@@ -429,7 +469,12 @@ func (s *Server) handleAdminPatchCase(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "case not found")
 		return
 	}
-	c, err := s.loadCase(ctx, id)
+	var c supportCase
+	if organizerScope {
+		c, err = s.loadOrganizerCase(ctx, adminID, id)
+	} else {
+		c, err = s.loadCase(ctx, id)
+	}
 	if err != nil {
 		internalError(w, "patch case: reload", err)
 		return
@@ -470,5 +515,141 @@ func (s *Server) handleAdminCaseMessage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	sendEmail(email, "BiletFlow support replied to request #"+id, body)
+	writeJSON(w, http.StatusCreated, m)
+}
+
+const organizerCaseJoin = `
+	JOIN LATERAL (
+		SELECT e.id, e.title
+		FROM (SELECT CASE WHEN c.context_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+		                  THEN c.context_id::uuid END AS cid) x,
+		     events e
+		WHERE e.organizer_id = $1 AND x.cid IS NOT NULL AND (
+		      (c.context_type = 'event'  AND e.id = x.cid)
+		   OR (c.context_type = 'order'  AND EXISTS (SELECT 1 FROM orders o  WHERE o.id = x.cid AND o.event_id = e.id))
+		   OR (c.context_type = 'ticket' AND EXISTS (SELECT 1 FROM tickets t WHERE t.id = x.cid AND t.event_id = e.id)))
+		LIMIT 1) ev ON TRUE`
+
+const organizerCaseWhere = `c.category <> 'organizer' AND c.user_id <> $1`
+
+const organizerCaseSelect = `
+	SELECT ` + caseColumns + `, ev.id, ev.title` + caseFrom + organizerCaseJoin
+
+// organizerCaseAccess returns the status and the requester's email of a case in the
+// organizer's scope, or pgx.ErrNoRows when the organizer may not see it.
+func (s *Server) organizerCaseAccess(ctx context.Context, organizerID, id string) (status, email string, err error) {
+	err = s.db.QueryRow(ctx, `
+		SELECT c.status, ru.email
+		FROM support_cases c
+		JOIN users ru ON ru.id = c.user_id`+organizerCaseJoin+`
+		WHERE c.id = $2 AND `+organizerCaseWhere, organizerID, id).Scan(&status, &email)
+	return status, email, err
+}
+
+// loadOrganizerCase loads one case in the organizer's scope with its event and messages.
+func (s *Server) loadOrganizerCase(ctx context.Context, organizerID, id string) (supportCase, error) {
+	var ev caseEvent
+	c, err := scanCase(s.db.QueryRow(ctx,
+		organizerCaseSelect+` WHERE c.id = $2 AND `+organizerCaseWhere, organizerID, id), &ev.ID, &ev.Title)
+	if err != nil {
+		return c, err
+	}
+	c.Event = &ev
+	return c, s.loadMessages(ctx, &c)
+}
+
+// GET /api/organizer/support/cases?status=&event_id=
+func (s *Server) handleOrganizerCases(w http.ResponseWriter, r *http.Request) {
+	where := organizerCaseWhere
+	args := []any{claimsFrom(r.Context()).Subject}
+	if status := r.URL.Query().Get("status"); status != "" {
+		if !caseStatuses[status] {
+			writeError(w, http.StatusBadRequest, "unknown status")
+			return
+		}
+		args = append(args, status)
+		where += fmt.Sprintf(" AND c.status = $%d", len(args))
+	}
+	if eventID := r.URL.Query().Get("event_id"); eventID != "" {
+		if !isUUID(eventID) {
+			writeError(w, http.StatusBadRequest, "unknown event_id")
+			return
+		}
+		args = append(args, eventID)
+		where += fmt.Sprintf(" AND ev.id = $%d", len(args))
+	}
+	rows, err := s.db.Query(r.Context(),
+		organizerCaseSelect+` WHERE `+where+` ORDER BY c.updated_at DESC, c.id DESC LIMIT 500`, args...)
+	if err != nil {
+		internalError(w, "organizer cases", err)
+		return
+	}
+	defer rows.Close()
+	list := []supportCase{}
+	for rows.Next() {
+		var ev caseEvent
+		c, err := scanCase(rows, &ev.ID, &ev.Title)
+		if err != nil {
+			internalError(w, "organizer cases: scan", err)
+			return
+		}
+		c.Event = &ev
+		list = append(list, c)
+	}
+	if err := rows.Err(); err != nil {
+		internalError(w, "organizer cases: rows", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, list)
+}
+
+// GET /api/organizer/support/cases/{id}
+func (s *Server) handleOrganizerGetCase(w http.ResponseWriter, r *http.Request) {
+	id := caseID(r)
+	if id == "" {
+		writeError(w, http.StatusNotFound, "case not found")
+		return
+	}
+	c, err := s.loadOrganizerCase(r.Context(), claimsFrom(r.Context()).Subject, id)
+	if err != nil {
+		notFoundOr500(w, "organizer case", "case", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, c)
+}
+
+// PATCH /api/organizer/support/cases/{id} { status } or { assign_to_me: true }
+func (s *Server) handleOrganizerPatchCase(w http.ResponseWriter, r *http.Request) {
+	s.patchCase(w, r, true)
+}
+
+// POST /api/organizer/support/cases/{id}/messages - the organizer replies; the case waits for the attendee.
+func (s *Server) handleOrganizerCaseMessage(w http.ResponseWriter, r *http.Request) {
+	id := caseID(r)
+	if id == "" {
+		writeError(w, http.StatusNotFound, "case not found")
+		return
+	}
+	body, ok := readMessage(w, r)
+	if !ok {
+		return
+	}
+	ctx := r.Context()
+	organizerID := claimsFrom(ctx).Subject
+	status, email, err := s.organizerCaseAccess(ctx, organizerID, id)
+	if err != nil {
+		notFoundOr500(w, "organizer case message: access", "case", err)
+		return
+	}
+	newStatus := ""
+	if status != "resolved" {
+		newStatus = "waiting"
+	}
+	m, err := s.addMessage(ctx, id, organizerID, body, newStatus)
+	if err != nil {
+		internalError(w, "organizer case message", err)
+		return
+	}
+	sendEmail(email, "The organizer replied to your request #"+id, body)
 	writeJSON(w, http.StatusCreated, m)
 }

@@ -63,6 +63,8 @@ func (s *Server) registerTicketRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /api/my-tickets", s.requireAuth(http.HandlerFunc(s.handleMyTickets)))
 	mux.Handle("POST /api/checkin",
 		s.requireAuth(s.requireRole("event_admin", "organizer")(http.HandlerFunc(s.handleCheckin))))
+	mux.Handle("POST /api/checkin/undo",
+		s.requireAuth(s.requireRole("event_admin", "organizer")(http.HandlerFunc(s.handleUndoCheckin))))
 }
 
 var uuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
@@ -405,6 +407,112 @@ func (s *Server) handleCheckin(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeJSON(w, http.StatusOK, checkinResponse{Result: "invalid", Ticket: ticket})
 	}
+}
+
+type undoCheckinRequest struct {
+	EventID  string `json:"event_id"`
+	TicketID string `json:"ticket_id"`
+}
+
+type undoCheckinResponse struct {
+	TicketID string `json:"ticket_id"`
+	Status   string `json:"status"`
+}
+
+// POST /api/checkin/undo { event_id, ticket_id } -> { ticket_id, status: "valid" }
+//
+// Reverses an accidental check-in (SRS 4.8): the ticket is valid again and can be scanned.
+// Same access rule as /api/checkin: the event's organizer and staff assigned to it.
+// 404 if the ticket does not belong to the event, 409 if it is not checked in.
+func (s *Server) handleUndoCheckin(w http.ResponseWriter, r *http.Request) {
+	var req undoCheckinRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if !isUUID(req.EventID) {
+		writeError(w, http.StatusBadRequest, "event_id is required")
+		return
+	}
+	if !isUUID(req.TicketID) {
+		writeError(w, http.StatusBadRequest, "ticket_id is required")
+		return
+	}
+
+	ctx := r.Context()
+	adminID := claimsFrom(ctx).Subject
+
+	allowed, exists, err := s.canCheckIn(ctx, adminID, req.EventID)
+	if err != nil {
+		internalError(w, "undo checkin: access", err)
+		return
+	}
+	if !exists {
+		writeError(w, http.StatusNotFound, "event not found")
+		return
+	}
+	if !allowed {
+		writeError(w, http.StatusForbidden, "you are not assigned to this event")
+		return
+	}
+
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		internalError(w, "undo checkin: begin", err)
+		return
+	}
+	defer tx.Rollback(context.Background())
+
+	// Lock the ticket so two undos, or an undo and a scan, cannot interleave.
+	var status, attendee, typeName string
+	err = tx.QueryRow(ctx, `
+		SELECT t.status, u.full_name, tt.name
+		FROM tickets t
+		JOIN users u         ON u.id  = t.user_id
+		JOIN ticket_types tt ON tt.id = t.ticket_type_id
+		WHERE t.id = $1 AND t.event_id = $2
+		FOR UPDATE OF t`, req.TicketID, req.EventID).Scan(&status, &attendee, &typeName)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "ticket not found")
+		return
+	}
+	if err != nil {
+		internalError(w, "undo checkin: load", err)
+		return
+	}
+	if status != "checked_in" {
+		writeError(w, http.StatusConflict, "ticket is not checked in")
+		return
+	}
+
+	who := attendee + " (" + typeName + ")"
+
+	// The event history lists a check-in from the ticket's own checked_in_at, which is cleared
+	// below. Keep that check-in in the audit log first, with its original time and scanner,
+	// so the timeline reads "Checked in" and then "Check-in undone" (SRS 4.16).
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO audit_log (at, actor_id, event_id, category, action, target_id, message)
+		SELECT COALESCE(t.checked_in_at, now()), t.checked_in_by, t.event_id,
+		       'checkin', 'checkin.scan', t.id::text, $2
+		FROM tickets t WHERE t.id = $1`, req.TicketID, "Checked in: "+who); err != nil {
+		internalError(w, "undo checkin: keep check-in", err)
+		return
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE tickets SET status = 'valid', checked_in_at = NULL, checked_in_by = NULL
+		WHERE id = $1 AND status = 'checked_in'`, req.TicketID); err != nil {
+		internalError(w, "undo checkin: update", err)
+		return
+	}
+	if err := writeAudit(ctx, tx, auditEntry{ActorID: adminID, EventID: req.EventID, Category: "checkin",
+		Action: "checkin.undo", TargetID: req.TicketID, Message: "Check-in undone: " + who}); err != nil {
+		internalError(w, "undo checkin: audit", err)
+		return
+	}
+	if err := tx.Commit(ctx); err != nil {
+		internalError(w, "undo checkin: commit", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, undoCheckinResponse{TicketID: req.TicketID, Status: "valid"})
 }
 
 // registrationBlocked explains why nobody can get tickets for ev right now ("" = open).

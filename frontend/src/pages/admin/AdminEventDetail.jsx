@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAdminData, eventDisplayStatus, formatDateTime, formatDate, formatKzt } from "./AdminDataContext";
 import { StatusBadge, ConfirmDialog } from "./AdminComponents";
+import { t } from "../../i18n";
+import { categoryName } from "../../lib/events";
 
 // Screen 3: Event detail (admin view) - info, organizer, sales, reports,
 // and the two admin actions: suspend event / stop paid sales.
@@ -15,8 +17,8 @@ function AdminEventDetail() {
   if (!event) {
     return (
       <div className="admin-page">
-        <Link to="/admin/events" className="back-link">← All events</Link>
-        <h1>Event not found</h1>
+        <Link to="/admin/events" className="back-link">← {t("All events")}</Link>
+        <h1>{t("Event not found")}</h1>
       </div>
     );
   }
@@ -27,29 +29,29 @@ function AdminEventDetail() {
 
   const dialogs = {
     suspend: {
-      title: "Suspend event?",
-      message: "The event will be hidden from attendees and all ticket sales will stop.",
-      confirmLabel: "Suspend event",
+      title: t("Suspend event?"),
+      message: t("The event will be hidden from attendees and all ticket sales will stop."),
+      confirmLabel: t("Suspend event"),
       danger: true,
       run: (reason) => setEventSuspended(event.id, true, reason),
     },
     restore: {
-      title: "Restore event?",
-      message: "The event will be visible again. Paid sales stay stopped until you resume them.",
-      confirmLabel: "Restore",
+      title: t("Restore event?"),
+      message: t("The event will be visible again. Paid sales stay stopped until you resume them."),
+      confirmLabel: t("Restore"),
       run: (reason) => setEventSuspended(event.id, false, reason),
     },
     "stop-sales": {
-      title: "Stop paid sales?",
-      message: "Attendees will not be able to buy paid tickets. The event page stays visible.",
-      confirmLabel: "Stop paid sales",
+      title: t("Stop paid sales?"),
+      message: t("Attendees will not be able to buy paid tickets. The event page stays visible."),
+      confirmLabel: t("Stop paid sales"),
       danger: true,
       run: (reason) => setPaidSalesStopped(event.id, true, reason),
     },
     "resume-sales": {
-      title: "Resume paid sales?",
-      message: "Attendees will be able to buy paid tickets again.",
-      confirmLabel: "Resume sales",
+      title: t("Resume paid sales?"),
+      message: t("Attendees will be able to buy paid tickets again."),
+      confirmLabel: t("Resume sales"),
       run: (reason) => setPaidSalesStopped(event.id, false, reason),
     },
   };
@@ -57,7 +59,7 @@ function AdminEventDetail() {
 
   return (
     <div className="admin-page">
-      <Link to="/admin/events" className="back-link">← All events</Link>
+      <Link to="/admin/events" className="back-link">← {t("All events")}</Link>
 
       <div className="detail-header">
         <div>
@@ -65,29 +67,29 @@ function AdminEventDetail() {
           <div className="detail-meta">
             <StatusBadge status={eventDisplayStatus(event)} />
             {paidSales && <StatusBadge status={"sales_" + paidSales} />}
-            <span>Event #{event.id}</span>
+            <span>{t("Event #{id}", { id: event.id })}</span>
           </div>
         </div>
 
         <div className="detail-actions">
           {paidSales === "active" && !event.suspended && (
             <button type="button" className="btn-small btn-secondary" onClick={() => setDialog("stop-sales")}>
-              Stop paid sales
+              {t("Stop paid sales")}
             </button>
           )}
           {paidSales === "stopped" && !event.suspended && (
             <button type="button" className="btn-small btn-secondary" onClick={() => setDialog("resume-sales")}>
-              Resume paid sales
+              {t("Resume paid sales")}
             </button>
           )}
           {event.suspended ? (
             <button type="button" className="btn-small" onClick={() => setDialog("restore")}>
-              Restore event
+              {t("Restore event")}
             </button>
           ) : (
             event.status !== "cancelled" && (
               <button type="button" className="btn-small btn-danger" onClick={() => setDialog("suspend")}>
-                Suspend event
+                {t("Suspend event")}
               </button>
             )
           )}
@@ -96,47 +98,47 @@ function AdminEventDetail() {
 
       <div className="detail-grid">
         <section className="panel">
-          <h2>Event info</h2>
+          <h2>{t("Event info")}</h2>
           <dl className="info-list">
-            <dt>Date</dt>
+            <dt>{t("Date")}</dt>
             <dd>{formatDateTime(event.start_at)}</dd>
-            <dt>Venue</dt>
+            <dt>{t("Venue")}</dt>
             <dd>{event.venue}</dd>
-            <dt>Category</dt>
-            <dd className="capitalize">{event.category}</dd>
-            <dt>Ticket sales</dt>
-            <dd>{event.activation ? "Paid tickets" : "Free tickets only"}</dd>
+            <dt>{t("Category")}</dt>
+            <dd className="capitalize">{categoryName(event.category)}</dd>
+            <dt>{t("Ticket sales")}</dt>
+            <dd>{event.activation ? t("Paid tickets") : t("Free tickets only")}</dd>
           </dl>
         </section>
 
         <section className="panel">
-          <h2>Organizer</h2>
+          <h2>{t("Organizer")}</h2>
           {organizer ? (
             <dl className="info-list">
-              <dt>Name</dt>
+              <dt>{t("Name")}</dt>
               <dd>{organizer.full_name}</dd>
-              <dt>Email</dt>
+              <dt>{t("Email")}</dt>
               <dd>{organizer.email}</dd>
-              <dt>Joined</dt>
+              <dt>{t("Joined")}</dt>
               <dd>{formatDate(organizer.created_at)}</dd>
-              <dt>Account</dt>
+              <dt>{t("Account")}</dt>
               <dd><StatusBadge status={organizer.suspended ? "suspended" : "active"} /></dd>
             </dl>
           ) : (
-            <p className="empty">Organizer not found.</p>
+            <p className="empty">{t("Organizer not found.")}</p>
           )}
         </section>
 
         <section className="panel">
-          <h2>Sales</h2>
+          <h2>{t("Sales")}</h2>
           <div className="sales-numbers">
             <div>
               <span className="stat-value">{event.tickets_sold}</span>
-              <span className="stat-note">of {event.capacity} tickets sold</span>
+              <span className="stat-note">{t("of {n} tickets sold", { n: event.capacity })}</span>
             </div>
             <div>
               <span className="stat-value">{formatKzt(event.revenue_kzt)}</span>
-              <span className="stat-note">demo revenue</span>
+              <span className="stat-note">{t("demo revenue")}</span>
             </div>
           </div>
           <div
@@ -145,18 +147,18 @@ function AdminEventDetail() {
             aria-valuenow={percentSold}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label="Percent of tickets sold"
+            aria-label={t("Percent of tickets sold")}
           >
             <div className="progress-bar" style={{ width: Math.min(percentSold, 100) + "%" }} />
           </div>
-          <span className="stat-note">{percentSold}% sold</span>
+          <span className="stat-note">{t("{n}% sold", { n: percentSold })}</span>
         </section>
       </div>
 
       <section className="panel">
-        <h2>Reports from users ({event.reports.length})</h2>
+        <h2>{t("Reports from users ({n})", { n: event.reports.length })}</h2>
         {event.reports.length === 0 ? (
-          <p className="empty">Nobody has reported this event.</p>
+          <p className="empty">{t("Nobody has reported this event.")}</p>
         ) : (
           <ul className="report-list">
             {event.reports.map((r) => (

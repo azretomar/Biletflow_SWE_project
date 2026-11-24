@@ -3,6 +3,7 @@ import { useState } from "react";
 import Navbar from "../components/Navbar";
 import { useApi, send, statusNote } from "../lib/useApi";
 import "./activationChecklist.css";
+import { locale, t } from "../i18n";
 
 // Paid sales activation checklist (SRS 3.2, 4.5). Everything is simulated: no real money,
 // no real identity check. The paid-ticket step is read from GET /api/events/{id} (already exists).
@@ -23,10 +24,10 @@ const EMPTY = {
 };
 
 const STEPS = [
-  { key: "identity", field: "identity_verified", label: "Identity verification", todo: "Not done", action: "Verify (simulated)" },
-  { key: "payout", field: "payout_connected", label: "Payout account", todo: "Not done", action: "Connect" },
-  { key: "fee", field: "fee_paid", label: "Activation fee", todo: "Not paid", action: "Pay fee (simulated)" },
-  { key: "terms", field: "terms_accepted", label: "Paid-event terms", todo: "Not accepted", action: "Accept" },
+  { key: "identity", field: "identity_verified", get label() { return t("Identity verification"); }, get todo() { return t("Not done"); }, get action() { return t("Verify (simulated)"); } },
+  { key: "payout", field: "payout_connected", get label() { return t("Payout account"); }, get todo() { return t("Not done"); }, get action() { return t("Connect"); } },
+  { key: "fee", field: "fee_paid", get label() { return t("Activation fee"); }, get todo() { return t("Not paid"); }, get action() { return t("Pay fee (simulated)"); } },
+  { key: "terms", field: "terms_accepted", get label() { return t("Paid-event terms"); }, get todo() { return t("Not accepted"); }, get action() { return t("Accept"); } },
 ];
 
 function ActivationChecklist() {
@@ -37,7 +38,7 @@ function ActivationChecklist() {
   const [busy, setBusy] = useState("");
 
   const event = eventReq.data;
-  const hasPaidType = Boolean(event && (event.ticket_types || []).some((t) => t.price > 0));
+  const hasPaidType = Boolean(event && (event.ticket_types || []).some((tt) => tt.price > 0));
   const allDone = hasPaidType && STEPS.every((s) => state[s.field]);
 
   async function doStep(step) {
@@ -65,25 +66,25 @@ function ActivationChecklist() {
       <Navbar />
 
       <main className="bf-page checklist-page">
-        <Link to={`/organizer/events/${id}`} className="bf-back">&lt;Back to Event management</Link>
-        <h1 className="bf-title">Activate paid sales</h1>
-        <p className="bf-muted checklist-event">{event ? event.title : eventReq.status === "loading" ? "Loading..." : "Event"}</p>
+        <Link to={`/organizer/events/${id}`} className="bf-back">&lt;{t("Back to Event management")}</Link>
+        <h1 className="bf-title">{t("Activate paid sales")}</h1>
+        <p className="bf-muted checklist-event">{event ? event.title : eventReq.status === "loading" ? t("Loading...") : t("Event")}</p>
         {note && <p className="bf-muted checklist-note" role="status">{note}</p>}
 
         {state.activated ? (
           <div className="bf-card checklist-card">
-            <p><strong>Paid sales are active.</strong> Attendees can now buy paid tickets for this event.</p>
+            <p><strong>{t("Paid sales are active.")}</strong> {t("Attendees can now buy paid tickets for this event.")}</p>
           </div>
         ) : (
           <div className="bf-card checklist-card">
             <div className="checklist-row">
-              <span className="checklist-label">Event has a paid ticket type</span>
+              <span className="checklist-label">{t("Event has a paid ticket type")}</span>
               <span className={hasPaidType ? "bf-badge bf-badge-valid" : "bf-badge bf-badge-completed"}>
-                {hasPaidType ? "Done" : "Not done"}
+                {hasPaidType ? t("Done") : t("Not done")}
               </span>
               <span className="checklist-action">
                 {!hasPaidType && (
-                  <Link to={`/organizer/events/${id}/ticket-types/new`} className="bf-btn-outline">Add ticket type</Link>
+                  <Link to={`/organizer/events/${id}/ticket-types/new`} className="bf-btn-outline">{t("Add ticket type")}</Link>
                 )}
               </span>
             </div>
@@ -93,18 +94,18 @@ function ActivationChecklist() {
                 <div key={s.key} className="checklist-row">
                   <span className="checklist-label">
                     {s.label}
-                    {s.key === "fee" && state.fee_kzt > 0 && ` (${state.fee_kzt.toLocaleString("en-US")} ₸)`}
+                    {s.key === "fee" && state.fee_kzt > 0 && ` (${state.fee_kzt.toLocaleString(locale())} ₸)`}
                   </span>
                   <span className={done ? "bf-badge bf-badge-valid" : "bf-badge bf-badge-completed"}>
-                    {done ? "Done" : s.todo}
+                    {done ? t("Done") : s.todo}
                   </span>
                   <span className="checklist-action">
                     {!done && (
                       s.key === "payout" ? (
-                        <Link to="/organizer/profile" className="bf-btn-outline">Open profile</Link>
+                        <Link to="/organizer/profile" className="bf-btn-outline">{t("Open profile")}</Link>
                       ) : (
                         <button type="button" className="bf-btn-outline" disabled={busy !== ""} onClick={() => doStep(s)}>
-                          {busy === s.key ? "Please wait..." : s.action}
+                          {busy === s.key ? t("Please wait...") : s.action}
                         </button>
                       )
                     )}
@@ -115,12 +116,12 @@ function ActivationChecklist() {
           </div>
         )}
 
-        <p className="bf-muted checklist-note">Demonstration only. No real money is moved.</p>
+        <p className="bf-muted checklist-note">{t("Demonstration only. No real money is moved.")}</p>
         {message && <p className="checklist-error" role="alert">{message}</p>}
 
         {!state.activated && (
           <button type="button" className="bf-btn bf-btn-block checklist-activate" disabled={!allDone || busy !== ""} onClick={activate}>
-            {busy === "activate" ? "Activating..." : "Activate paid sales"}
+            {busy === "activate" ? t("Activating...") : t("Activate paid sales")}
           </button>
         )}
       </main>

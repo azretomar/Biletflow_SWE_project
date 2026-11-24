@@ -1,11 +1,19 @@
 // Client-side filtering of the public event list (GET /api/events returns all events).
+import { t } from "../i18n";
 
+// label is a getter so it is read in the current language.
 export const CATEGORY_OPTIONS = [
-  { value: "music", label: "Music" },
-  { value: "education", label: "Education" },
-  { value: "sports", label: "Sports" },
-  { value: "other", label: "Other" },
+  { value: "music", get label() { return t("Music"); } },
+  { value: "education", get label() { return t("Education"); } },
+  { value: "sports", get label() { return t("Sports"); } },
+  { value: "other", get label() { return t("Other"); } },
 ];
+
+// "music" -> "Music" in the current language (unknown codes are shown as they are).
+export function categoryName(code) {
+  const c = CATEGORY_OPTIONS.find((x) => x.value === code);
+  return c ? c.label : code;
+}
 
 function sameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();

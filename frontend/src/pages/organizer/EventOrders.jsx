@@ -5,6 +5,7 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import { useApi, send, statusNote } from "../../lib/useApi";
 import { kzt, shortDateTime, ORDER_STATUS } from "../../lib/format";
 import "../orders.css";
+import { t } from "../../i18n";
 
 // Organizer: orders of one event, refund policy, cancellations and refunds (SRS 4.9).
 // Backend (docs/api.md):
@@ -17,11 +18,11 @@ import "../orders.css";
 // Cancelled or refunded tickets become invalid; the server records every action in the audit log.
 
 const FILTERS = [
-  { value: "", label: "All" },
-  { value: "paid", label: "Paid" },
-  { value: "free", label: "Free" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "refunded", label: "Refunded" },
+  { value: "", get label() { return t("All"); } },
+  { value: "paid", get label() { return t("Paid"); } },
+  { value: "free", get label() { return t("Free"); } },
+  { value: "cancelled", get label() { return t("Cancelled"); } },
+  { value: "refunded", get label() { return t("Refunded"); } },
 ];
 
 function EventOrders() {
@@ -45,7 +46,7 @@ function EventOrders() {
   async function savePolicy(e) {
     e.preventDefault();
     const r = await send(`/organizer/events/${id}/refund-policy`, "PUT", { policy: policyText });
-    setPolicyMsg(r.ok ? "Refund policy saved." : r.message);
+    setPolicyMsg(r.ok ? t("Refund policy saved.") : r.message);
   }
 
   async function runAction(reason) {
@@ -54,7 +55,9 @@ function EventOrders() {
     if (r.ok) {
       const newStatus = action === "refund" ? "refunded" : "cancelled";
       setOrders(orders.map((o) => (o.id === order.id ? { ...o, status: newStatus } : o)));
-      setActionMsg(`Order ${order.id} ${newStatus}. Its tickets are no longer valid.`);
+      setActionMsg(newStatus === "refunded"
+        ? t("Order {id} refunded. Its tickets are no longer valid.", { id: order.id })
+        : t("Order {id} cancelled. Its tickets are no longer valid.", { id: order.id }));
     } else {
       setActionMsg(r.message);
     }
@@ -67,20 +70,20 @@ function EventOrders() {
     <div className="ord">
       <Navbar />
       <main className="bf-page">
-        <Link to={`/organizer/events/${id}`} className="bf-back">&lt;Back to Event management</Link>
-        <h1 className="bf-title">Orders and refunds</h1>
+        <Link to={`/organizer/events/${id}`} className="bf-back">&lt;{t("Back to Event management")}</Link>
+        <h1 className="bf-title">{t("Orders and refunds")}</h1>
 
         <form className="bf-card ord-policy" onSubmit={savePolicy}>
-          <label className="bf-label" htmlFor="ord-policy">Refund policy (shown to attendees on the event page)</label>
+          <label className="bf-label" htmlFor="ord-policy">{t("Refund policy (shown to attendees on the event page)")}</label>
           <textarea
             id="ord-policy"
             className="bf-input ord-policy-text"
             value={policyText}
             onChange={(e) => setPolicy(e.target.value)}
-            placeholder="e.g. Full refund until 48 hours before the event. No refunds after that."
+            placeholder={t("e.g. Full refund until 48 hours before the event. No refunds after that.")}
           />
           <div className="ord-policy-row">
-            <button type="submit" className="bf-btn">Save policy</button>
+            <button type="submit" className="bf-btn">{t("Save policy")}</button>
             {policyMsg && <span className="bf-muted" role="status">{policyMsg}</span>}
           </div>
         </form>
@@ -89,12 +92,12 @@ function EventOrders() {
           <input
             type="search"
             className="bf-input ord-search"
-            placeholder="Search by attendee, email or order number"
-            aria-label="Search orders"
+            placeholder={t("Search by attendee, email or order number")}
+            aria-label={t("Search orders")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <div className="bf-chips" role="group" aria-label="Filter by status">
+          <div className="bf-chips" role="group" aria-label={t("Filter by status")}>
             {FILTERS.map((f) => (
               <button
                 key={f.value}
@@ -117,19 +120,19 @@ function EventOrders() {
             <table className="bf-table">
               <thead>
                 <tr>
-                  <th>Order</th>
-                  <th>Attendee</th>
-                  <th>Tickets</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th><span className="bf-sr-only">Actions</span></th>
+                  <th>{t("Order")}</th>
+                  <th>{t("Attendee")}</th>
+                  <th>{t("Tickets")}</th>
+                  <th>{t("Total")}</th>
+                  <th>{t("Status")}</th>
+                  <th><span className="bf-sr-only">{t("Actions")}</span></th>
                 </tr>
               </thead>
               <tbody>
                 {visible.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="bf-muted">
-                      {orders.length === 0 ? "No orders yet." : "No orders match your search."}
+                      {orders.length === 0 ? t("No orders yet.") : t("No orders match your search.")}
                     </td>
                   </tr>
                 ) : (
@@ -151,12 +154,12 @@ function EventOrders() {
                         <td className="ord-row-actions">
                           {o.status === "free" && (
                             <button type="button" className="bf-btn-outline" onClick={() => setConfirming({ order: o, action: "cancel" })}>
-                              Cancel registration
+                              {t("Cancel registration")}
                             </button>
                           )}
                           {o.status === "paid" && (
                             <button type="button" className="bf-btn-danger" onClick={() => setConfirming({ order: o, action: "refund" })}>
-                              Full refund
+                              {t("Full refund")}
                             </button>
                           )}
                         </td>
@@ -172,13 +175,13 @@ function EventOrders() {
 
       {confirming && (
         <ConfirmDialog
-          title={confirming.action === "refund" ? "Refund this order?" : "Cancel this registration?"}
+          title={confirming.action === "refund" ? t("Refund this order?") : t("Cancel this registration?")}
           message={
             confirming.action === "refund"
-              ? `${kzt(confirming.order.total)} will be returned to ${confirming.order.attendee.full_name} (simulated) and all tickets in order ${confirming.order.id} become invalid.`
-              : `${confirming.order.attendee.full_name}'s free tickets in order ${confirming.order.id} become invalid.`
+              ? t("{amount} will be returned to {name} (simulated) and all tickets in order {id} become invalid.", { amount: kzt(confirming.order.total), name: confirming.order.attendee.full_name, id: confirming.order.id })
+              : t("The free tickets of {name} in order {id} become invalid.", { name: confirming.order.attendee.full_name, id: confirming.order.id })
           }
-          confirmLabel={confirming.action === "refund" ? "Refund" : "Cancel registration"}
+          confirmLabel={confirming.action === "refund" ? t("Refund") : t("Cancel registration")}
           danger
           needsReason
           onConfirm={runAction}

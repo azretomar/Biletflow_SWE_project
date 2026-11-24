@@ -1,9 +1,23 @@
 import { useState } from "react";
+import { t } from "../../i18n";
 
 // A small colored label, e.g. "published", "suspended", "active".
 // The text is always shown, so color is never the only signal (accessibility).
+const STATUS_LABELS = {
+  get published() { return t("Published"); },
+  get draft() { return t("Draft"); },
+  get cancelled() { return t("Cancelled"); },
+  get suspended() { return t("Suspended"); },
+  get active() { return t("Active"); },
+  get sales_active() { return t("Paid sales active"); },
+  get sales_pending() { return t("Paid sales pending"); },
+  get sales_stopped() { return t("Paid sales stopped"); },
+  get sales_none() { return t("No paid sales"); },
+};
+
 export function StatusBadge({ status }) {
-  return <span className={"badge badge-" + status}>{status.replace("_", " ")}</span>;
+  const label = STATUS_LABELS[status] ? STATUS_LABELS[status] : status.replace("_", " ");
+  return <span className={"badge badge-" + status}>{label}</span>;
 }
 
 // A pop-up box that asks the admin to confirm an action and give a reason.
@@ -32,12 +46,12 @@ export function ConfirmDialog({ title, message, confirmLabel, danger, needsReaso
 
         {needsReason && (
           <div className="field">
-            <label htmlFor="dialog-reason">Reason (saved in the audit log)</label>
+            <label htmlFor="dialog-reason">{t("Reason (saved in the audit log)")}</label>
             <textarea
               id="dialog-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="e.g. Multiple scam reports, venue does not exist"
+              placeholder={t("e.g. Multiple scam reports, venue does not exist")}
               autoFocus
             />
           </div>
@@ -45,7 +59,7 @@ export function ConfirmDialog({ title, message, confirmLabel, danger, needsReaso
 
         <div className="dialog-actions">
           <button type="button" className="btn-small btn-secondary" onClick={onCancel}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button type="submit" className={danger ? "btn-small btn-danger" : "btn-small"} disabled={!canConfirm}>
             {confirmLabel}

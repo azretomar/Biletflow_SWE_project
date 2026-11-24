@@ -5,6 +5,7 @@ import { useAuth } from "../AuthContext";
 import { useApi, send, statusNote } from "../lib/useApi";
 import { shortDateTime, CASE_STATUS } from "../lib/format";
 import "./support.css";
+import { t } from "../i18n";
 
 // Asynchronous support chat for attendees and organizers (SRS 4.13).
 // A case can point at the event, order or ticket it is about.
@@ -16,12 +17,12 @@ import "./support.css";
 //   POST /api/support/cases/{id}/messages { body }
 
 export const CATEGORIES = [
-  { value: "tickets", label: "My tickets or entry" },
-  { value: "payment", label: "Payment or refund" },
-  { value: "event", label: "Question about an event" },
-  { value: "account", label: "My account" },
-  { value: "organizer", label: "Organizer tools" },
-  { value: "other", label: "Something else" },
+  { value: "tickets", get label() { return t("My tickets or entry"); } },
+  { value: "payment", get label() { return t("Payment or refund"); } },
+  { value: "event", get label() { return t("Question about an event"); } },
+  { value: "account", get label() { return t("My account"); } },
+  { value: "organizer", get label() { return t("Organizer tools"); } },
+  { value: "other", get label() { return t("Something else"); } },
 ];
 
 const CONTEXT_LINKS = {
@@ -33,7 +34,8 @@ const CONTEXT_LINKS = {
 export function ContextLink({ context }) {
   if (!context || !context.type || !context.id) return null;
   const to = CONTEXT_LINKS[context.type] ? CONTEXT_LINKS[context.type](context.id) : null;
-  const text = `${context.type.charAt(0).toUpperCase() + context.type.slice(1)} ${context.id}`;
+  const names = { event: t("Event"), order: t("Order"), ticket: t("Ticket") };
+  const text = `${names[context.type] || context.type} ${context.id}`;
   return to ? <Link to={to} className="sp-context">{text}</Link> : <span className="sp-context">{text}</span>;
 }
 
@@ -52,15 +54,15 @@ export function SupportList() {
       <Navbar />
       <main className="bf-page sp-page">
         <div className="sp-head">
-          <h1 className="bf-title">Help and support</h1>
-          <Link to="/support/new" className="bf-btn">New request</Link>
+          <h1 className="bf-title">{t("Help and support")}</h1>
+          <Link to="/support/new" className="bf-btn">{t("New request")}</Link>
         </div>
-        <p className="bf-muted sp-sub">Write to us any time. We usually answer within one working day.</p>
+        <p className="bf-muted sp-sub">{t("Write to us any time. We usually answer within one working day.")}</p>
         {note && <p className="bf-muted sp-note" role="status">{note}</p>}
 
         {cases.length === 0 ? (
           <section className="bf-card sp-empty">
-            <p className="bf-muted">You have no support requests.</p>
+            <p className="bf-muted">{t("You have no support requests.")}</p>
           </section>
         ) : (
           <ul className="sp-list">
@@ -70,7 +72,7 @@ export function SupportList() {
                   <span className="sp-row-main">
                     <strong>{c.subject}</strong>
                     <span className="bf-muted sp-row-meta">
-                      #{c.id} · updated {shortDateTime(c.updated_at)}
+                      #{c.id} · {t("updated {date}", { date: shortDateTime(c.updated_at) })}
                     </span>
                   </span>
                   <CaseBadge status={c.status} />
@@ -88,7 +90,7 @@ export function SupportList() {
 export function SupportNew() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const preset = ["ticket", "order", "event"].find((t) => params.get(t));
+  const preset = ["ticket", "order", "event"].find((tt) => params.get(tt));
   const [form, setForm] = useState({
     category: preset === "order" ? "payment" : preset === "ticket" ? "tickets" : preset === "event" ? "event" : "",
     subject: "",
@@ -107,7 +109,7 @@ export function SupportNew() {
     e.preventDefault();
     setError("");
     if (!form.category || !form.subject.trim() || form.message.trim().length < 10) {
-      setError("Choose a topic, add a subject, and describe the problem in at least 10 characters.");
+      setError(t("Choose a topic, add a subject, and describe the problem in at least 10 characters."));
       return;
     }
     setBusy(true);
@@ -126,44 +128,44 @@ export function SupportNew() {
     <div className="sp">
       <Navbar />
       <main className="bf-page sp-page">
-        <Link to="/support" className="bf-back">&lt;Back to support</Link>
-        <h1 className="bf-title">New support request</h1>
+        <Link to="/support" className="bf-back">&lt;{t("Back to support")}</Link>
+        <h1 className="bf-title">{t("New support request")}</h1>
 
         <form className="bf-card sp-form" onSubmit={submit} noValidate>
           {error && <p className="sp-error" role="alert">{error}</p>}
 
-          <label className="bf-label" htmlFor="category">Topic</label>
+          <label className="bf-label" htmlFor="category">{t("Topic")}</label>
           <select id="category" name="category" className="bf-input" value={form.category} onChange={change}>
-            <option value="">Choose a topic...</option>
+            <option value="">{t("Choose a topic...")}</option>
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
             ))}
           </select>
 
-          <label className="bf-label" htmlFor="subject">Subject</label>
+          <label className="bf-label" htmlFor="subject">{t("Subject")}</label>
           <input id="subject" name="subject" className="bf-input" maxLength={120} value={form.subject} onChange={change}
-            placeholder="e.g. I did not receive my ticket" />
+            placeholder={t("e.g. I did not receive my ticket")} />
 
-          <label className="bf-label" htmlFor="message">Message</label>
+          <label className="bf-label" htmlFor="message">{t("Message")}</label>
           <textarea id="message" name="message" className="bf-input sp-text" value={form.message} onChange={change}
-            placeholder="What happened? What did you expect?" />
+            placeholder={t("What happened? What did you expect?")} />
 
           <fieldset className="sp-context-field">
-            <legend className="bf-label">Related to (optional)</legend>
+            <legend className="bf-label">{t("Related to (optional)")}</legend>
             <div className="sp-context-row">
-              <select name="contextType" aria-label="Related to" className="bf-input" value={form.contextType} onChange={change}>
-                <option value="">Nothing specific</option>
-                <option value="event">An event</option>
-                <option value="order">An order</option>
-                <option value="ticket">A ticket</option>
+              <select name="contextType" aria-label={t("Related to")} className="bf-input" value={form.contextType} onChange={change}>
+                <option value="">{t("Nothing specific")}</option>
+                <option value="event">{t("An event")}</option>
+                <option value="order">{t("An order")}</option>
+                <option value="ticket">{t("A ticket")}</option>
               </select>
-              <input name="contextId" aria-label="Its number" className="bf-input" placeholder="Number or ID"
+              <input name="contextId" aria-label={t("Its number")} className="bf-input" placeholder={t("Number or ID")}
                 value={form.contextId} onChange={change} disabled={!form.contextType} />
             </div>
           </fieldset>
 
-          <p className="bf-muted sp-privacy">Never send card numbers or passwords in a support message.</p>
-          <button type="submit" className="bf-btn" disabled={busy}>{busy ? "Sending..." : "Send request"}</button>
+          <p className="bf-muted sp-privacy">{t("Never send card numbers or passwords in a support message.")}</p>
+          <button type="submit" className="bf-btn" disabled={busy}>{busy ? t("Sending...") : t("Send request")}</button>
         </form>
       </main>
     </div>
@@ -172,7 +174,7 @@ export function SupportNew() {
 
 // Message thread used by both the user page and the admin page.
 export function Thread({ messages, meRole }) {
-  if (messages.length === 0) return <p className="bf-muted">No messages yet.</p>;
+  if (messages.length === 0) return <p className="bf-muted">{t("No messages yet.")}</p>;
   return (
     <ol className="sp-thread">
       {messages.map((m) => {
@@ -181,7 +183,7 @@ export function Thread({ messages, meRole }) {
         return (
           <li key={m.id} className={mine ? "sp-msg sp-msg-mine" : "sp-msg"}>
             <span className="sp-msg-meta">
-              <strong>{staff ? `${m.author_name} (BiletFlow support)` : m.author_name}</strong>
+              <strong>{staff ? t("{name} (BiletFlow support)", { name: m.author_name }) : m.author_name}</strong>
               {" · "}
               <time dateTime={m.created_at}>{shortDateTime(m.created_at)}</time>
             </span>
@@ -193,7 +195,7 @@ export function Thread({ messages, meRole }) {
   );
 }
 
-export function ReplyBox({ onSend, disabled, placeholder = "Write a reply..." }) {
+export function ReplyBox({ onSend, disabled, placeholder = t("Write a reply...") }) {
   const [body, setBody] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -212,13 +214,13 @@ export function ReplyBox({ onSend, disabled, placeholder = "Write a reply..." })
 
   return (
     <form className="sp-reply" onSubmit={submit}>
-      <label className="bf-sr-only" htmlFor="sp-reply">Reply</label>
+      <label className="bf-sr-only" htmlFor="sp-reply">{t("Reply")}</label>
       <textarea id="sp-reply" className="bf-input sp-text" value={body} onChange={(e) => setBody(e.target.value)}
         placeholder={placeholder} disabled={disabled} />
       <div className="sp-reply-row">
         {msg && <span className="sp-error-inline" role="alert">{msg}</span>}
         <button type="submit" className="bf-btn" disabled={disabled || busy || !body.trim()}>
-          {busy ? "Sending..." : "Send"}
+          {busy ? t("Sending...") : t("Send")}
         </button>
       </div>
     </form>
@@ -248,7 +250,7 @@ export function SupportCase() {
     <div className="sp">
       <Navbar />
       <main className="bf-page sp-page">
-        <Link to="/support" className="bf-back">&lt;Back to support</Link>
+        <Link to="/support" className="bf-back">&lt;{t("Back to support")}</Link>
         {note && <p className="bf-muted sp-note" role="status">{note}</p>}
         {c ? (
           <>
@@ -257,16 +259,16 @@ export function SupportCase() {
               <CaseBadge status={c.status} />
             </div>
             <p className="bf-muted sp-sub">
-              Request #{c.id} · opened {shortDateTime(c.created_at)} <ContextLink context={c.context} />
+              {t("Request #{id} · opened {date}", { id: c.id, date: shortDateTime(c.created_at) })} <ContextLink context={c.context} />
             </p>
             <section className="bf-card sp-thread-card">
               <Thread messages={c.messages} meRole="user" />
               <ReplyBox onSend={reply} disabled={c.status === "resolved"}
-                placeholder={c.status === "resolved" ? "This request is resolved. Open a new one if you need more help." : "Write a reply..."} />
+                placeholder={c.status === "resolved" ? t("This request is resolved. Open a new one if you need more help.") : t("Write a reply...")} />
             </section>
           </>
         ) : (
-          status !== "loading" && <h1 className="bf-title">Support request #{id}</h1>
+          status !== "loading" && <h1 className="bf-title">{t("Support request #{id}", { id })}</h1>
         )}
       </main>
     </div>

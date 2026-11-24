@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import { useApi, statusNote } from "../lib/useApi";
 import { kzt, shortDateTime, ORDER_STATUS } from "../lib/format";
 import "./orders.css";
+import { t } from "../i18n";
 
 // Attendee's orders (SRS 4.9). One order = one checkout, with one or more tickets.
 // Backend (docs/api.md): GET /api/my-orders ->
@@ -17,16 +18,16 @@ function MyOrders() {
     <div className="ord">
       <Navbar />
       <main className="bf-page">
-        <h1 className="bf-title">My orders</h1>
+        <h1 className="bf-title">{t("My orders")}</h1>
         <p className="bf-muted ord-sub">
-          Every registration or purchase you made. Tickets themselves are in <Link to="/my-tickets">My tickets</Link>.
+          {t("Every registration or purchase you made. Tickets themselves are in")} <Link to="/my-tickets">{t("My tickets")}</Link>.
         </p>
         {note && <p className="bf-muted ord-note" role="status">{note}</p>}
 
         {orders.length === 0 ? (
           <section className="bf-card ord-empty">
-            <p className="bf-muted">No orders yet.</p>
-            <Link to="/events" className="bf-btn">Find events</Link>
+            <p className="bf-muted">{t("No orders yet.")}</p>
+            <Link to="/events" className="bf-btn">{t("Find events")}</Link>
           </section>
         ) : (
           <ul className="ord-list">
@@ -38,7 +39,7 @@ function MyOrders() {
                     <div>
                       <Link to={`/events/${o.event.id}`} className="ord-event">{o.event.title}</Link>
                       <span className="bf-muted ord-meta">
-                        {shortDateTime(o.event.date)} · Order {o.id} · {shortDateTime(o.created_at)}
+                        {shortDateTime(o.event.date)} · {t("Order {id}", { id: o.id })} · {shortDateTime(o.created_at)}
                       </span>
                     </div>
                     <span className={`bf-badge ${s.badge}`}>{s.label}</span>
@@ -51,17 +52,17 @@ function MyOrders() {
                       </li>
                     ))}
                     <li className="ord-total">
-                      <span>Total</span>
+                      <span>{t("Total")}</span>
                       <span>{kzt(o.total)}</span>
                     </li>
                   </ul>
                   <div className="ord-actions">
                     {o.tickets.length > 0 && (
                       <Link to={`/tickets/${o.tickets[0].id}`} className="bf-btn-outline">
-                        View ticket{o.tickets.length > 1 ? "s" : ""}
+                        {o.tickets.length > 1 ? t("View tickets") : t("View ticket")}
                       </Link>
                     )}
-                    <Link to={`/support/new?order=${o.id}`} className="ord-help">Need help with this order?</Link>
+                    <Link to={`/support/new?order=${o.id}`} className="ord-help">{t("Need help with this order?")}</Link>
                   </div>
                 </li>
               );

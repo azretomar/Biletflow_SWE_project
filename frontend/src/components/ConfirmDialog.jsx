@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./confirmDialog.css";
+import { t } from "../i18n";
 
 // Pop-up that asks to confirm a risky action, optionally with a required reason
 // (kept for the audit log, SRS 7). onConfirm(reason) may return a promise.
@@ -33,7 +34,7 @@ function ConfirmDialog({ title, message, confirmLabel, danger, needsReason, onCo
         <p>{message}</p>
         {needsReason && (
           <>
-            <label className="bf-label" htmlFor="cd-reason">Reason (saved in the audit log)</label>
+            <label className="bf-label" htmlFor="cd-reason">{t("Reason (saved in the audit log)")}</label>
             <textarea
               id="cd-reason"
               className="bf-input cd-reason"
@@ -44,9 +45,9 @@ function ConfirmDialog({ title, message, confirmLabel, danger, needsReason, onCo
           </>
         )}
         <div className="cd-actions">
-          <button type="button" className="bf-btn-outline" onClick={onCancel}>Cancel</button>
+          <button type="button" className="bf-btn-outline" onClick={onCancel}>{t("Cancel")}</button>
           <button type="submit" className={danger ? "bf-btn-danger" : "bf-btn"} disabled={!canConfirm}>
-            {busy ? "Please wait..." : confirmLabel}
+            {busy ? t("Please wait...") : confirmLabel}
           </button>
         </div>
       </form>

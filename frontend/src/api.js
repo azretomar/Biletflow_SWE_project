@@ -1,3 +1,5 @@
+import { getLanguage, t } from "./i18n";
+
 const TOKEN_KEY = "bf_token";
 
 export function getToken() {
@@ -19,6 +21,8 @@ export async function api(path, { method = "GET", body } = {}) {
   if (body !== undefined) headers["Content-Type"] = "application/json";
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
+  // The chosen interface language, so the backend can answer in it later.
+  headers["Accept-Language"] = getLanguage();
 
   let res;
   try {
@@ -28,7 +32,7 @@ export async function api(path, { method = "GET", body } = {}) {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new Error("Cannot reach the server. Try again later.");
+    throw new Error(t("Cannot reach the server. Try again later."));
   }
 
   let data = null;
@@ -39,7 +43,7 @@ export async function api(path, { method = "GET", body } = {}) {
   }
 
   if (!res.ok) {
-    const error = new Error((data && data.error) || "Something went wrong.");
+    const error = new Error((data && data.error) || t("Something went wrong."));
     error.status = res.status;
     // true when the backend itself answered with a message (the endpoint exists)
     error.fromServer = Boolean(data && data.error);

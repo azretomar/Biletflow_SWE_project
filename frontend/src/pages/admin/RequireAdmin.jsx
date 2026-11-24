@@ -1,6 +1,7 @@
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../AuthContext";
 import Navbar from "../../components/Navbar";
+import { roleName, t } from "../../i18n";
 
 // Guards every /admin page (SRS 4.12): only Platform Admins may enter.
 // - Not logged in  -> go to Log in, then come back here after logging in.
@@ -20,12 +21,12 @@ function RequireAdmin({ children }) {
       <div className="ra">
         <Navbar />
         <main className="bf-page ra-page">
-          <h1 className="bf-title">No access</h1>
+          <h1 className="bf-title">{t("No access")}</h1>
           <p className="bf-muted">
-            The admin area is only for BiletFlow platform administrators. You are logged in as{" "}
-            <strong>{user.full_name || user.email}</strong> ({user.role}).
+            {t("The admin area is only for BiletFlow platform administrators. You are logged in as")}{" "}
+            <strong>{user.full_name || user.email}</strong> ({roleName(user.role)}).
           </p>
-          <Link to="/" className="bf-btn">Back to home</Link>
+          <Link to="/" className="bf-btn">{t("Back to home")}</Link>
         </main>
       </div>
     );

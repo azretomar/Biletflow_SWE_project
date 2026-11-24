@@ -4,6 +4,7 @@ import { api } from "../api";
 import { useAuth } from "../AuthContext";
 import QrCode from "../components/QrCode";
 import "./printTicket.css";
+import { locale, t } from "../i18n";
 
 // Printable ticket (SRS 4.7): one ticket on an A4 page.
 // "Save as PDF" uses the browser's own print dialog (Print -> Save as PDF),
@@ -13,10 +14,10 @@ import "./printTicket.css";
 // Data: GET /api/my-tickets (already in the backend), then the ticket with this id.
 
 const STATUS_LABELS = {
-  valid: "Valid",
-  checked_in: "Checked in",
-  cancelled: "Cancelled - not valid for entry",
-  refunded: "Refunded - not valid for entry",
+  get valid() { return t("Valid"); },
+  get checked_in() { return t("Checked in"); },
+  get cancelled() { return t("Cancelled - not valid for entry"); },
+  get refunded() { return t("Refunded - not valid for entry"); },
 };
 
 function eventDateTime(value) {
@@ -24,9 +25,9 @@ function eventDateTime(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return (
-    d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) +
+    d.toLocaleDateString(locale(), { weekday: "long", day: "numeric", month: "long", year: "numeric" }) +
     ", " +
-    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    d.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" })
   );
 }
 
@@ -44,7 +45,7 @@ function PrintTicket() {
     api("/my-tickets")
       .then((tickets) => {
         if (!active) return;
-        const found = (tickets || []).find((t) => String(t.id) === String(id));
+        const found = (tickets || []).find((tt) => String(tt.id) === String(id));
         setTicket(found || null);
         setState(found ? "ready" : "notfound");
       })
@@ -67,61 +68,60 @@ function PrintTicket() {
   return (
     <div className="pt">
       <div className="pt-toolbar">
-        <Link to={`/tickets/${id}`} className="bf-back">&lt;Back to ticket</Link>
+        <Link to={`/tickets/${id}`} className="bf-back">&lt;{t("Back to ticket")}</Link>
         {state === "ready" && (
           <div className="pt-toolbar-actions">
-            <span className="bf-muted">Choose "Save as PDF" in the print window to download.</span>
+            <span className="bf-muted">{t("Choose \"Save as PDF\" in the print window to download.")}</span>
             <button type="button" className="bf-btn" onClick={() => window.print()}>
-              Print / Save as PDF
+              {t("Print / Save as PDF")}
             </button>
           </div>
         )}
       </div>
 
-      {state === "loading" && <p className="pt-message bf-muted">Loading your ticket...</p>}
+      {state === "loading" && <p className="pt-message bf-muted">{t("Loading your ticket...")}</p>}
       {state === "notfound" && (
         <p className="pt-message">
-          Ticket not found in your account. <Link to="/my-tickets">Go to My tickets</Link>
+          {t("Ticket not found in your account.")} <Link to="/my-tickets">{t("Go to My tickets")}</Link>
         </p>
       )}
       {state === "error" && <p className="pt-message pt-error" role="alert">{error}</p>}
 
       {state === "ready" && (
-        <article className={invalid ? "pt-sheet pt-invalid" : "pt-sheet"} aria-label="Printable ticket">
+        <article className={invalid ? "pt-sheet pt-invalid" : "pt-sheet"} aria-label={t("Printable ticket")}>
           <header className="pt-head">
             <span className="pt-brand">BiletFlow</span>
-            <span className="pt-kind">Admission ticket</span>
+            <span className="pt-kind">{t("Admission ticket")}</span>
           </header>
 
           <div className="pt-body">
             <div className="pt-info">
               <h1 className="pt-event">{ticket.event.title}</h1>
               <dl className="pt-fields">
-                <dt>Date and time</dt>
+                <dt>{t("Date and time")}</dt>
                 <dd>{eventDateTime(ticket.event.date)}</dd>
-                <dt>Venue</dt>
+                <dt>{t("Venue")}</dt>
                 <dd>{ticket.event.venue || "-"}</dd>
-                <dt>Ticket type</dt>
+                <dt>{t("Ticket type")}</dt>
                 <dd>{ticket.ticket_type.name}</dd>
-                <dt>Attendee</dt>
+                <dt>{t("Attendee")}</dt>
                 <dd>{user.full_name || user.email}</dd>
-                <dt>Status</dt>
+                <dt>{t("Status")}</dt>
                 <dd className="pt-status">{STATUS_LABELS[ticket.status] || ticket.status}</dd>
               </dl>
             </div>
 
             <div className="pt-qr">
-              <QrCode value={ticket.qr_code} size={240} label={`QR code for ticket ${ticket.id}`} />
-              <span className="pt-qr-hint">Show this code at the entrance</span>
+              <QrCode value={ticket.qr_code} size={240} label={t("QR code for ticket {id}", { id: ticket.id })} />
+              <span className="pt-qr-hint">{t("Show this code at the entrance")}</span>
             </div>
           </div>
 
           <footer className="pt-foot">
-            <span>Ticket ID</span>
+            <span>{t("Ticket ID")}</span>
             <code className="pt-id">{ticket.id}</code>
             <p>
-              One ticket admits one person once. The printed and the digital copy are the same ticket:
-              after it is scanned, any other copy is no longer valid.
+              {t("One ticket admits one person once. The printed and the digital copy are the same ticket: after it is scanned, any other copy is no longer valid.")}
             </p>
           </footer>
         </article>

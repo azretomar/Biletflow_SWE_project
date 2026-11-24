@@ -1,0 +1,45 @@
+.lang-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+/* The word "Language" is for screen readers; the select already shows the language name. */
+.lang-picker-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.lang-picker select {
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--text);
+  background: #ffffff;
+  border: 1px solid #c9ccd3;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.lang-picker select:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+/* Admin sidebar (dark) */
+.admin-sidebar .lang-picker {
+  margin-top: 12px;
+}
+
+.admin-sidebar .lang-picker select {
+  width: 100%;
+}
+
+/* Sign up and log in pages: top right of the card */
+.auth-card .lang-picker {
+  float: right;
+}

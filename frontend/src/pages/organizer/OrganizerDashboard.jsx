@@ -5,6 +5,7 @@ import EventImage from "../../components/EventImage";
 import { useApi, statusNote } from "../../lib/useApi";
 import { shortDateTime } from "../../lib/format";
 import "./organizerDashboard.css";
+import { t } from "../../i18n";
 
 // The organizer's own events (SRS 4.16: upcoming, active, completed, cancelled).
 // GET /api/organizer/events (backend/organizer.go) ->
@@ -12,20 +13,20 @@ import "./organizerDashboard.css";
 // Upcoming / active / completed are worked out from the date when the server does not send them.
 
 const FILTERS = [
-  { value: "all", label: "All" },
-  { value: "draft", label: "Drafts" },
-  { value: "upcoming", label: "Upcoming" },
-  { value: "active", label: "Active" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
+  { value: "all", get label() { return t("All"); } },
+  { value: "draft", get label() { return t("Drafts"); } },
+  { value: "upcoming", get label() { return t("Upcoming"); } },
+  { value: "active", get label() { return t("Active"); } },
+  { value: "completed", get label() { return t("Completed"); } },
+  { value: "cancelled", get label() { return t("Cancelled"); } },
 ];
 
 const STATUS_LABELS = {
-  draft: "Draft",
-  upcoming: "Upcoming",
-  active: "Active",
-  completed: "Completed",
-  cancelled: "Cancelled",
+  get draft() { return t("Draft"); },
+  get upcoming() { return t("Upcoming"); },
+  get active() { return t("Active"); },
+  get completed() { return t("Completed"); },
+  get cancelled() { return t("Cancelled"); },
 };
 
 function statusOf(ev, now) {
@@ -49,10 +50,10 @@ function OrganizerDashboard() {
       <Navbar />
 
       <main className="bf-page">
-        <h1 className="bf-title">Organizer dashboard</h1>
+        <h1 className="bf-title">{t("Organizer dashboard")}</h1>
 
         <div className="dash-toolbar">
-          <div className="bf-chips dash-chips" role="group" aria-label="Filter events">
+          <div className="bf-chips dash-chips" role="group" aria-label={t("Filter events")}>
             {FILTERS.map((f) => (
               <button
                 key={f.value}
@@ -66,10 +67,10 @@ function OrganizerDashboard() {
             ))}
           </div>
           <div className="dash-top-links">
-            <Link to="/organizer/profile" className="bf-btn-outline">Profile</Link>
-            <Link to="/organizer/promo" className="bf-btn-outline">Promo campaigns</Link>
-            <Link to="/organizer/support" className="bf-btn-outline">Support inbox</Link>
-            <Link to="/create-event" className="bf-btn">Create event</Link>
+            <Link to="/organizer/profile" className="bf-btn-outline">{t("Profile")}</Link>
+            <Link to="/organizer/promo" className="bf-btn-outline">{t("Promo campaigns")}</Link>
+            <Link to="/organizer/support" className="bf-btn-outline">{t("Support inbox")}</Link>
+            <Link to="/create-event" className="bf-btn">{t("Create event")}</Link>
           </div>
         </div>
 
@@ -79,8 +80,8 @@ function OrganizerDashboard() {
           <div className="dash-empty">
             <p>
               {events.length === 0
-                ? "No events yet. Create your first event to get started."
-                : `No ${filter} events.`}
+                ? t("No events yet. Create your first event to get started.")
+                : t("No events in this group.")}
             </p>
           </div>
         ) : (
@@ -91,18 +92,18 @@ function OrganizerDashboard() {
                 <div className="dash-info">
                   <h3>{ev.title}</h3>
                   <p>{shortDateTime(ev.date)} | {ev.venue}</p>
-                  <p className="dash-sold">{ev.sold ?? 0} / {ev.capacity} sold</p>
+                  <p className="dash-sold">{t("{sold} / {capacity} sold", { sold: ev.sold ?? 0, capacity: ev.capacity })}</p>
                 </div>
                 <div className="dash-side">
                   <span className={`bf-badge bf-badge-${ev.status}`}>{STATUS_LABELS[ev.status]}</span>
                   <div className="dash-links">
                     {(ev.status === "upcoming" || ev.status === "draft") && (
-                      <Link to={`/organizer/events/${ev.id}/edit`}>Edit&gt;</Link>
+                      <Link to={`/organizer/events/${ev.id}/edit`}>{t("Edit")}&gt;</Link>
                     )}
                     {(ev.status === "completed" || ev.status === "cancelled") && (
-                      <Link to={`/organizer/events/${ev.id}/history`}>Duplicate&gt;</Link>
+                      <Link to={`/organizer/events/${ev.id}/history`}>{t("Duplicate")}&gt;</Link>
                     )}
-                    <Link to={`/organizer/events/${ev.id}`}>Manage&gt;</Link>
+                    <Link to={`/organizer/events/${ev.id}`}>{t("Manage")}&gt;</Link>
                   </div>
                 </div>
               </article>

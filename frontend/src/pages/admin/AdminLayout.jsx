@@ -1,5 +1,7 @@
 import { NavLink, Outlet, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../AuthContext";
+import { t } from "../../i18n";
+import LanguagePicker from "../../components/LanguagePicker";
 import { AdminDataProvider, useAdminData } from "./AdminDataContext";
 import "./admin.css";
 
@@ -44,31 +46,32 @@ function AdminSidebar() {
   return (
     <aside className="admin-sidebar">
       <Link to="/" className="admin-logo">
-        BiletFlow <span>Admin</span>
+        BiletFlow <span>{t("Admin")}</span>
       </Link>
 
-      <nav className="admin-nav" aria-label="Admin sections">
+      <nav className="admin-nav" aria-label={t("Admin sections")}>
         <NavLink to="/admin" end>
-          Dashboard
+          {t("Dashboard")}
         </NavLink>
         <NavLink to="/admin/events">
-          Events
-          {reportedEvents > 0 && <span className="nav-count" title="Reported events">{reportedEvents}</span>}
+          {t("Events")}
+          {reportedEvents > 0 && <span className="nav-count" title={t("Reported events")}>{reportedEvents}</span>}
         </NavLink>
-        <NavLink to="/admin/users">Users</NavLink>
+        <NavLink to="/admin/users">{t("Users")}</NavLink>
         <NavLink to="/admin/activations">
-          Paid-sales activations
-          {pendingActivations > 0 && <span className="nav-count" title="Pending">{pendingActivations}</span>}
+          {t("Paid-sales activations")}
+          {pendingActivations > 0 && <span className="nav-count" title={t("Pending")}>{pendingActivations}</span>}
         </NavLink>
-        <NavLink to="/admin/support">Support cases</NavLink>
+        <NavLink to="/admin/support">{t("Support cases")}</NavLink>
       </nav>
 
       <div className="admin-user">
-        <span className="admin-user-label">Logged in as</span>
+        <span className="admin-user-label">{t("Logged in as")}</span>
         <span className="admin-user-name">{user.full_name || user.email}</span>
         <button type="button" className="admin-logout" onClick={handleLogout}>
-          Log out
+          {t("Log out")}
         </button>
+        <LanguagePicker />
       </div>
     </aside>
   );

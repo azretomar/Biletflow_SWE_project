@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import { useApi, send, statusNote } from "../../lib/useApi";
+import { locale } from "../../i18n";
 
 // This "context" keeps the admin data in one place, so every admin page
 // sees the same users and events. When you suspend an event on one page,
@@ -102,11 +103,11 @@ export function useAdminData() {
 // ---- Small helpers used by several admin pages ----
 
 export function formatKzt(amount) {
-  return amount.toLocaleString("en-US") + " ₸";
+  return amount.toLocaleString(locale()) + " ₸";
 }
 
 export function formatDateTime(value) {
-  return new Date(value).toLocaleString("en-GB", {
+  return new Date(value).toLocaleString(locale(), {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -116,7 +117,7 @@ export function formatDateTime(value) {
 }
 
 export function formatDate(value) {
-  return new Date(value).toLocaleDateString("en-GB", {
+  return new Date(value).toLocaleDateString(locale(), {
     day: "numeric",
     month: "short",
     year: "numeric",

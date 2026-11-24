@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import AuthLayout from "./AuthLayout";
+import { t } from "../i18n";
 
 function LogIn() {
   const { login } = useAuth();
@@ -38,12 +39,12 @@ function LogIn() {
   };
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Log in to see your tickets and events.">
+    <AuthLayout title={t("Welcome back")} subtitle={t("Log in to see your tickets and events.")}>
       <form className="form" onSubmit={handleSubmit}>
         {error && <p className="form-error" role="alert">{error}</p>}
 
         <div className="field">
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">{t("Email")}</label>
           <input
             id="email"
             name="email"
@@ -55,7 +56,7 @@ function LogIn() {
         </div>
 
         <div className="field">
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">{t("Password")}</label>
           <input
             id="password"
             name="password"
@@ -65,14 +66,14 @@ function LogIn() {
             onChange={handleChange}
           />
         </div>
-        <Link to="/forgot-password" className="forgot-link">Forgot password?</Link>
+        <Link to="/forgot-password" className="forgot-link">{t("Forgot password?")}</Link>
 
         <button type="submit" className="btn" disabled={loading}>
-          {loading ? "Logging in..." : "Log in"}
+          {loading ? t("Logging in...") : t("Log in")}
         </button>
 
         <p className="form-note">
-          Don't have an account? <Link to="/signup">Sign up</Link>
+          {t("Don't have an account?")} <Link to="/signup">{t("Sign up")}</Link>
         </p>
       </form>
     </AuthLayout>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import QrCode from "../../components/QrCode";
 import { useApi, send, NOT_CONNECTED_TEXT } from "../../lib/useApi";
 import "./promo.css";
+import { locale, t } from "../../i18n";
 
 // Promo campaigns for an organizer's event (SRS 4.14).
 //
@@ -59,6 +60,14 @@ function makeCode(name) {
   return base + "-" + tail;
 }
 
+const CAMPAIGN_STATUS = {
+  get disabled() { return t("disabled"); },
+  get scheduled() { return t("scheduled"); },
+  get expired() { return t("expired"); },
+  get exhausted() { return t("exhausted"); },
+  get active() { return t("active"); },
+};
+
 function campaignStatus(c) {
   if (c.disabled) return "disabled";
   const now = new Date();
@@ -70,12 +79,12 @@ function campaignStatus(c) {
 
 function formatDiscount(c) {
   return c.discountType === "percent"
-    ? c.amount + "% off"
-    : c.amount.toLocaleString("en-US") + " ₸ off";
+    ? t("{n}% off", { n: c.amount })
+    : t("{n} ₸ off", { n: c.amount.toLocaleString(locale()) });
 }
 
 function formatDate(value) {
-  return new Date(value).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(value).toLocaleDateString(locale(), { day: "numeric", month: "short", year: "numeric" });
 }
 
 // Checks the form. Returns { fieldName: message } for each problem (empty = OK).
@@ -84,13 +93,13 @@ function validate(form) {
   const amount = Number(form.amount);
   const max = Number(form.maxRedemptions);
 
-  if (!form.name.trim()) errors.name = "Enter a campaign name.";
-  if (!form.amount || amount <= 0) errors.amount = "Enter a discount greater than 0.";
-  else if (form.discountType === "percent" && amount > 100) errors.amount = "A percentage cannot be more than 100.";
-  if (!form.startsAt) errors.startsAt = "Choose a start date.";
-  if (!form.endsAt) errors.endsAt = "Choose an end date.";
-  else if (form.startsAt && form.endsAt < form.startsAt) errors.endsAt = "The end date must be after the start date.";
-  if (!form.maxRedemptions || max < 1 || !Number.isInteger(max)) errors.maxRedemptions = "Enter a whole number, at least 1.";
+  if (!form.name.trim()) errors.name = t("Enter a campaign name.");
+  if (!form.amount || amount <= 0) errors.amount = t("Enter a discount greater than 0.");
+  else if (form.discountType === "percent" && amount > 100) errors.amount = t("A percentage cannot be more than 100.");
+  if (!form.startsAt) errors.startsAt = t("Choose a start date.");
+  if (!form.endsAt) errors.endsAt = t("Choose an end date.");
+  else if (form.startsAt && form.endsAt < form.startsAt) errors.endsAt = t("The end date must be after the start date.");
+  if (!form.maxRedemptions || max < 1 || !Number.isInteger(max)) errors.maxRedemptions = t("Enter a whole number, at least 1.");
 
   return errors;
 }
@@ -134,12 +143,12 @@ function PromoCampaigns() {
       setForm(EMPTY_FORM);
       return;
     }
-    if (r.message !== NOT_CONNECTED_TEXT) {
+    if (r.message !== t(NOT_CONNECTED_TEXT)) {
       setSaveNote(r.message);
       return;
     }
     // Not connected yet: show it on this page only, clearly marked as not saved.
-    setSaveNote("Shown here only: promo campaigns are not saved to the server yet.");
+    setSaveNote(t("Shown here only: promo campaigns are not saved to the server yet."));
     const campaign = {
       id: Date.now(),
       name: form.name.trim(),
@@ -176,24 +185,24 @@ function PromoCampaigns() {
     <div className="pc">
       <header className="pc-nav">
         <Link to="/" className="pc-logo">BiletFlow</Link>
-        <Link to="/" className="pc-nav-link">← Back to home</Link>
+        <Link to="/" className="pc-nav-link">← {t("Back to home")}</Link>
       </header>
 
       <main className="pc-main">
         <div className="pc-head">
-          <h1>Promo campaigns</h1>
-          <p>Give attendees a discount code and a campaign QR that opens your event with the code applied.</p>
+          <h1>{t("Promo campaigns")}</h1>
+          <p>{t("Give attendees a discount code and a campaign QR that opens your event with the code applied.")}</p>
         </div>
 
         <div className="pc-layout">
           <form className="pc-card" onSubmit={handleSubmit} noValidate>
-            <h2>Create a campaign</h2>
+            <h2>{t("Create a campaign")}</h2>
 
             {eventsReq.status === "ready" && eventsReq.data.length > 0 && (
               <div className="field">
-                <label htmlFor="eventId">Event</label>
+                <label htmlFor="eventId">{t("Event")}</label>
                 <select id="eventId" name="eventId" value={form.eventId} onChange={handleChange}>
-                  <option value="">Choose an event...</option>
+                  <option value="">{t("Choose an event...")}</option>
                   {eventsReq.data.map((ev) => (
                     <option key={ev.id} value={ev.id}>{ev.title}</option>
                   ))}
@@ -202,12 +211,12 @@ function PromoCampaigns() {
             )}
 
             <div className="field">
-              <label htmlFor="name">Campaign name</label>
+              <label htmlFor="name">{t("Campaign name")}</label>
               <input
                 id="name"
                 name="name"
                 type="text"
-                placeholder="e.g. Student discount"
+                placeholder={t("e.g. Student discount")}
                 value={form.name}
                 onChange={handleChange}
                 aria-invalid={!!errors.name}
@@ -217,15 +226,15 @@ function PromoCampaigns() {
             </div>
 
             <div className="field">
-              <span className="label-text">Discount type</span>
-              <div className="pc-toggle" role="group" aria-label="Discount type">
+              <span className="label-text">{t("Discount type")}</span>
+              <div className="pc-toggle" role="group" aria-label={t("Discount type")}>
                 <button
                   type="button"
                   className={form.discountType === "percent" ? "active" : ""}
                   aria-pressed={form.discountType === "percent"}
                   onClick={() => setForm({ ...form, discountType: "percent" })}
                 >
-                  Percentage (%)
+                  {t("Percentage (%)")}
                 </button>
                 <button
                   type="button"
@@ -233,14 +242,14 @@ function PromoCampaigns() {
                   aria-pressed={form.discountType === "fixed"}
                   onClick={() => setForm({ ...form, discountType: "fixed" })}
                 >
-                  Fixed amount (₸)
+                  {t("Fixed amount (₸)")}
                 </button>
               </div>
             </div>
 
             <div className="pc-row">
               <div className="field">
-                <label htmlFor="amount">{form.discountType === "percent" ? "Discount (%)" : "Discount (₸)"}</label>
+                <label htmlFor="amount">{form.discountType === "percent" ? t("Discount (%)") : t("Discount (₸)")}</label>
                 <input
                   id="amount"
                   name="amount"
@@ -256,13 +265,13 @@ function PromoCampaigns() {
                 {fieldError("amount")}
               </div>
               <div className="field">
-                <label htmlFor="maxRedemptions">Max redemptions</label>
+                <label htmlFor="maxRedemptions">{t("Max redemptions")}</label>
                 <input
                   id="maxRedemptions"
                   name="maxRedemptions"
                   type="number"
                   min="1"
-                  placeholder="e.g. 100"
+                  placeholder={t("e.g. 100")}
                   value={form.maxRedemptions}
                   onChange={handleChange}
                   aria-invalid={!!errors.maxRedemptions}
@@ -274,7 +283,7 @@ function PromoCampaigns() {
 
             <div className="pc-row">
               <div className="field">
-                <label htmlFor="startsAt">Valid from</label>
+                <label htmlFor="startsAt">{t("Valid from")}</label>
                 <input
                   id="startsAt"
                   name="startsAt"
@@ -287,7 +296,7 @@ function PromoCampaigns() {
                 {fieldError("startsAt")}
               </div>
               <div className="field">
-                <label htmlFor="endsAt">Valid until</label>
+                <label htmlFor="endsAt">{t("Valid until")}</label>
                 <input
                   id="endsAt"
                   name="endsAt"
@@ -302,60 +311,60 @@ function PromoCampaigns() {
             </div>
 
             {saveNote && <p className="pc-save-note" role="status">{saveNote}</p>}
-            <button type="submit" className="pc-btn">Create campaign</button>
+            <button type="submit" className="pc-btn">{t("Create campaign")}</button>
           </form>
 
           <aside className="pc-card pc-result" aria-live="polite">
             {created ? (
               <>
-                <h2>{created.redemptions > 0 || created.disabled ? "Campaign" : "Campaign created"}</h2>
+                <h2>{created.redemptions > 0 || created.disabled ? t("Campaign") : t("Campaign created")}</h2>
                 <p className="pc-muted">{created.name} · {formatDiscount(created)}</p>
-                <span className="pc-label">Promo code</span>
+                <span className="pc-label">{t("Promo code")}</span>
                 <div className="pc-code">{created.code}</div>
-                <span className="pc-label">Campaign QR</span>
+                <span className="pc-label">{t("Campaign QR")}</span>
                 <div className="pc-qr">
                   {created.qrUrl ? (
-                    <img src={created.qrUrl} alt={`Campaign QR for code ${created.code}`} className="pc-qr-img" />
+                    <img src={created.qrUrl} alt={t("Campaign QR for code {code}", { code: created.code })} className="pc-qr-img" />
                   ) : campaignLink(created) ? (
                     <>
-                      <QrCode value={campaignLink(created)} size={180} label={`Campaign QR for code ${created.code}`} />
+                      <QrCode value={campaignLink(created)} size={180} label={t("Campaign QR for code {code}", { code: created.code })} />
                       <a href={campaignLink(created)} className="pc-qr-link">{campaignLink(created)}</a>
                     </>
                   ) : (
-                    <span>This code works for all your events, so it has no QR. Share the code itself.</span>
+                    <span>{t("This code works for all your events, so it has no QR. Share the code itself.")}</span>
                   )}
-                  <small>It opens the event page with this code applied. It is not an admission ticket.</small>
+                  <small>{t("It opens the event page with this code applied. It is not an admission ticket.")}</small>
                 </div>
               </>
             ) : (
               <>
-                <h2>Promo code and QR</h2>
-                <p className="pc-muted">After you create a campaign, its promo code and campaign QR appear here.</p>
-                <div className="pc-qr pc-qr-empty"><span>No campaign yet</span></div>
+                <h2>{t("Promo code and QR")}</h2>
+                <p className="pc-muted">{t("After you create a campaign, its promo code and campaign QR appear here.")}</p>
+                <div className="pc-qr pc-qr-empty"><span>{t("No campaign yet")}</span></div>
               </>
             )}
           </aside>
         </div>
 
         <section className="pc-card pc-list">
-          <h2>Your campaigns</h2>
+          <h2>{t("Your campaigns")}</h2>
           {!connected && list.status !== "loading" && (
-            <p className="pc-muted" role="status">{list.status === "not_connected" ? NOT_CONNECTED_TEXT : list.error}</p>
+            <p className="pc-muted" role="status">{list.status === "not_connected" ? t(NOT_CONNECTED_TEXT) : list.error}</p>
           )}
           {campaigns.length === 0 ? (
-            <p className="pc-muted">No campaigns yet.</p>
+            <p className="pc-muted">{t("No campaigns yet.")}</p>
           ) : (
             <div className="pc-table-wrap">
               <table className="pc-table">
                 <thead>
                   <tr>
-                    <th>Campaign</th>
-                    <th>Code</th>
-                    <th>Discount</th>
-                    <th>Valid</th>
-                    <th>Redeemed</th>
-                    <th>Status</th>
-                    <th><span className="pc-sr-only">Actions</span></th>
+                    <th>{t("Campaign")}</th>
+                    <th>{t("Code")}</th>
+                    <th>{t("Discount")}</th>
+                    <th>{t("Valid")}</th>
+                    <th>{t("Redeemed")}</th>
+                    <th>{t("Status")}</th>
+                    <th><span className="pc-sr-only">{t("Actions")}</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -368,13 +377,13 @@ function PromoCampaigns() {
                         <td>{formatDiscount(c)}</td>
                         <td className="pc-nowrap">{formatDate(c.startsAt)} – {formatDate(c.endsAt)}</td>
                         <td>{c.redemptions} / {c.maxRedemptions}</td>
-                        <td><span className={"pc-badge pc-badge-" + status}>{status}</span></td>
+                        <td><span className={"pc-badge pc-badge-" + status}>{CAMPAIGN_STATUS[status]}</span></td>
                         <td className="pc-actions">
                           <button type="button" className="pc-btn-small" onClick={() => setCreated(c)}>
-                            Show QR
+                            {t("Show QR")}
                           </button>
                           <button type="button" className="pc-btn-small" onClick={() => toggleDisabled(c.id)}>
-                            {c.disabled ? "Enable" : "Disable"}
+                            {c.disabled ? t("Enable") : t("Disable")}
                           </button>
                         </td>
                       </tr>

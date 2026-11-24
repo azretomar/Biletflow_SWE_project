@@ -46,7 +46,7 @@ Platform admin: `/admin` (dashboard, `/events`, `/events/:id`, `/users`, `/activ
 
 - Payments, identity verification, payouts and the activation fee are simulated (allowed by SRS 3.2 and 4.6).
 - Emails (verification, password reset, refunds, cancellations) are written to the backend log instead of being sent: `docker compose logs backend`. The links in them work. No mail service is connected, and ticket confirmation emails are not sent; tickets are available in the attendee's account.
-- Kazakh and Russian interface languages are not implemented (localization polish is cut under SRS 13.4). The interface is in English.
+- The website interface is available in Kazakh, Russian and English (language switch in the top bar; the choice is remembered in the browser). Translations live in `frontend/src/i18n/kk.js` and `ru.js`. Error messages that come from the backend and the emails are still in English.
 - Not implemented: check-in undo, assigned seating, calendar (.ics) export, server-generated PDF tickets (the printable page uses the browser's print dialog), an admin page for the audit log, configurable activation fee.
 - The mobile verification app is not part of this web release.
 

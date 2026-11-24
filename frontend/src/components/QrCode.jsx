@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { qrMatrix } from "../lib/qrcode";
+import { t } from "../i18n";
 
 // Draws a QR code as SVG: sharp on screen and on paper, also in grayscale.
 // `value` is the ticket's qr_code from the backend. A 4-square white border
 // ("quiet zone") is kept around the code so scanners can find it.
-function QrCode({ value, size = 220, label = "Ticket QR code" }) {
+function QrCode({ value, size = 220, label = t("Ticket QR code") }) {
   const path = useMemo(() => {
     if (!value) return "";
     const rows = qrMatrix(value, "M");

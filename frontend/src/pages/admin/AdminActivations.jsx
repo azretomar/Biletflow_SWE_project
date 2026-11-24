@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAdminData, formatDate, checklistDone } from "./AdminDataContext";
 import { StatusBadge, ConfirmDialog } from "./AdminComponents";
+import { t } from "../../i18n";
 
 const CHECKLIST = [
-  { key: "identity_verified", label: "Identity" },
-  { key: "fee_paid", label: "Fee paid" },
-  { key: "payout_account", label: "Payout account" },
-  { key: "terms_accepted", label: "Terms" },
+  { key: "identity_verified", get label() { return t("Identity"); } },
+  { key: "fee_paid", get label() { return t("Fee paid"); } },
+  { key: "payout_account", get label() { return t("Payout account"); } },
+  { key: "terms_accepted", get label() { return t("Terms"); } },
 ];
 
 // Screen 5: Paid-sales activations - which events asked to sell paid tickets,
@@ -23,25 +24,24 @@ function AdminActivations() {
 
   return (
     <div className="admin-page">
-      <h1>Paid-sales activations</h1>
+      <h1>{t("Paid-sales activations")}</h1>
       <p className="page-intro">
-        Organizers must finish every step before they can sell paid tickets for an event.
-        Fees and payouts are simulated for the demo, so no real money moves.
+        {t("Organizers must finish every step before they can sell paid tickets for an event. Fees and payouts are simulated for the demo, so no real money moves.")}
       </p>
 
       <div className="panel">
         {rows.length === 0 ? (
-          <p className="empty">No activation requests yet.</p>
+          <p className="empty">{t("No activation requests yet.")}</p>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Event</th>
-                <th>Organizer</th>
-                <th>Requested</th>
-                <th>Checklist</th>
-                <th>Paid sales</th>
-                <th><span className="sr-only">Actions</span></th>
+                <th>{t("Event")}</th>
+                <th>{t("Organizer")}</th>
+                <th>{t("Requested")}</th>
+                <th>{t("Checklist")}</th>
+                <th>{t("Paid sales")}</th>
+                <th><span className="sr-only">{t("Actions")}</span></th>
               </tr>
             </thead>
             <tbody>
@@ -54,7 +54,7 @@ function AdminActivations() {
                     <td>{getUser(e.organizer_id)?.full_name}</td>
                     <td className="nowrap">{formatDate(a.requested_at)}</td>
                     <td>
-                      <ul className="checklist" aria-label={`${done} of ${CHECKLIST.length} steps done`}>
+                      <ul className="checklist" aria-label={t("{done} of {total} steps done", { done, total: CHECKLIST.length })}>
                         {CHECKLIST.map((c) => (
                           <li key={c.key} className={a[c.key] ? "done" : "missing"}>
                             <span aria-hidden="true">{a[c.key] ? "✓" : "✗"}</span> {c.label}
@@ -66,12 +66,12 @@ function AdminActivations() {
                     <td className="actions">
                       {a.paid_sales === "active" && (
                         <button type="button" className="btn-small btn-danger" onClick={() => setConfirming(e)}>
-                          Stop sales
+                          {t("Stop sales")}
                         </button>
                       )}
                       {a.paid_sales === "stopped" && !e.suspended && checklistDone(a) && (
                         <button type="button" className="btn-small btn-secondary" onClick={() => setConfirming(e)}>
-                          Resume
+                          {t("Resume")}
                         </button>
                       )}
                     </td>
@@ -85,13 +85,13 @@ function AdminActivations() {
 
       {confirming && (
         <ConfirmDialog
-          title={confirming.activation.paid_sales === "active" ? "Stop paid sales?" : "Resume paid sales?"}
+          title={confirming.activation.paid_sales === "active" ? t("Stop paid sales?") : t("Resume paid sales?")}
           message={
             confirming.activation.paid_sales === "active"
-              ? `Attendees will not be able to buy paid tickets for "${confirming.title}".`
-              : `Attendees will be able to buy paid tickets for "${confirming.title}" again.`
+              ? t("Attendees will not be able to buy paid tickets for \"{title}\".", { title: confirming.title })
+              : t("Attendees will be able to buy paid tickets for \"{title}\" again.", { title: confirming.title })
           }
-          confirmLabel={confirming.activation.paid_sales === "active" ? "Stop paid sales" : "Resume sales"}
+          confirmLabel={confirming.activation.paid_sales === "active" ? t("Stop paid sales") : t("Resume sales")}
           danger={confirming.activation.paid_sales === "active"}
           needsReason
           onConfirm={(reason) => {

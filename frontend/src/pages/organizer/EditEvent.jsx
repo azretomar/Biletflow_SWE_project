@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import { useApi, send, statusNote } from "../../lib/useApi";
 import "./editEvent.css";
+import { t } from "../../i18n";
 
 // Edit event. The current details are loaded from GET /api/events/{id} (already in the backend).
 // Saving: PUT /api/events/{id} with the same fields as POST /api/events
@@ -63,11 +64,11 @@ function EditEvent() {
     setMessage("");
     const cap = Number(form.capacity);
     if (!form.title.trim() || !form.venue.trim() || !form.date || !form.time) {
-      setMessage("Title, date, start time and venue are required.");
+      setMessage(t("Title, date, start time and venue are required."));
       return;
     }
     if (!Number.isInteger(cap) || cap < 1) {
-      setMessage("Capacity must be a whole number, at least 1.");
+      setMessage(t("Capacity must be a whole number, at least 1."));
       return;
     }
     setBusy(true);
@@ -91,36 +92,36 @@ function EditEvent() {
       <Navbar />
 
       <main className="bf-page ee-page">
-        <Link to={`/organizer/events/${id}`} className="bf-back">&lt;Back to Event management</Link>
-        <h1 className="bf-title">Edit event</h1>
-        {status === "loading" && <p className="bf-muted">Loading event...</p>}
+        <Link to={`/organizer/events/${id}`} className="bf-back">&lt;{t("Back to Event management")}</Link>
+        <h1 className="bf-title">{t("Edit event")}</h1>
+        {status === "loading" && <p className="bf-muted">{t("Loading event...")}</p>}
         {(status === "error" || status === "not_connected") && (
-          <p className="ee-message" role="alert">{notFound ? "Event not found." : statusNote(status, error)}</p>
+          <p className="ee-message" role="alert">{notFound ? t("Event not found.") : statusNote(status, error)}</p>
         )}
 
         {event && (
           <form className="bf-card ee-card" onSubmit={handleSubmit} noValidate>
-            <label className="bf-label" htmlFor="ee-title">Event title</label>
+            <label className="bf-label" htmlFor="ee-title">{t("Event title")}</label>
             <input id="ee-title" name="title" className="bf-input" type="text" maxLength={200}
               value={form.title} onChange={handleChange} required />
 
-            <label className="bf-label" htmlFor="ee-description">Description</label>
+            <label className="bf-label" htmlFor="ee-description">{t("Description")}</label>
             <textarea id="ee-description" name="description" className="bf-input ee-textarea"
               value={form.description} onChange={handleChange} />
 
             <div className="ee-row">
               <div>
-                <label className="bf-label" htmlFor="ee-category">Category</label>
+                <label className="bf-label" htmlFor="ee-category">{t("Category")}</label>
                 <select id="ee-category" name="category" className="bf-input" value={form.category} onChange={handleChange}>
-                  <option value="">Select...</option>
-                  <option value="music">Music</option>
-                  <option value="education">Education</option>
-                  <option value="sports">Sports</option>
-                  <option value="other">Other</option>
+                  <option value="">{t("Select...")}</option>
+                  <option value="music">{t("Music")}</option>
+                  <option value="education">{t("Education")}</option>
+                  <option value="sports">{t("Sports")}</option>
+                  <option value="other">{t("Other")}</option>
                 </select>
               </div>
               <div>
-                <label className="bf-label" htmlFor="ee-image">Cover image link</label>
+                <label className="bf-label" htmlFor="ee-image">{t("Cover image link")}</label>
                 <input id="ee-image" name="image_url" className="bf-input" type="url" placeholder="https://..."
                   value={form.image_url} onChange={handleChange} />
               </div>
@@ -128,32 +129,32 @@ function EditEvent() {
 
             <div className="ee-row">
               <div>
-                <label className="bf-label" htmlFor="ee-date">Date</label>
+                <label className="bf-label" htmlFor="ee-date">{t("Date")}</label>
                 <input id="ee-date" name="date" className="bf-input" type="date" value={form.date} onChange={handleChange} required />
               </div>
               <div>
-                <label className="bf-label" htmlFor="ee-time">Starts (Kazakhstan time)</label>
+                <label className="bf-label" htmlFor="ee-time">{t("Starts (Kazakhstan time)")}</label>
                 <input id="ee-time" name="time" className="bf-input" type="time" value={form.time} onChange={handleChange} required />
               </div>
             </div>
 
             <div className="ee-row">
               <div>
-                <label className="bf-label" htmlFor="ee-venue">Venue</label>
+                <label className="bf-label" htmlFor="ee-venue">{t("Venue")}</label>
                 <input id="ee-venue" name="venue" className="bf-input" type="text" value={form.venue} onChange={handleChange} required />
               </div>
               <div>
-                <label className="bf-label" htmlFor="ee-capacity">Maximum number of attendees</label>
+                <label className="bf-label" htmlFor="ee-capacity">{t("Maximum number of attendees")}</label>
                 <input id="ee-capacity" name="capacity" className="bf-input" type="number" min="1"
                   value={form.capacity} onChange={handleChange} required />
               </div>
             </div>
 
-            <p className="bf-muted ee-hint">Attendees who already have tickets will see the new details.</p>
+            <p className="bf-muted ee-hint">{t("Attendees who already have tickets will see the new details.")}</p>
             {message && <p className="ee-message" role="alert">{message}</p>}
             <div className="ee-actions">
-              <Link to={`/organizer/events/${id}`} className="bf-btn-outline">Cancel</Link>
-              <button type="submit" className="bf-btn" disabled={busy}>{busy ? "Saving..." : "Save changes"}</button>
+              <Link to={`/organizer/events/${id}`} className="bf-btn-outline">{t("Cancel")}</Link>
+              <button type="submit" className="bf-btn" disabled={busy}>{busy ? t("Saving...") : t("Save changes")}</button>
             </div>
           </form>
         )}

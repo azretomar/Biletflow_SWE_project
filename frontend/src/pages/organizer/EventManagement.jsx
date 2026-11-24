@@ -5,6 +5,7 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import { useApi, send, statusNote } from "../../lib/useApi";
 import { kzt, shortDateTime } from "../../lib/format";
 import "./eventManagement.css";
+import { t } from "../../i18n";
 
 // Event management for the organizer.
 //   GET    /api/events/{id}                  event + ticket types (sold = quantity - quantity_left)
@@ -20,27 +21,27 @@ import "./eventManagement.css";
 //   (orders and refunds: see the Orders and refunds page)
 
 const TABS = [
-  { value: "types", label: "Ticket types" },
-  { value: "attendees", label: "Attendees" },
-  { value: "staff", label: "Check-in staff" },
+  { value: "types", get label() { return t("Ticket types"); } },
+  { value: "attendees", get label() { return t("Attendees"); } },
+  { value: "staff", get label() { return t("Check-in staff"); } },
 ];
 
 const TICKET_STATUS = {
-  valid: { label: "Valid", cls: "bf-badge-valid" },
-  checked_in: { label: "Checked in", cls: "bf-badge-checkedin" },
-  cancelled: { label: "Cancelled", cls: "bf-badge-cancelled" },
-  refunded: { label: "Refunded", cls: "bf-badge-refunded" },
+  valid: { get label() { return t("Valid"); }, cls: "bf-badge-valid" },
+  checked_in: { get label() { return t("Checked in"); }, cls: "bf-badge-checkedin" },
+  cancelled: { get label() { return t("Cancelled"); }, cls: "bf-badge-cancelled" },
+  refunded: { get label() { return t("Refunded"); }, cls: "bf-badge-refunded" },
 };
 
 function eventStatus(ev) {
   if (!ev || !ev.date) return null;
-  if (ev.status === "cancelled") return { key: "cancelled", label: "Cancelled" };
-  if (ev.status === "draft") return { key: "draft", label: "Draft" };
+  if (ev.status === "cancelled") return { key: "cancelled", label: t("Cancelled") };
+  if (ev.status === "draft") return { key: "draft", label: t("Draft") };
   const start = new Date(ev.date);
   const now = new Date();
-  if (start > now) return { key: "upcoming", label: "Upcoming" };
-  if (now - start < 12 * 60 * 60 * 1000) return { key: "active", label: "Active" };
-  return { key: "completed", label: "Completed" };
+  if (start > now) return { key: "upcoming", label: t("Upcoming") };
+  if (now - start < 12 * 60 * 60 * 1000) return { key: "active", label: t("Active") };
+  return { key: "completed", label: t("Completed") };
 }
 
 function StaffSection({ eventId }) {
@@ -54,7 +55,7 @@ function StaffSection({ eventId }) {
     e.preventDefault();
     setMsg("");
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-      setMsg("Enter the email the person signed up with.");
+      setMsg(t("Enter the email the person signed up with."));
       return;
     }
     setBusy(true);
@@ -63,7 +64,7 @@ function StaffSection({ eventId }) {
     if (r.ok) {
       setData([...staff, r.data]);
       setEmail("");
-      setMsg(`${r.data.full_name || r.data.email} can now check in tickets for this event in the mobile app.`);
+      setMsg(t("{name} can now check in tickets for this event in the mobile app.", { name: r.data.full_name || r.data.email }));
     } else {
       setMsg(r.message);
     }
@@ -73,7 +74,7 @@ function StaffSection({ eventId }) {
     const m = removing;
     const r = await send(`/events/${eventId}/staff/${m.user_id}`, "DELETE");
     if (r.ok) setData(staff.filter((s) => s.user_id !== m.user_id));
-    setMsg(r.ok ? `${m.full_name || m.email} was removed from check-in staff.` : r.message);
+    setMsg(r.ok ? t("{name} was removed from check-in staff.", { name: m.full_name || m.email }) : r.message);
     setRemoving(null);
   }
 
@@ -82,14 +83,13 @@ function StaffSection({ eventId }) {
   return (
     <div className="em-staff">
       <p className="bf-muted em-staff-intro">
-        Check-in staff use the BiletFlow mobile app to scan tickets at the door. They only see this event.
-        The person needs a BiletFlow account first.
+        {t("Check-in staff use the BiletFlow mobile app to scan tickets at the door. They only see this event. The person needs a BiletFlow account first.")}
       </p>
       <form className="em-staff-form" onSubmit={add}>
-        <label className="bf-sr-only" htmlFor="staff-email">Staff email</label>
+        <label className="bf-sr-only" htmlFor="staff-email">{t("Staff email")}</label>
         <input id="staff-email" type="email" className="bf-input" placeholder="staff@example.kz"
           value={email} onChange={(e) => setEmail(e.target.value)} />
-        <button type="submit" className="bf-btn" disabled={busy}>{busy ? "Adding..." : "Add staff"}</button>
+        <button type="submit" className="bf-btn" disabled={busy}>{busy ? t("Adding...") : t("Add staff")}</button>
       </form>
       {msg && <p className="em-msg" role="status">{msg}</p>}
       {note && <p className="bf-muted em-note" role="status">{note}</p>}
@@ -98,15 +98,15 @@ function StaffSection({ eventId }) {
         <table className="bf-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Added</th>
-              <th><span className="bf-sr-only">Actions</span></th>
+              <th>{t("Name")}</th>
+              <th>{t("Email")}</th>
+              <th>{t("Added")}</th>
+              <th><span className="bf-sr-only">{t("Actions")}</span></th>
             </tr>
           </thead>
           <tbody>
             {staff.length === 0 ? (
-              <tr><td colSpan={4} className="bf-muted">No check-in staff yet.</td></tr>
+              <tr><td colSpan={4} className="bf-muted">{t("No check-in staff yet.")}</td></tr>
             ) : (
               staff.map((m) => (
                 <tr key={m.user_id}>
@@ -114,7 +114,7 @@ function StaffSection({ eventId }) {
                   <td>{m.email}</td>
                   <td>{shortDateTime(m.assigned_at)}</td>
                   <td className="em-actions-cell">
-                    <button type="button" className="em-link" onClick={() => setRemoving(m)}>Remove</button>
+                    <button type="button" className="em-link" onClick={() => setRemoving(m)}>{t("Remove")}</button>
                   </td>
                 </tr>
               ))
@@ -125,9 +125,9 @@ function StaffSection({ eventId }) {
 
       {removing && (
         <ConfirmDialog
-          title="Remove from check-in staff?"
-          message={`${removing.full_name || removing.email} will no longer be able to check in tickets for this event.`}
-          confirmLabel="Remove"
+          title={t("Remove from check-in staff?")}
+          message={t("{name} will no longer be able to check in tickets for this event.", { name: removing.full_name || removing.email })}
+          confirmLabel={t("Remove")}
           danger
           onConfirm={remove}
           onCancel={() => setRemoving(null)}
@@ -150,7 +150,7 @@ function AttendeesSection({ eventId, list }) {
     const r = await send("/checkin/undo", "POST", { event_id: eventId, ticket_id: a.ticket_id });
     if (r.ok) {
       setData(attendees.map((x) => (x.ticket_id === a.ticket_id ? { ...x, status: "valid", checked_in_at: null } : x)));
-      setMsg(`Check-in undone for ${a.full_name}. The ticket can be scanned again.`);
+      setMsg(t("Check-in undone for {name}. The ticket can be scanned again.", { name: a.full_name }));
     } else {
       setMsg(r.message);
     }
@@ -161,25 +161,25 @@ function AttendeesSection({ eventId, list }) {
 
   return (
     <>
-      <input type="search" className="bf-input em-search" placeholder="Search attendees by name, email or ticket"
-        aria-label="Search attendees" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <input type="search" className="bf-input em-search" placeholder={t("Search attendees by name, email or ticket")}
+        aria-label={t("Search attendees")} value={search} onChange={(e) => setSearch(e.target.value)} />
       {note && <p className="bf-muted em-note" role="status">{note}</p>}
       {msg && <p className="em-msg" role="status">{msg}</p>}
       <div className="bf-table-wrap em-table-wrap">
         <table className="bf-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Ticket type</th>
-              <th>Ticket ID</th>
-              <th>Status</th>
-              <th><span className="bf-sr-only">Actions</span></th>
+              <th>{t("Name")}</th>
+              <th>{t("Email")}</th>
+              <th>{t("Ticket type")}</th>
+              <th>{t("Ticket ID")}</th>
+              <th>{t("Status")}</th>
+              <th><span className="bf-sr-only">{t("Actions")}</span></th>
             </tr>
           </thead>
           <tbody>
             {visible.length === 0 ? (
-              <tr><td colSpan={6} className="bf-muted">{attendees.length === 0 ? "No attendees yet." : "No attendees match your search."}</td></tr>
+              <tr><td colSpan={6} className="bf-muted">{attendees.length === 0 ? t("No attendees yet.") : t("No attendees match your search.")}</td></tr>
             ) : (
               visible.map((a) => {
                 const s = TICKET_STATUS[a.status] || { label: a.status, cls: "bf-badge-completed" };
@@ -195,7 +195,7 @@ function AttendeesSection({ eventId, list }) {
                     </td>
                     <td className="em-actions-cell">
                       {a.status === "checked_in" && (
-                        <button type="button" className="em-link" onClick={() => setUndoing(a)}>Undo check-in</button>
+                        <button type="button" className="em-link" onClick={() => setUndoing(a)}>{t("Undo check-in")}</button>
                       )}
                     </td>
                   </tr>
@@ -207,9 +207,9 @@ function AttendeesSection({ eventId, list }) {
       </div>
       {undoing && (
         <ConfirmDialog
-          title="Undo this check-in?"
-          message={`${undoing.full_name}'s ticket becomes valid again and can be scanned at the door. Use this only for a check-in made by mistake.`}
-          confirmLabel="Undo check-in"
+          title={t("Undo this check-in?")}
+          message={t("The ticket of {name} becomes valid again and can be scanned at the door. Use this only for a check-in made by mistake.", { name: undoing.full_name })}
+          confirmLabel={t("Undo check-in")}
           onConfirm={undo}
           onCancel={() => setUndoing(null)}
         />
@@ -246,7 +246,7 @@ function EventManagement() {
   const [msg, setMsg] = useState("");
 
   const types = (event && event.ticket_types) || [];
-  const sold = types.reduce((sum, t) => sum + (t.quantity - t.quantity_left), 0);
+  const sold = types.reduce((sum, tt) => sum + (tt.quantity - tt.quantity_left), 0);
   const capacity = event ? event.capacity : 0;
   const st = eventStatus(event);
   const subtitle = event ? [shortDateTime(event.date), event.venue].filter(Boolean).join(" | ") : "";
@@ -273,10 +273,10 @@ function EventManagement() {
   }
 
   async function deleteType() {
-    const t = deleting;
-    const r = await send(`/events/${id}/ticket-types/${t.id}`, "DELETE");
+    const tt = deleting;
+    const r = await send(`/events/${id}/ticket-types/${tt.id}`, "DELETE");
     setDeleting(null);
-    if (r.ok) setEvent({ ...event, ticket_types: types.filter((x) => x.id !== t.id) });
+    if (r.ok) setEvent({ ...event, ticket_types: types.filter((x) => x.id !== tt.id) });
     else setMsg(r.message);
   }
 
@@ -285,11 +285,11 @@ function EventManagement() {
       <Navbar />
 
       <main className="bf-page">
-        <Link to="/organizer/dashboard" className="bf-back">&lt;Back to dashboard</Link>
+        <Link to="/organizer/dashboard" className="bf-back">&lt;{t("Back to dashboard")}</Link>
 
-        {status === "loading" && <p className="bf-muted">Loading event...</p>}
+        {status === "loading" && <p className="bf-muted">{t("Loading event...")}</p>}
         {(status === "error" || status === "not_connected") && (
-          <p className="em-error" role="alert">{notFound ? "Event not found." : error}</p>
+          <p className="em-error" role="alert">{notFound ? t("Event not found.") : error}</p>
         )}
 
         {event && (
@@ -304,66 +304,66 @@ function EventManagement() {
               </div>
               {!cancelled && (
                 <div className="em-buttons">
-                  <button type="button" className="bf-btn-danger" onClick={() => setCancelling(true)}>Cancel event</button>
-                  <Link to={`/organizer/events/${id}/edit`} className="bf-btn-outline">Edit event</Link>
+                  <button type="button" className="bf-btn-danger" onClick={() => setCancelling(true)}>{t("Cancel event")}</button>
+                  <Link to={`/organizer/events/${id}/edit`} className="bf-btn-outline">{t("Edit event")}</Link>
                   {event.status === "draft" && (
-                    <button type="button" className="bf-btn-outline" onClick={() => setPublished(true)}>Publish</button>
+                    <button type="button" className="bf-btn-outline" onClick={() => setPublished(true)}>{t("Publish")}</button>
                   )}
                   {event.status === "published" && sold === 0 && (
-                    <button type="button" className="bf-btn-outline" onClick={() => setPublished(false)}>Unpublish</button>
+                    <button type="button" className="bf-btn-outline" onClick={() => setPublished(false)}>{t("Unpublish")}</button>
                   )}
-                  <Link to={`/organizer/events/${id}/ticket-types/new`} className="bf-btn">Add ticket type</Link>
+                  <Link to={`/organizer/events/${id}/ticket-types/new`} className="bf-btn">{t("Add ticket type")}</Link>
                 </div>
               )}
             </div>
             {cancelled && (
               <p className="em-note" role="status">
-                This event was cancelled. Paid orders were refunded (simulated) and free registrations cancelled.
+                {t("This event was cancelled. Paid orders were refunded (simulated) and free registrations cancelled.")}
               </p>
             )}
             {event.status === "draft" && (
-              <p className="em-note" role="status">This is a draft: only you can see it. Publish it to start selling tickets.</p>
+              <p className="em-note" role="status">{t("This is a draft: only you can see it. Publish it to start selling tickets.")}</p>
             )}
             {event.suspended && (
-              <p className="em-error" role="alert">BiletFlow suspended this event: it is hidden and sales are stopped. Contact support.</p>
+              <p className="em-error" role="alert">{t("BiletFlow suspended this event: it is hidden and sales are stopped. Contact support.")}</p>
             )}
             {msg && <p className="em-error" role="alert">{msg}</p>}
             {copyErrors.length > 0 && (
               <p className="em-error" role="alert">
-                Some ticket types were not copied: {copyErrors.join("; ")}. Add them again with "Add ticket type".
+                {t("Some ticket types were not copied: {errors}. Add them again with \"Add ticket type\".", { errors: copyErrors.join("; ") })}
               </p>
             )}
 
             <div className="bf-stats">
               <div className="bf-stat">
-                <div className="bf-stat-label">Capacity</div>
+                <div className="bf-stat-label">{t("Capacity")}</div>
                 <div className="bf-stat-value">{capacity}</div>
               </div>
               <div className="bf-stat">
-                <div className="bf-stat-label">Sold</div>
+                <div className="bf-stat-label">{t("Sold")}</div>
                 <div className="bf-stat-value">{sold}</div>
               </div>
               <div className="bf-stat">
-                <div className="bf-stat-label">Remaining</div>
+                <div className="bf-stat-label">{t("Remaining")}</div>
                 <div className="bf-stat-value">{Math.max(capacity - sold, 0)}</div>
               </div>
               <div className="bf-stat">
-                <div className="bf-stat-label">Ticket types</div>
+                <div className="bf-stat-label">{t("Ticket types")}</div>
                 <div className="bf-stat-value">{types.length}</div>
               </div>
             </div>
 
-            <div className="bf-chips" role="tablist" aria-label="Event sections">
-              {TABS.map((t) => (
+            <div className="bf-chips" role="tablist" aria-label={t("Event sections")}>
+              {TABS.map((tt) => (
                 <button
-                  key={t.value}
+                  key={tt.value}
                   type="button"
                   role="tab"
-                  aria-selected={tab === t.value}
-                  className={tab === t.value ? "bf-chip bf-chip-active" : "bf-chip"}
-                  onClick={() => setTab(t.value)}
+                  aria-selected={tab === tt.value}
+                  className={tab === tt.value ? "bf-chip bf-chip-active" : "bf-chip"}
+                  onClick={() => setTab(tt.value)}
                 >
-                  {t.label}
+                  {tt.label}
                 </button>
               ))}
             </div>
@@ -373,39 +373,39 @@ function EventManagement() {
                 <table className="bf-table">
                   <thead>
                     <tr>
-                      <th>Name</th>
-                      <th>Price</th>
-                      <th>Sold</th>
-                      <th>Left</th>
-                      <th>Checked in</th>
-                      <th>Refunded / cancelled</th>
-                      {!cancelled && <th><span className="bf-sr-only">Actions</span></th>}
+                      <th>{t("Name")}</th>
+                      <th>{t("Price")}</th>
+                      <th>{t("Sold")}</th>
+                      <th>{t("Left")}</th>
+                      <th>{t("Checked in")}</th>
+                      <th>{t("Refunded / cancelled")}</th>
+                      {!cancelled && <th><span className="bf-sr-only">{t("Actions")}</span></th>}
                     </tr>
                   </thead>
                   <tbody>
                     {types.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="bf-muted">
-                          No ticket types yet. <Link to={`/organizer/events/${id}/ticket-types/new`}>Add one</Link> so people can register.
+                          {t("No ticket types yet.")} <Link to={`/organizer/events/${id}/ticket-types/new`}>{t("Add one")}</Link> {t("so people can register.")}
                         </td>
                       </tr>
                     ) : (
-                      types.map((t) => (
-                        <tr key={t.id}>
+                      types.map((tt) => (
+                        <tr key={tt.id}>
                           <td>
-                            {t.name}
-                            {t.description && <span className="bf-muted em-cell-sub">{t.description}</span>}
+                            {tt.name}
+                            {tt.description && <span className="bf-muted em-cell-sub">{tt.description}</span>}
                           </td>
-                          <td>{kzt(t.price)}</td>
-                          <td>{t.quantity - t.quantity_left}</td>
-                          <td>{t.quantity_left}</td>
-                          <td>{counts[t.name] ? counts[t.name].checkedIn : 0}</td>
-                          <td>{counts[t.name] ? counts[t.name].returned : 0}</td>
+                          <td>{kzt(tt.price)}</td>
+                          <td>{tt.quantity - tt.quantity_left}</td>
+                          <td>{tt.quantity_left}</td>
+                          <td>{counts[tt.name] ? counts[tt.name].checkedIn : 0}</td>
+                          <td>{counts[tt.name] ? counts[tt.name].returned : 0}</td>
                           {!cancelled && (
                             <td className="em-row-actions">
-                              <Link to={`/organizer/events/${id}/ticket-types/${t.id}/edit`} className="em-link">Edit</Link>
-                              {t.quantity === t.quantity_left && (
-                                <button type="button" className="em-link" onClick={() => setDeleting(t)}>Delete</button>
+                              <Link to={`/organizer/events/${id}/ticket-types/${tt.id}/edit`} className="em-link">{t("Edit")}</Link>
+                              {tt.quantity === tt.quantity_left && (
+                                <button type="button" className="em-link" onClick={() => setDeleting(tt)}>{t("Delete")}</button>
                               )}
                             </td>
                           )}
@@ -419,12 +419,12 @@ function EventManagement() {
             {tab === "attendees" && <AttendeesSection eventId={id} list={attendeeList} />}
             {tab === "staff" && <StaffSection eventId={id} />}
 
-            <nav className="em-foot" aria-label="More for this event">
-              <Link to={`/organizer/events/${id}/orders`}>Orders and refunds&gt;</Link>
-              <Link to={`/organizer/events/${id}/activation`}>Paid sales activation&gt;</Link>
-              <Link to={`/organizer/events/${id}/analytics`}>Analytics&gt;</Link>
-              <Link to={`/organizer/events/${id}/history`}>History&gt;</Link>
-              <Link to={`/events/${id}`}>View public page&gt;</Link>
+            <nav className="em-foot" aria-label={t("More for this event")}>
+              <Link to={`/organizer/events/${id}/orders`}>{t("Orders and refunds")}&gt;</Link>
+              <Link to={`/organizer/events/${id}/activation`}>{t("Paid sales activation")}&gt;</Link>
+              <Link to={`/organizer/events/${id}/analytics`}>{t("Analytics")}&gt;</Link>
+              <Link to={`/organizer/events/${id}/history`}>{t("History")}&gt;</Link>
+              <Link to={`/events/${id}`}>{t("View public page")}&gt;</Link>
             </nav>
           </>
         )}
@@ -432,9 +432,9 @@ function EventManagement() {
 
       {deleting && (
         <ConfirmDialog
-          title={`Delete "${deleting.name}"?`}
-          message="Nobody has this ticket type yet, so it can be deleted."
-          confirmLabel="Delete"
+          title={t("Delete \"{name}\"?", { name: deleting.name })}
+          message={t("Nobody has this ticket type yet, so it can be deleted.")}
+          confirmLabel={t("Delete")}
           danger
           onConfirm={deleteType}
           onCancel={() => setDeleting(null)}
@@ -443,9 +443,9 @@ function EventManagement() {
 
       {cancelling && (
         <ConfirmDialog
-          title="Cancel this event?"
-          message="The event will be marked as cancelled, ticket sales stop, and attendees are notified. This cannot be undone."
-          confirmLabel="Cancel event"
+          title={t("Cancel this event?")}
+          message={t("The event will be marked as cancelled, ticket sales stop, and attendees are notified. This cannot be undone.")}
+          confirmLabel={t("Cancel event")}
           danger
           needsReason
           onConfirm={cancelEvent}

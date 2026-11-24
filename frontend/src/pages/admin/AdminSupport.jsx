@@ -5,6 +5,7 @@ import { useApi, send, statusNote } from "../../lib/useApi";
 import { shortDateTime, CASE_STATUS } from "../../lib/format";
 import { CATEGORIES, ContextLink, Thread, ReplyBox } from "../Support";
 import "../support.css";
+import { t } from "../../i18n";
 
 // Support cases for staff (SRS 4.12, 4.13). Used twice:
 //   scope="admin":     platform admins, every case       (/admin/support)
@@ -18,11 +19,11 @@ import "../support.css";
 //   POST  /api/admin/support/cases/{id}/messages { body }
 
 const STATUS_FILTERS = [
-  { value: "", label: "All" },
-  { value: "open", label: "Open" },
-  { value: "in_progress", label: "In progress" },
-  { value: "waiting", label: "Waiting for customer" },
-  { value: "resolved", label: "Resolved" },
+  { value: "", get label() { return t("All"); } },
+  { value: "open", get label() { return t("Open"); } },
+  { value: "in_progress", get label() { return t("In progress"); } },
+  { value: "waiting", get label() { return t("Waiting for customer"); } },
+  { value: "resolved", get label() { return t("Resolved"); } },
 ];
 
 function categoryLabel(v) {
@@ -31,10 +32,10 @@ function categoryLabel(v) {
 }
 
 const SCOPES = {
-  admin: { api: "/admin/support/cases", base: "/admin/support", title: "Support cases",
-    empty: "No support cases.", reply: "Reply to the customer..." },
-  organizer: { api: "/organizer/support/cases", base: "/organizer/support", title: "Support requests about your events",
-    empty: "No support requests about your events yet.", reply: "Reply to the attendee..." },
+  admin: { api: "/admin/support/cases", base: "/admin/support", get title() { return t("Support cases"); },
+    get empty() { return t("No support cases."); }, get reply() { return t("Reply to the customer..."); } },
+  organizer: { api: "/organizer/support/cases", base: "/organizer/support", get title() { return t("Support requests about your events"); },
+    get empty() { return t("No support requests about your events yet."); }, get reply() { return t("Reply to the attendee..."); } },
 };
 
 function CaseStatusBadge({ status }) {
@@ -59,9 +60,9 @@ export function AdminSupportList({ scope = "admin" }) {
     <div className="admin-page">
       <h1>{sc.title}</h1>
       <div className="toolbar">
-        <input type="search" className="search-input" placeholder="Search by subject, person or case number..."
-          aria-label="Search support cases" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <div className="filter-tabs" role="group" aria-label="Filter by status">
+        <input type="search" className="search-input" placeholder={t("Search by subject, person or case number...")}
+          aria-label={t("Search support cases")} value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="filter-tabs" role="group" aria-label={t("Filter by status")}>
           {STATUS_FILTERS.map((f) => (
             <button key={f.value} type="button" aria-pressed={filter === f.value}
               className={filter === f.value ? "filter-tab active" : "filter-tab"}
@@ -75,17 +76,17 @@ export function AdminSupportList({ scope = "admin" }) {
 
       <div className="panel">
         {visible.length === 0 ? (
-          <p className="empty">{cases.length === 0 ? sc.empty : "No cases match your search."}</p>
+          <p className="empty">{cases.length === 0 ? sc.empty : t("No cases match your search.")}</p>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Case</th>
-                <th>From</th>
-                <th>Topic</th>
-                <th>Assigned to</th>
-                <th>Updated</th>
-                <th>Status</th>
+                <th>{t("Case")}</th>
+                <th>{t("From")}</th>
+                <th>{t("Topic")}</th>
+                <th>{t("Assigned to")}</th>
+                <th>{t("Updated")}</th>
+                <th>{t("Status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -100,7 +101,7 @@ export function AdminSupportList({ scope = "admin" }) {
                     <span className="cell-sub">{c.requester.email}</span>
                   </td>
                   <td>{categoryLabel(c.category)}</td>
-                  <td>{c.assignee ? c.assignee.full_name : <span className="text-danger">Nobody</span>}</td>
+                  <td>{c.assignee ? c.assignee.full_name : <span className="text-danger">{t("Nobody")}</span>}</td>
                   <td className="nowrap">{shortDateTime(c.updated_at)}</td>
                   <td><CaseStatusBadge status={c.status} /></td>
                 </tr>
@@ -142,10 +143,10 @@ export function AdminSupportCase({ scope = "admin" }) {
 
   return (
     <div className="admin-page">
-      <Link to={sc.base} className="back-link">← All support cases</Link>
+      <Link to={sc.base} className="back-link">← {t("All support cases")}</Link>
       {note && <p className="page-intro" role="status">{note}</p>}
       {!c ? (
-        status !== "loading" && <h1>Support case #{id}</h1>
+        status !== "loading" && <h1>{t("Support case #{id}", { id })}</h1>
       ) : (
         <>
           <div className="detail-header">
@@ -153,7 +154,7 @@ export function AdminSupportCase({ scope = "admin" }) {
               <h1>{c.subject}</h1>
               <div className="detail-meta">
                 <CaseStatusBadge status={c.status} />
-                <span>Case #{c.id}</span>
+                <span>{t("Case #{id}", { id: c.id })}</span>
                 <span>{categoryLabel(c.category)}</span>
                 <ContextLink context={c.context} />
               </div>
@@ -162,10 +163,10 @@ export function AdminSupportCase({ scope = "admin" }) {
               {(!c.assignee || c.assignee.id !== user.id) && (
                 <button type="button" className="btn-small btn-secondary"
                   onClick={() => patch({ assign_to_me: true }, { assignee: { id: user.id, full_name: user.full_name } })}>
-                  Assign to me
+                  {t("Assign to me")}
                 </button>
               )}
-              <label className="sr-only" htmlFor="case-status">Status</label>
+              <label className="sr-only" htmlFor="case-status">{t("Status")}</label>
               <select id="case-status" className="search-input case-status-select" value={c.status}
                 onChange={(e) => patch({ status: e.target.value }, { status: e.target.value })}>
                 {STATUS_FILTERS.filter((f) => f.value).map((f) => (
@@ -178,22 +179,22 @@ export function AdminSupportCase({ scope = "admin" }) {
 
           <div className="detail-grid">
             <section className="panel">
-              <h2>From</h2>
+              <h2>{t("From")}</h2>
               <dl className="info-list">
-                <dt>Name</dt>
+                <dt>{t("Name")}</dt>
                 <dd>{c.requester ? c.requester.full_name : "-"}</dd>
-                <dt>Email</dt>
+                <dt>{t("Email")}</dt>
                 <dd>{c.requester ? c.requester.email : "-"}</dd>
-                <dt>Opened</dt>
+                <dt>{t("Opened")}</dt>
                 <dd>{shortDateTime(c.created_at)}</dd>
-                <dt>Assigned</dt>
-                <dd>{c.assignee ? c.assignee.full_name : "Nobody"}</dd>
+                <dt>{t("Assigned")}</dt>
+                <dd>{c.assignee ? c.assignee.full_name : t("Nobody")}</dd>
               </dl>
             </section>
           </div>
 
           <section className="panel">
-            <h2>Conversation</h2>
+            <h2>{t("Conversation")}</h2>
             <Thread messages={c.messages} meRole="staff" />
             <ReplyBox onSend={reply} placeholder={sc.reply} />
           </section>

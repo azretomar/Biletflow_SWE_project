@@ -3,14 +3,15 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useAdminData, eventDisplayStatus, formatDateTime } from "./AdminDataContext";
 import { StatusBadge, ConfirmDialog } from "./AdminComponents";
 import { downloadCsv, today } from "../../lib/csv";
+import { t } from "../../i18n";
 
 const FILTERS = [
-  { value: "all", label: "All" },
-  { value: "published", label: "Published" },
-  { value: "draft", label: "Draft" },
-  { value: "suspended", label: "Suspended" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "reported", label: "Reported" },
+  { value: "all", get label() { return t("All"); } },
+  { value: "published", get label() { return t("Published"); } },
+  { value: "draft", get label() { return t("Draft"); } },
+  { value: "suspended", get label() { return t("Suspended"); } },
+  { value: "cancelled", get label() { return t("Cancelled"); } },
+  { value: "reported", get label() { return t("Reported"); } },
 ];
 
 // Screen 2: Events list - search, filter by status, suspend.
@@ -39,18 +40,18 @@ function AdminEvents() {
 
   return (
     <div className="admin-page">
-      <h1>Events</h1>
+      <h1>{t("Events")}</h1>
 
       <div className="toolbar">
         <input
           type="search"
           className="search-input"
-          placeholder="Search by event title or organizer..."
-          aria-label="Search events"
+          placeholder={t("Search by event title or organizer...")}
+          aria-label={t("Search events")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <div className="filter-tabs" role="group" aria-label="Filter by status">
+        <div className="filter-tabs" role="group" aria-label={t("Filter by status")}>
           {FILTERS.map((f) => (
             <button
               key={f.value}
@@ -65,34 +66,34 @@ function AdminEvents() {
         </div>
         <button type="button" className="btn-small btn-secondary" disabled={visibleEvents.length === 0}
           onClick={() => downloadCsv(`biletflow-events-${today()}.csv`, [
-            { label: "Title", value: (e) => e.title },
-            { label: "Organizer", value: (e) => (getUser(e.organizer_id) || {}).email || "" },
-            { label: "Starts", value: (e) => e.start_at },
-            { label: "Status", value: (e) => eventDisplayStatus(e) },
-            { label: "Capacity", value: (e) => e.capacity },
-            { label: "Tickets sold", value: (e) => e.tickets_sold },
-            { label: "Revenue KZT (simulated)", value: (e) => e.revenue_kzt },
-            { label: "Reports", value: (e) => e.reports.length },
-            { label: "Paid sales", value: (e) => (e.activation ? e.activation.paid_sales : "none") },
+            { label: t("Title"), value: (e) => e.title },
+            { label: t("Organizer"), value: (e) => (getUser(e.organizer_id) || {}).email || "" },
+            { label: t("Starts"), value: (e) => e.start_at },
+            { label: t("Status"), value: (e) => eventDisplayStatus(e) },
+            { label: t("Capacity"), value: (e) => e.capacity },
+            { label: t("Tickets sold"), value: (e) => e.tickets_sold },
+            { label: t("Revenue KZT (simulated)"), value: (e) => e.revenue_kzt },
+            { label: t("Reports"), value: (e) => e.reports.length },
+            { label: t("Paid sales"), value: (e) => (e.activation ? e.activation.paid_sales : "none") },
           ], visibleEvents)}>
-          Export CSV
+          {t("Export CSV")}
         </button>
       </div>
 
       <div className="panel">
         {visibleEvents.length === 0 ? (
-          <p className="empty">{events.length === 0 ? "No events yet." : "No events match your search."}</p>
+          <p className="empty">{events.length === 0 ? t("No events yet.") : t("No events match your search.")}</p>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Event</th>
-                <th>Organizer</th>
-                <th>Date</th>
-                <th>Sold</th>
-                <th>Reports</th>
-                <th>Status</th>
-                <th><span className="sr-only">Actions</span></th>
+                <th>{t("Event")}</th>
+                <th>{t("Organizer")}</th>
+                <th>{t("Date")}</th>
+                <th>{t("Sold")}</th>
+                <th>{t("Reports")}</th>
+                <th>{t("Status")}</th>
+                <th><span className="sr-only">{t("Actions")}</span></th>
               </tr>
             </thead>
             <tbody>
@@ -110,7 +111,7 @@ function AdminEvents() {
                   <td className="actions">
                     {e.suspended ? (
                       <button type="button" className="btn-small btn-secondary" onClick={() => setConfirming(e)}>
-                        Restore
+                        {t("Restore")}
                       </button>
                     ) : (
                       <button
@@ -119,7 +120,7 @@ function AdminEvents() {
                         disabled={e.status === "cancelled"}
                         onClick={() => setConfirming(e)}
                       >
-                        Suspend
+                        {t("Suspend")}
                       </button>
                     )}
                   </td>
@@ -132,13 +133,13 @@ function AdminEvents() {
 
       {confirming && (
         <ConfirmDialog
-          title={confirming.suspended ? "Restore event?" : "Suspend event?"}
+          title={confirming.suspended ? t("Restore event?") : t("Suspend event?")}
           message={
             confirming.suspended
-              ? `"${confirming.title}" will be visible again. Paid sales stay stopped until you turn them back on.`
-              : `"${confirming.title}" will be hidden from attendees and all ticket sales will stop.`
+              ? t("\"{title}\" will be visible again. Paid sales stay stopped until you turn them back on.", { title: confirming.title })
+              : t("\"{title}\" will be hidden from attendees and all ticket sales will stop.", { title: confirming.title })
           }
-          confirmLabel={confirming.suspended ? "Restore" : "Suspend event"}
+          confirmLabel={confirming.suspended ? t("Restore") : t("Suspend event")}
           danger={!confirming.suspended}
           needsReason
           onConfirm={confirmAction}

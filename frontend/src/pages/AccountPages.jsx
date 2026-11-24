@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import AuthLayout from "./AuthLayout";
 import { useAuth } from "../AuthContext";
 import { send } from "../lib/useApi";
+import { t } from "../i18n";
 
 // Account pages from SRS 4.1: email verification and password reset.
 // They use the same two-panel layout as Sign up and Log in.
@@ -33,29 +34,29 @@ export function VerifyEmail() {
 
   async function resend() {
     const r = await send("/auth/resend-verification", "POST", {});
-    setResendMsg(r.ok ? "A new verification email is on its way." : r.message);
+    setResendMsg(r.ok ? t("A new verification email is on its way.") : r.message);
   }
 
   return (
-    <AuthLayout title="Email verification">
+    <AuthLayout title={t("Email verification")}>
       <div className="form" aria-live="polite">
-        {state === "checking" && <p>Checking your link...</p>}
+        {state === "checking" && <p>{t("Checking your link...")}</p>}
         {state === "done" && (
           <>
-            <p className="form-success">Your email is verified. Thank you!</p>
-            <Link to={user ? "/" : "/login"} className="btn">{user ? "Go to BiletFlow" : "Log in"}</Link>
+            <p className="form-success">{t("Your email is verified. Thank you!")}</p>
+            <Link to={user ? "/" : "/login"} className="btn">{user ? t("Go to BiletFlow") : t("Log in")}</Link>
           </>
         )}
         {(state === "failed" || state === "no_token") && (
           <>
             <p className="form-error" role="alert">
-              {state === "no_token" ? "This link is incomplete. Open the link from your email again." : message || "This link is invalid or has expired."}
+              {state === "no_token" ? t("This link is incomplete. Open the link from your email again.") : message || t("This link is invalid or has expired.")}
             </p>
             {user ? (
-              <button type="button" className="btn" onClick={resend}>Send a new verification email</button>
+              <button type="button" className="btn" onClick={resend}>{t("Send a new verification email")}</button>
             ) : (
               <p className="form-note">
-                <Link to="/login">Log in</Link> to get a new verification email.
+                <Link to="/login">{t("Log in")}</Link> {t("to get a new verification email.")}
               </p>
             )}
             {resendMsg && <p className="form-note" role="status">{resendMsg}</p>}
@@ -77,7 +78,7 @@ export function ForgotPassword() {
     e.preventDefault();
     setError("");
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setError("Enter the email you signed up with.");
+      setError(t("Enter the email you signed up with."));
       return;
     }
     setBusy(true);
@@ -88,23 +89,23 @@ export function ForgotPassword() {
   }
 
   return (
-    <AuthLayout title="Reset your password" subtitle="We'll email you a link to choose a new password.">
+    <AuthLayout title={t("Reset your password")} subtitle={t("We'll email you a link to choose a new password.")}>
       {sent ? (
         <div className="form" aria-live="polite">
           <p className="form-success">
-            If an account with {email.trim()} exists, a reset link is on its way. The link works for one hour.
+            {t("If an account with {email} exists, a reset link is on its way. The link works for one hour.", { email: email.trim() })}
           </p>
-          <p className="form-note"><Link to="/login">Back to Log in</Link></p>
+          <p className="form-note"><Link to="/login">{t("Back to Log in")}</Link></p>
         </div>
       ) : (
         <form className="form" onSubmit={submit} noValidate>
           {error && <p className="form-error" role="alert">{error}</p>}
           <div className="field">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">{t("Email")}</label>
             <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
-          <button type="submit" className="btn" disabled={busy}>{busy ? "Sending..." : "Send reset link"}</button>
-          <p className="form-note">Remembered it? <Link to="/login">Log in</Link></p>
+          <button type="submit" className="btn" disabled={busy}>{busy ? t("Sending...") : t("Send reset link")}</button>
+          <p className="form-note">{t("Remembered it?")} <Link to="/login">{t("Log in")}</Link></p>
         </form>
       )}
     </AuthLayout>
@@ -125,11 +126,11 @@ export function ResetPassword() {
     e.preventDefault();
     setError("");
     if (password.length < 8 || password.length > 72) {
-      setError("The password must be 8 to 72 characters.");
+      setError(t("The password must be 8 to 72 characters."));
       return;
     }
     if (password !== confirm) {
-      setError("The two passwords do not match.");
+      setError(t("The two passwords do not match."));
       return;
     }
     setBusy(true);
@@ -141,37 +142,37 @@ export function ResetPassword() {
 
   if (!token) {
     return (
-      <AuthLayout title="Choose a new password">
+      <AuthLayout title={t("Choose a new password")}>
         <div className="form">
-          <p className="form-error" role="alert">This link is incomplete. Open the link from your email again.</p>
-          <p className="form-note"><Link to="/forgot-password">Request a new link</Link></p>
+          <p className="form-error" role="alert">{t("This link is incomplete. Open the link from your email again.")}</p>
+          <p className="form-note"><Link to="/forgot-password">{t("Request a new link")}</Link></p>
         </div>
       </AuthLayout>
     );
   }
 
   return (
-    <AuthLayout title="Choose a new password">
+    <AuthLayout title={t("Choose a new password")}>
       {done ? (
         <div className="form" aria-live="polite">
-          <p className="form-success">Your password has been changed.</p>
-          <Link to="/login" className="btn">Log in</Link>
+          <p className="form-success">{t("Your password has been changed.")}</p>
+          <Link to="/login" className="btn">{t("Log in")}</Link>
         </div>
       ) : (
         <form className="form" onSubmit={submit} noValidate>
           {error && <p className="form-error" role="alert">{error}</p>}
           <div className="field">
-            <label htmlFor="password">New password</label>
+            <label htmlFor="password">{t("New password")}</label>
             <input id="password" type="password" autoComplete="new-password" aria-describedby="pw-hint"
               value={password} onChange={(e) => setPassword(e.target.value)} />
-            <span id="pw-hint" className="field-hint">8 to 72 characters</span>
+            <span id="pw-hint" className="field-hint">{t("8 to 72 characters")}</span>
           </div>
           <div className="field">
-            <label htmlFor="confirm">Repeat the new password</label>
+            <label htmlFor="confirm">{t("Repeat the new password")}</label>
             <input id="confirm" type="password" autoComplete="new-password"
               value={confirm} onChange={(e) => setConfirm(e.target.value)} />
           </div>
-          <button type="submit" className="btn" disabled={busy}>{busy ? "Saving..." : "Save new password"}</button>
+          <button type="submit" className="btn" disabled={busy}>{busy ? t("Saving...") : t("Save new password")}</button>
         </form>
       )}
     </AuthLayout>

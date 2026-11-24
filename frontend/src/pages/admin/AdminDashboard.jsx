@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAdminData, eventDisplayStatus, formatDate } from "./AdminDataContext";
 import { StatusBadge } from "./AdminComponents";
+import { t } from "../../i18n";
 
 // Screen 1: Admin dashboard (home) - a quick overview of the platform.
 function AdminDashboard() {
@@ -11,16 +12,16 @@ function AdminDashboard() {
   const suspendedEvents = events.filter((e) => e.suspended).length;
 
   const stats = [
-    { label: "Users", value: users.length, note: users.filter((u) => u.role === "organizer").length + " organizers", to: "/admin/users" },
-    { label: "Events", value: events.length, note: suspendedEvents + " suspended", to: "/admin/events" },
-    { label: "Reported events", value: reportedEvents.length, note: "need review", to: "/admin/events?filter=reported", alert: reportedEvents.length > 0 },
-    { label: "Pending activations", value: pendingActivations.length, note: "checklist not finished", to: "/admin/activations" },
-    { label: "Failed payments", value: failedPayments, note: "last 7 days", alert: failedPayments > 0 },
+    { label: t("Users"), value: users.length, note: t("{n} organizers", { n: users.filter((u) => u.role === "organizer").length }), to: "/admin/users" },
+    { label: t("Events"), value: events.length, note: t("{n} suspended", { n: suspendedEvents }), to: "/admin/events" },
+    { label: t("Reported events"), value: reportedEvents.length, note: t("need review"), to: "/admin/events?filter=reported", alert: reportedEvents.length > 0 },
+    { label: t("Pending activations"), value: pendingActivations.length, note: t("checklist not finished"), to: "/admin/activations" },
+    { label: t("Failed payments"), value: failedPayments, note: t("last 7 days"), alert: failedPayments > 0 },
   ];
 
   return (
     <div className="admin-page">
-      <h1>Dashboard</h1>
+      <h1>{t("Dashboard")}</h1>
 
       <div className="stat-grid">
         {stats.map((s) => {
@@ -42,21 +43,21 @@ function AdminDashboard() {
 
       <section className="panel">
         <div className="panel-header">
-          <h2>Reported events to review</h2>
-          <Link to="/admin/events?filter=reported">See all</Link>
+          <h2>{t("Reported events to review")}</h2>
+          <Link to="/admin/events?filter=reported">{t("See all")}</Link>
         </div>
 
         {reportedEvents.length === 0 ? (
-          <p className="empty">No reported events. Nice.</p>
+          <p className="empty">{t("No reported events. Nice.")}</p>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Event</th>
-                <th>Organizer</th>
-                <th>Reports</th>
-                <th>Last report</th>
-                <th>Status</th>
+                <th>{t("Event")}</th>
+                <th>{t("Organizer")}</th>
+                <th>{t("Reports")}</th>
+                <th>{t("Last report")}</th>
+                <th>{t("Status")}</th>
               </tr>
             </thead>
             <tbody>

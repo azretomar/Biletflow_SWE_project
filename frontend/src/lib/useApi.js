@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
+import { t } from "../i18n";
 
 // True when the backend does not have this endpoint yet (or not for this method).
 // A 404 that carries the backend's own JSON message (for example "event not found")
@@ -10,6 +11,7 @@ export function isNotConnected(err) {
   return err.status === 404 && !err.fromServer;
 }
 
+// English text; show it with t(NOT_CONNECTED_TEXT).
 export const NOT_CONNECTED_TEXT = "This part is not connected to the server yet.";
 
 // Loads `path` from the backend once (and again on reload()).
@@ -60,14 +62,14 @@ export async function send(path, method, body) {
     const data = await api(path, { method, body });
     return { ok: true, data, message: "" };
   } catch (err) {
-    return { ok: false, data: null, message: isNotConnected(err) ? NOT_CONNECTED_TEXT : err.message };
+    return { ok: false, data: null, message: isNotConnected(err) ? t(NOT_CONNECTED_TEXT) : err.message };
   }
 }
 
 // Small status line shown under a section while data is loading or missing.
 export function statusNote(status, error) {
-  if (status === "loading") return "Loading...";
-  if (status === "not_connected") return NOT_CONNECTED_TEXT;
+  if (status === "loading") return t("Loading...");
+  if (status === "not_connected") return t(NOT_CONNECTED_TEXT);
   if (status === "error") return error;
   return "";
 }

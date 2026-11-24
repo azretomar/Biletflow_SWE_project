@@ -5,6 +5,7 @@ import { api } from "../api";
 import { useAuth } from "../AuthContext";
 import { isNotConnected } from "../lib/useApi";
 import "./checkout.css";
+import { locale, t } from "../i18n";
 
 // Checkout with simulated KZT payment (SRS 3.2, 4.6). No real money and no card
 // data: the attendee only chooses whether the test payment succeeds or fails.
@@ -21,7 +22,7 @@ import "./checkout.css";
 const MAX_PER_TYPE = 10;
 
 function kzt(n) {
-  return n === 0 ? "Free" : n.toLocaleString("en-US") + " ₸";
+  return n === 0 ? t("Free") : n.toLocaleString(locale()) + " ₸";
 }
 
 function notConnected(err) {
@@ -63,7 +64,7 @@ function Checkout() {
       .then((data) => {
         if (!active) return;
         setDiscount(data);
-        setPromoMessage(`Code ${data.code} applied.`);
+        setPromoMessage(t("Code {code} applied.", { code: data.code }));
       })
       .catch((err) => active && setPromoMessage(err.message));
     return () => {
@@ -79,12 +80,12 @@ function Checkout() {
   // Paid tickets are sold only after the organizer finished the paid-sales checklist (SRS 3.2).
   const paidOnSale = Boolean(event && event.paid_sales === "active");
   const closedNote =
-    event && event.status === "cancelled" ? "This event was cancelled."
-      : event && event.suspended ? "Ticket sales for this event are paused by BiletFlow."
-        : event && event.status === "draft" ? "This event is not published yet."
+    event && event.status === "cancelled" ? t("This event was cancelled.")
+      : event && event.suspended ? t("Ticket sales for this event are paused by BiletFlow.")
+        : event && event.status === "draft" ? t("This event is not published yet.")
           : "";
   const lines = types
-    .map((t) => ({ type: t, qty: Number(quantities[t.id]) || 0 }))
+    .map((tt) => ({ type: tt, qty: Number(quantities[tt.id]) || 0 }))
     .filter((l) => l.qty > 0);
   const subtotal = lines.reduce((sum, l) => sum + l.type.price * l.qty, 0);
   let discountAmount = 0;
@@ -108,9 +109,9 @@ function Checkout() {
     try {
       const data = await api("/promo/validate", { method: "POST", body: { event_id: id, code: promo.trim() } });
       setDiscount(data);
-      setPromoMessage(`Code ${data.code} applied.`);
+      setPromoMessage(t("Code {code} applied.", { code: data.code }));
     } catch (err) {
-      setPromoMessage(notConnected(err) ? "Promo codes are not connected to the server yet." : err.message);
+      setPromoMessage(notConnected(err) ? t("Promo codes are not connected to the server yet.") : err.message);
     }
   }
 
@@ -118,7 +119,7 @@ function Checkout() {
     e.preventDefault();
     setError("");
     if (lines.length === 0) {
-      setError("Choose at least one ticket.");
+      setError(t("Choose at least one ticket."));
       return;
     }
     setBusy(true);
@@ -144,14 +145,14 @@ function Checkout() {
           },
         });
         if (data.status === "failed") {
-          setError("The test payment failed. No tickets were issued. You can try again.");
+          setError(t("The test payment failed. No tickets were issued. You can try again."));
         } else {
           setResult({ order_ids: [data.order_id], tickets: data.tickets || [] });
         }
       }
     } catch (err) {
       setError(
-        notConnected(err) ? "Paid checkout is not connected to the server yet. Free tickets already work." : err.message
+        notConnected(err) ? t("Paid checkout is not connected to the server yet. Free tickets already work.") : err.message
       );
     } finally {
       setBusy(false);
@@ -164,23 +165,23 @@ function Checkout() {
         <Navbar />
         <main className="bf-page co-page">
           <section className="bf-card co-done" aria-live="polite">
-            <h1 className="bf-title">You're going!</h1>
+            <h1 className="bf-title">{t("You're going!")}</h1>
             <p className="bf-muted">
-              {event.title} · {result.tickets.length} ticket{result.tickets.length === 1 ? "" : "s"} · order{" "}
+              {event.title} · {t("{n} tickets", { n: result.tickets.length })} · {t("order")}{" "}
               {result.order_ids.join(", ")}
             </p>
             <ul className="co-ticket-list">
-              {result.tickets.map((t, i) => (
-                <li key={t.id}>
-                  <span>Ticket {i + 1}</span>
-                  <Link to={`/tickets/${t.id}`}>View</Link>
-                  <Link to={`/tickets/${t.id}/print`}>Print / PDF</Link>
+              {result.tickets.map((tt, i) => (
+                <li key={tt.id}>
+                  <span>{t("Ticket {n}", { n: i + 1 })}</span>
+                  <Link to={`/tickets/${tt.id}`}>{t("View")}</Link>
+                  <Link to={`/tickets/${tt.id}/print`}>{t("Print / PDF")}</Link>
                 </li>
               ))}
             </ul>
             <div className="co-done-actions">
-              <Link to="/my-tickets" className="bf-btn">Go to My tickets</Link>
-              <Link to="/my-orders" className="bf-btn-outline">My orders</Link>
+              <Link to="/my-tickets" className="bf-btn">{t("Go to My tickets")}</Link>
+              <Link to="/my-orders" className="bf-btn-outline">{t("My orders")}</Link>
             </div>
           </section>
         </main>
@@ -192,9 +193,9 @@ function Checkout() {
     <div className="co">
       <Navbar />
       <main className="bf-page co-page">
-        <Link to={`/events/${id}`} className="bf-back">&lt;Back to event</Link>
-        <h1 className="bf-title">Checkout</h1>
-        <p className="bf-muted co-sub">{event ? event.title : loadError ? "" : "Loading event..."}</p>
+        <Link to={`/events/${id}`} className="bf-back">&lt;{t("Back to event")}</Link>
+        <h1 className="bf-title">{t("Checkout")}</h1>
+        <p className="bf-muted co-sub">{event ? event.title : loadError ? "" : t("Loading event...")}</p>
         {loadError && <p className="co-error" role="alert">{loadError}</p>}
 
         {closedNote && <p className="co-error" role="alert">{closedNote}</p>}
@@ -202,34 +203,34 @@ function Checkout() {
           <form className="co-grid" onSubmit={pay}>
             <div className="co-main">
               <section className="bf-card co-card">
-                <h2>Tickets</h2>
+                <h2>{t("Tickets")}</h2>
                 {types.length === 0 ? (
-                  <p className="bf-muted">This event has no tickets yet.</p>
+                  <p className="bf-muted">{t("This event has no tickets yet.")}</p>
                 ) : (
                   <ul className="co-types">
-                    {types.map((t) => {
-                      const onSale = t.price === 0 || paidOnSale;
-                      const max = onSale ? Math.min(MAX_PER_TYPE, t.quantity_left) : 0;
+                    {types.map((tt) => {
+                      const onSale = tt.price === 0 || paidOnSale;
+                      const max = onSale ? Math.min(MAX_PER_TYPE, tt.quantity_left) : 0;
                       return (
-                        <li key={t.id} className="co-type">
+                        <li key={tt.id} className="co-type">
                           <div>
-                            <strong>{t.name}</strong>
-                            {t.description && <span className="bf-muted co-type-desc">{t.description}</span>}
+                            <strong>{tt.name}</strong>
+                            {tt.description && <span className="bf-muted co-type-desc">{tt.description}</span>}
                             <span className="bf-muted co-type-left">
-                              {!onSale ? "On sale soon" : t.quantity_left > 0 ? `${t.quantity_left} left` : "Sold out"}
+                              {!onSale ? t("On sale soon") : tt.quantity_left > 0 ? t("{n} left", { n: tt.quantity_left }) : t("Sold out")}
                             </span>
                           </div>
-                          <span className="co-price">{kzt(t.price)}</span>
+                          <span className="co-price">{kzt(tt.price)}</span>
                           <label className="co-qty">
-                            <span className="bf-sr-only">Quantity of {t.name}</span>
+                            <span className="bf-sr-only">{t("Quantity of {name}", { name: tt.name })}</span>
                             <input
                               type="number"
                               min="0"
                               max={max}
                               className="bf-input"
-                              value={quantities[t.id] || 0}
+                              value={quantities[tt.id] || 0}
                               disabled={max === 0}
-                              onChange={(e) => setQty(t.id, e.target.value, max)}
+                              onChange={(e) => setQty(tt.id, e.target.value, max)}
                             />
                           </label>
                         </li>
@@ -241,12 +242,12 @@ function Checkout() {
 
               {!isFree && (
                 <section className="bf-card co-card">
-                  <h2>Payment</h2>
+                  <h2>{t("Payment")}</h2>
                   <p className="co-test-note">
-                    Test mode: this is a simulated payment in KZT. No card is needed and no money is charged.
+                    {t("Test mode: this is a simulated payment in KZT. No card is needed and no money is charged.")}
                   </p>
                   <fieldset className="co-sim">
-                    <legend className="bf-label">Simulate the result</legend>
+                    <legend className="bf-label">{t("Simulate the result")}</legend>
                     <label>
                       <input
                         type="radio"
@@ -255,7 +256,7 @@ function Checkout() {
                         checked={simulate === "success"}
                         onChange={() => setSimulate("success")}
                       />{" "}
-                      Payment succeeds
+                      {t("Payment succeeds")}
                     </label>
                     <label>
                       <input
@@ -265,7 +266,7 @@ function Checkout() {
                         checked={simulate === "failure"}
                         onChange={() => setSimulate("failure")}
                       />{" "}
-                      Payment fails (to test the error)
+                      {t("Payment fails (to test the error)")}
                     </label>
                   </fieldset>
                 </section>
@@ -273,9 +274,9 @@ function Checkout() {
             </div>
 
             <aside className="bf-card co-card co-summary">
-              <h2>Order summary</h2>
+              <h2>{t("Order summary")}</h2>
               {lines.length === 0 ? (
-                <p className="bf-muted">No tickets chosen yet.</p>
+                <p className="bf-muted">{t("No tickets chosen yet.")}</p>
               ) : (
                 <ul className="co-lines">
                   {lines.map((l) => (
@@ -291,45 +292,45 @@ function Checkout() {
 
               {!isFree && (
                 <div className="co-promo">
-                  <label className="bf-label" htmlFor="co-promo">Promo code</label>
+                  <label className="bf-label" htmlFor="co-promo">{t("Promo code")}</label>
                   <div className="co-promo-row">
                     <input
                       id="co-promo"
                       className="bf-input"
                       value={promo}
                       onChange={(e) => setPromo(e.target.value.toUpperCase())}
-                      placeholder="e.g. STUDENT-7K2Q"
+                      placeholder={t("e.g. STUDENT-7K2Q")}
                     />
-                    <button type="button" className="bf-btn-outline" onClick={applyPromo}>Apply</button>
+                    <button type="button" className="bf-btn-outline" onClick={applyPromo}>{t("Apply")}</button>
                   </div>
                   {promoMessage && <p className="bf-muted co-promo-msg" aria-live="polite">{promoMessage}</p>}
                 </div>
               )}
 
               <dl className="co-totals">
-                <dt>Subtotal</dt>
+                <dt>{t("Subtotal")}</dt>
                 <dd>{kzt(subtotal)}</dd>
                 {discountAmount > 0 && (
                   <>
-                    <dt>Discount</dt>
+                    <dt>{t("Discount")}</dt>
                     <dd>− {kzt(discountAmount)}</dd>
                   </>
                 )}
-                <dt className="co-total">Total</dt>
+                <dt className="co-total">{t("Total")}</dt>
                 <dd className="co-total">{kzt(total)}</dd>
               </dl>
 
               {error && <p className="co-error" role="alert">{error}</p>}
               <button type="submit" className="bf-btn bf-btn-block" disabled={busy || lines.length === 0}>
                 {busy
-                  ? "Please wait..."
+                  ? t("Please wait...")
                   : lines.length === 0
-                    ? "Choose tickets"
+                    ? t("Choose tickets")
                     : isFree
-                      ? "Get free tickets"
+                      ? t("Get free tickets")
                       : total === 0
-                        ? "Confirm order (test)"
-                        : `Pay ${kzt(total)} (test)`}
+                        ? t("Confirm order (test)")
+                        : t("Pay {amount} (test)", { amount: kzt(total) })}
               </button>
             </aside>
           </form>

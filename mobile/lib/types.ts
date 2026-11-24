@@ -85,3 +85,9 @@ export type CheckinResult = {
   result: 'valid' | 'already_used' | 'invalid';
   ticket: (Ticket & { attendee_name: string }) | null;
 };
+
+// POST /api/checkin/undo
+export type UndoCheckinResponse = {
+  ticket_id: string;
+  status: 'valid';
+};

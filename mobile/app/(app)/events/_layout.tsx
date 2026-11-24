@@ -6,6 +6,7 @@ export default function EventsLayout() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ title: t('tabs.events') }} />
+      <Stack.Screen name="[id]" options={{ title: t('events.details'), headerBackTitle: t('tabs.events') }} />
     </Stack>
   );
 }

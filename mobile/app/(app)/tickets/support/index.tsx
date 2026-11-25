@@ -12,7 +12,6 @@ import { api } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import type { SupportCase } from '@/lib/types';
 
-// My support requests (package 2-3, SRS 4.13): GET /api/support/cases, most recently updated first.
 export default function SupportListScreen() {
   const { t } = useTranslation();
   const router = useRouter();

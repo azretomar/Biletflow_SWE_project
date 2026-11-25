@@ -14,8 +14,6 @@ import { api } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import type { EventDetail } from '@/lib/types';
 
-// One event for its organizer (package 1-4): details, publish / unpublish, cancel,
-// and links to everything else about the event.
 export default function EventDashboardScreen() {
   const { t } = useTranslation();
   const router = useRouter();

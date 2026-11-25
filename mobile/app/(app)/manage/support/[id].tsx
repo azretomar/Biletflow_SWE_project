@@ -15,10 +15,8 @@ import { formatDateTime } from '@/lib/format';
 import type { CaseStatus, OrganizerCase, SupportMessage } from '@/lib/types';
 
 const STATUSES: CaseStatus[] = ['open', 'in_progress', 'waiting', 'resolved'];
-const POLL_MS = 15000; // SRS 9: lightweight polling instead of sockets
+const POLL_MS = 15000;
 
-// One attendee request in the organizer inbox (package 2-3, SRS 4.13):
-// GET /api/organizer/support/cases/{id}, POST .../messages { body }, PATCH { status }.
 export default function OrganizerCaseScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();

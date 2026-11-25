@@ -12,8 +12,6 @@ import { api } from '@/lib/api';
 import { formatTime } from '@/lib/format';
 import type { Attendee } from '@/lib/types';
 
-// Attendee list of one event with a search (package 2-4, SRS 4.4 / 4.8):
-// GET /api/organizer/events/{id}/attendees.
 export default function AttendeesScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();

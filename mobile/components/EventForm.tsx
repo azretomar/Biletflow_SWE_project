@@ -12,7 +12,6 @@ import type { Event } from '@/lib/types';
 const CATEGORIES = ['music', 'education', 'sports', 'other'] as const;
 const VISIBILITY = ['public', 'unlisted', 'private'] as const;
 
-// Body for POST /api/events and PUT /api/events/{id}.
 export type EventBody = {
   title: string;
   description: string;
@@ -29,7 +28,6 @@ export type EventBody = {
   status?: 'draft' | 'published';
 };
 
-// PUT /api/events/{id} needs the whole event; this builds it from what the backend sent.
 export function eventToBody(ev: Event): EventBody {
   return {
     title: ev.title,
@@ -47,7 +45,6 @@ export function eventToBody(ev: Event): EventBody {
   };
 }
 
-// Shared form for creating and editing an event (SRS 4.2).
 export function EventForm({
   initial,
   submitLabel,

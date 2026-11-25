@@ -7,15 +7,6 @@ import { shortDateTime, CASE_STATUS } from "../lib/format";
 import "./support.css";
 import { t } from "../i18n";
 
-// Asynchronous support chat for attendees and organizers (SRS 4.13).
-// A case can point at the event, order or ticket it is about.
-// Backend (docs/api.md; only the case's author and staff may read a case):
-//   GET  /api/support/cases            -> [{ id, subject, status, category, updated_at, context }]
-//   POST /api/support/cases              { category, subject, message, context: { type, id } } -> { id }
-//   GET  /api/support/cases/{id}       -> { id, subject, status, category, context, created_at,
-//                                           messages: [{ id, author_name, author_role, body, created_at }] }
-//   POST /api/support/cases/{id}/messages { body }
-
 export const CATEGORIES = [
   { value: "tickets", get label() { return t("My tickets or entry"); } },
   { value: "payment", get label() { return t("Payment or refund"); } },
@@ -44,7 +35,6 @@ function CaseBadge({ status }) {
   return <span className={`bf-badge ${s.badge}`}>{s.label}</span>;
 }
 
-// /support : the user's own cases.
 export function SupportList() {
   const { data: cases, status, error } = useApi("/support/cases", []);
   const note = statusNote(status, error);
@@ -86,7 +76,6 @@ export function SupportList() {
   );
 }
 
-// /support/new?event=..|order=..|ticket=.. : open a case, optionally about something specific.
 export function SupportNew() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -172,7 +161,6 @@ export function SupportNew() {
   );
 }
 
-// Message thread used by both the user page and the admin page.
 export function Thread({ messages, meRole }) {
   if (messages.length === 0) return <p className="bf-muted">{t("No messages yet.")}</p>;
   return (
@@ -227,7 +215,6 @@ export function ReplyBox({ onSend, disabled, placeholder = t("Write a reply...")
   );
 }
 
-// /support/:id : one case and its messages.
 export function SupportCase() {
   const { id } = useParams();
   const { user } = useAuth();

@@ -2,8 +2,6 @@ import { useState } from "react";
 import "./confirmDialog.css";
 import { t } from "../i18n";
 
-// Pop-up that asks to confirm a risky action, optionally with a required reason
-// (kept for the audit log, SRS 7). onConfirm(reason) may return a promise.
 function ConfirmDialog({ title, message, confirmLabel, danger, needsReason, onConfirm, onCancel }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);

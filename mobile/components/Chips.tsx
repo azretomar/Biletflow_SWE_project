@@ -2,8 +2,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, spacing } from '@/constants/theme';
 
-// A row of choices where one is selected (filters, topics). Works like radio buttons
-// for screen readers.
 export function Chips<T extends string>({
   options,
   value,

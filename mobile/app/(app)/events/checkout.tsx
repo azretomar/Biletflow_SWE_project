@@ -15,8 +15,6 @@ import type { CheckoutResponse, EventDetail, PromoValidation } from '@/lib/types
 
 type Outcome = 'success' | 'failure';
 
-// Simulated checkout with an optional promo code (package 2-2, SRS 4.6 / 4.14, UC3 / UC10):
-// POST /api/promo/validate, POST /api/orders/checkout. The server calculates the real total.
 export default function CheckoutScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -65,7 +63,6 @@ export default function CheckoutScreen() {
         setLoadError(errorText(err));
       }
     })();
-    // A campaign link brings its code along: validate it on the server right away.
     if (params.promo) void applyPromo(params.promo);
   }, [params.id, params.promo, applyPromo]);
 
@@ -82,7 +79,6 @@ export default function CheckoutScreen() {
     .map(([typeId, n]) => ({ tt: event.ticket_types.find((x) => x.id === typeId), n }))
     .filter((l): l is { tt: NonNullable<typeof l.tt>; n: number } => !!l.tt && l.n > 0);
   const subtotal = lines.reduce((sum, l) => sum + l.tt.price * l.n, 0);
-  // Estimate only; the order total below comes from the server.
   const discount = promo
     ? Math.min(subtotal, promo.discount_type === 'percent' ? Math.round((subtotal * promo.amount) / 100) : promo.amount)
     : 0;
@@ -128,7 +124,6 @@ export default function CheckoutScreen() {
           <Button
             title={t('checkout.goTickets')}
             onPress={() => {
-              // Leave checkout so the Events tab opens on the list next time.
               router.dismissAll();
               router.navigate('/tickets');
             }}

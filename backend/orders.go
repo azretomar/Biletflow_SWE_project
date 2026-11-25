@@ -12,21 +12,19 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Orders, simulated payments and refunds (SRS 4.6, 4.9). No real money moves:
-// the buyer chooses whether the test payment succeeds.
 const schemaOrders = `
 CREATE TABLE IF NOT EXISTS order_items (
 	order_id       UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
 	ticket_type_id UUID NOT NULL REFERENCES ticket_types(id),
-	name           TEXT NOT NULL,     -- ticket type name at purchase time
-	price          INTEGER NOT NULL,  -- KZT per ticket at purchase time
+	name           TEXT NOT NULL,
+	price          INTEGER NOT NULL,
 	quantity       INTEGER NOT NULL CHECK (quantity > 0),
 	PRIMARY KEY (order_id, ticket_type_id)
 );
 `
 
 func init() {
-	alterSchemas = append(alterSchemas, schemaOrders) // needs orders and ticket_types first
+	alterSchemas = append(alterSchemas, schemaOrders)
 }
 
 func (s *Server) registerOrderRoutes(mux *http.ServeMux) {
@@ -51,12 +49,12 @@ type checkoutRequest struct {
 	EventID   string         `json:"event_id"`
 	Items     []checkoutItem `json:"items"`
 	PromoCode string         `json:"promo_code"`
-	Simulate  string         `json:"simulate"` // "success" (default) or "failure"
+	Simulate  string         `json:"simulate"`
 }
 
 type checkoutResponse struct {
 	OrderID  string        `json:"order_id"`
-	Status   string        `json:"status"` // paid | free | failed
+	Status   string        `json:"status"`
 	Subtotal int           `json:"subtotal"`
 	Discount int           `json:"discount"`
 	Total    int           `json:"total"`
@@ -71,8 +69,6 @@ type lockedType struct {
 	Qty   int
 }
 
-// POST /api/orders/checkout
-// Prices, discounts and stock are all decided here, in one transaction.
 func (s *Server) handleCheckout(w http.ResponseWriter, r *http.Request) {
 	var req checkoutRequest
 	if !decodeJSON(w, r, &req) {
@@ -136,7 +132,6 @@ func (s *Server) handleCheckout(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(context.Background())
 
-	// Lock the event row too, so an admin stop or a cancellation cannot slip in between.
 	info, err := loadEventInfo(ctx, tx, ev.ID, true)
 	if err != nil {
 		internalError(w, "checkout: lock event", err)
@@ -151,7 +146,7 @@ func (s *Server) handleCheckout(w http.ResponseWriter, r *http.Request) {
 	subtotal := 0
 	for _, id := range order {
 		t := lockedType{ID: id, Qty: wanted[id]}
-		var rules TicketType // the sale rules of this type
+		var rules TicketType
 		err := tx.QueryRow(ctx, `
 			SELECT name, price, quantity_left, sales_starts_at, sales_ends_at, max_per_order, hidden
 			FROM ticket_types
@@ -287,8 +282,6 @@ func (s *Server) handleCheckout(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, resp)
 }
 
-// ---- Reading orders ----
-
 type orderEvent struct {
 	ID    string    `json:"id"`
 	Title string    `json:"title"`
@@ -314,7 +307,7 @@ type orderAttendee struct {
 type orderView struct {
 	ID        string         `json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
-	Status    string         `json:"status"` // paid | free | failed | cancelled | refunded
+	Status    string         `json:"status"`
 	Subtotal  int            `json:"subtotal"`
 	Discount  int            `json:"discount"`
 	Total     int            `json:"total"`
@@ -325,7 +318,6 @@ type orderView struct {
 	Attendee  *orderAttendee `json:"attendee,omitempty"`
 }
 
-// publicOrderStatus turns the stored status into what people see.
 func publicOrderStatus(stored string, subtotal, total int) string {
 	if stored == "completed" || stored == "pending" {
 		if subtotal > 0 || total > 0 {
@@ -336,7 +328,6 @@ func publicOrderStatus(stored string, subtotal, total int) string {
 	return stored
 }
 
-// loadOrders reads orders matching where (with args) and fills items and tickets.
 func (s *Server) loadOrders(ctx context.Context, where string, withAttendee bool, args ...any) ([]orderView, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT o.id, o.created_at, o.status, GREATEST(o.subtotal_amount, o.total_amount), o.discount_amount,
@@ -380,7 +371,6 @@ func (s *Server) loadOrders(ctx context.Context, where string, withAttendee bool
 		return list, nil
 	}
 
-	// Items: from order_items, or worked out from the tickets for orders made by free registration.
 	irows, err := s.db.Query(ctx, `
 		SELECT order_id, name, price, quantity FROM order_items WHERE order_id = ANY($1)
 		UNION ALL
@@ -426,7 +416,6 @@ func (s *Server) loadOrders(ctx context.Context, where string, withAttendee bool
 		return nil, err
 	}
 	for i := range list {
-		// Old free orders stored no subtotal: show the item total.
 		if list[i].Subtotal == 0 {
 			for _, it := range list[i].Items {
 				list[i].Subtotal += it.Price * it.Quantity
@@ -436,7 +425,6 @@ func (s *Server) loadOrders(ctx context.Context, where string, withAttendee bool
 	return list, nil
 }
 
-// GET /api/my-orders
 func (s *Server) handleMyOrders(w http.ResponseWriter, r *http.Request) {
 	list, err := s.loadOrders(r.Context(), "o.user_id = $1", false, claimsFrom(r.Context()).Subject)
 	if err != nil {
@@ -446,7 +434,6 @@ func (s *Server) handleMyOrders(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list)
 }
 
-// GET /api/organizer/events/{id}/orders
 func (s *Server) handleEventOrders(w http.ResponseWriter, r *http.Request) {
 	ev, ok := s.ownedEvent(w, r, r.PathValue("id"))
 	if !ok {
@@ -464,7 +451,6 @@ type refundPolicy struct {
 	Policy string `json:"policy"`
 }
 
-// GET /api/organizer/events/{id}/refund-policy
 func (s *Server) handleGetRefundPolicy(w http.ResponseWriter, r *http.Request) {
 	ev, ok := s.ownedEvent(w, r, r.PathValue("id"))
 	if !ok {
@@ -478,7 +464,6 @@ func (s *Server) handleGetRefundPolicy(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, p)
 }
 
-// PUT /api/organizer/events/{id}/refund-policy { policy }
 func (s *Server) handlePutRefundPolicy(w http.ResponseWriter, r *http.Request) {
 	var p refundPolicy
 	if !decodeJSON(w, r, &p) {
@@ -503,10 +488,6 @@ func (s *Server) handlePutRefundPolicy(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, p)
 }
 
-// closeOrder cancels (free) or refunds (paid) one completed order inside tx: its unused
-// tickets become invalid and go back on sale. It returns a message for the caller when the
-// order cannot be closed this way. allowUsed lets it close orders whose tickets were already
-// scanned at the door (only when the whole event is cancelled).
 func closeOrder(ctx context.Context, tx pgx.Tx, orderID, newStatus string, allowUsed bool) (string, error) {
 	var stored string
 	var subtotal, total int
@@ -535,7 +516,7 @@ func closeOrder(ctx context.Context, tx pgx.Tx, orderID, newStatus string, allow
 			return "a ticket in this order was already used at the door, so the order cannot be " + newStatus, nil
 		}
 	}
-	ticketStatus := newStatus // cancelled | refunded
+	ticketStatus := newStatus
 	rows, err := tx.Query(ctx, `
 		UPDATE tickets SET status = $2 WHERE order_id = $1 AND status = 'valid'
 		RETURNING ticket_type_id`, orderID, ticketStatus)
@@ -565,7 +546,6 @@ func closeOrder(ctx context.Context, tx pgx.Tx, orderID, newStatus string, allow
 	return "", err
 }
 
-// orderForOrganizer loads an order of one of the caller's events.
 func orderForOrganizer(ctx context.Context, db dbtx, orderID, organizerID string) (eventID, buyerEmail string, total int, err error) {
 	if !isUUID(orderID) {
 		return "", "", 0, pgx.ErrNoRows
@@ -576,7 +556,7 @@ func orderForOrganizer(ctx context.Context, db dbtx, orderID, organizerID string
 		FROM orders o JOIN events e ON e.id = o.event_id JOIN users u ON u.id = o.user_id
 		WHERE o.id = $1`, orderID).Scan(&eventID, &owner, &buyerEmail, &total)
 	if err == nil && owner != organizerID {
-		err = pgx.ErrNoRows // not theirs: answer as if it did not exist
+		err = pgx.ErrNoRows
 	}
 	return
 }
@@ -626,17 +606,14 @@ func (s *Server) organizerCloseOrder(w http.ResponseWriter, r *http.Request, new
 	writeJSON(w, http.StatusOK, map[string]string{"id": orderID, "status": newStatus})
 }
 
-// POST /api/organizer/orders/{orderId}/cancel { reason } - free registrations
 func (s *Server) handleCancelOrder(w http.ResponseWriter, r *http.Request) {
 	s.organizerCloseOrder(w, r, "cancelled")
 }
 
-// POST /api/organizer/orders/{orderId}/refund { reason } - paid orders, full refund (simulated)
 func (s *Server) handleRefundOrder(w http.ResponseWriter, r *http.Request) {
 	s.organizerCloseOrder(w, r, "refunded")
 }
 
-// closeAllOrders cancels or refunds every completed order of an event (when the event is cancelled).
 func closeAllOrders(ctx context.Context, tx pgx.Tx, eventID string) (refunded, cancelled int, emails []string, err error) {
 	rows, err := tx.Query(ctx, `
 		SELECT o.id, GREATEST(o.subtotal_amount, o.total_amount) > 0, u.email

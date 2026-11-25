@@ -12,9 +12,6 @@ import type { CaseContext, SupportCategory } from '@/lib/types';
 
 const CATEGORIES: SupportCategory[] = ['tickets', 'payment', 'event', 'account', 'organizer', 'other'];
 
-// New support request (package 2-3, SRS 4.13): POST /api/support/cases.
-// Opened from a ticket (?ticket=ID), an order (?order=ID) or an event (?event=ID), the request
-// is linked to it, so the event's organizer can answer too.
 export default function NewSupportScreen() {
   const { t } = useTranslation();
   const router = useRouter();

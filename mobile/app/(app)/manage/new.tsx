@@ -6,7 +6,6 @@ import { Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import type { Event } from '@/lib/types';
 
-// Create an event (package 1-4, UC1): POST /api/events, then open its dashboard.
 export default function NewEventScreen() {
   const { t } = useTranslation();
   const router = useRouter();

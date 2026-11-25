@@ -1,5 +1,3 @@
-/* ===== Promo campaigns page styles (same look as Create event) ===== */
-
 .pc {
   --pc-line: #e2e4e9;
   --pc-field-line: #c4c8d0;
@@ -103,7 +101,6 @@
   color: var(--pc-danger);
 }
 
-/* Percentage / fixed toggle */
 .pc-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -126,7 +123,6 @@
   border: 2px solid var(--blue);
 }
 
-/* Buttons */
 .pc-btn {
   padding: 12px 24px;
   font-size: 16px;
@@ -157,7 +153,6 @@
   background: #eef0f4;
 }
 
-/* Result panel */
 .pc-muted {
   margin: -8px 0 0;
   color: var(--muted);
@@ -184,7 +179,6 @@
   border-radius: 10px;
 }
 
-/* Campaign QR box: dashed and purple-ish so it never looks like an admission ticket (SRS 4.14) */
 .pc-qr {
   display: flex;
   flex-direction: column;
@@ -212,9 +206,7 @@
   border-color: var(--pc-field-line);
 }
 
-/* Campaign list */
 .pc-table-wrap {
-  /* relative: keeps the hidden screen-reader labels inside the scrolling box on phones */
   position: relative;
   overflow-x: auto;
 }
@@ -292,7 +284,6 @@
   white-space: nowrap;
 }
 
-/* Phones and small screens */
 @media (max-width: 760px) {
   .pc-nav {
     padding: 14px 16px;

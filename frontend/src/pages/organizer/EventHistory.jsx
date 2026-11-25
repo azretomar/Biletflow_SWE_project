@@ -6,13 +6,6 @@ import { useApi, statusNote } from "../../lib/useApi";
 import "./eventHistory.css";
 import { locale, t } from "../../i18n";
 
-// Event history (SRS 4.16): a timeline of what happened to one event, filters by type and
-// date, and "Duplicate event" to start a new event from this one.
-//   GET /api/organizer/events/:id/history
-// -> { event: { title, description, category, venue, capacity, date, image_url },
-//      activity: [{ id, at, actor, type, message }] }
-// type is one of: "event", "tickets", "orders", "checkin", "payments"
-// ("support" once support-case changes are recorded by the backend).
 const EMPTY_HISTORY = { event: null, activity: [] };
 
 const FILTERS = [
@@ -34,9 +27,8 @@ const TYPE_LABELS = {
   get support() { return t("Support"); },
 };
 
-const KZ = "Asia/Almaty"; // the platform shows times in Kazakhstan time (UTC+5)
+const KZ = "Asia/Almaty";
 
-// "2026-11-21" for the Kazakhstan calendar day of a time.
 function kzDay(value) {
   return new Date(value).toLocaleDateString("en-CA", { timeZone: KZ });
 }
@@ -51,7 +43,6 @@ function timeOfDay(value) {
   return new Date(value).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit", timeZone: KZ });
 }
 
-// Groups entries (newest first) by calendar day, so the list reads like a diary.
 function groupByDay(entries) {
   const sorted = [...entries].sort((a, b) => new Date(b.at) - new Date(a.at));
   const groups = [];
@@ -81,10 +72,6 @@ function EventHistory() {
   });
   const groups = groupByDay(visible);
 
-  // Duplicate (SRS 4.16, UC12): copies the event's settings and its ticket types into the
-  // Create event form as a new event. Dates stay empty, because the copy needs its own;
-  // orders, tickets, payments, check-ins and support cases are never copied.
-  // Ticket types are copied with name, description, price and quantity (what the backend stores).
   async function duplicate() {
     setCopyError("");
     setCopying(true);
@@ -105,7 +92,6 @@ function EventHistory() {
             start_time: time(e.date),
             end_time: time(e.ends_at),
           },
-          // Created after the new event is saved, with nothing sold.
           ticketTypes: (e.ticket_types || []).map((tt) => ({
             name: tt.name, description: tt.description || "", price: tt.price, quantity: tt.quantity,
           })),

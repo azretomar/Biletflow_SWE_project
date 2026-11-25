@@ -17,9 +17,6 @@ const DATES = [
   { value: "all", get label() { return t("Any date"); } },
 ];
 
-// Public event list: GET /api/events, filtered in the browser.
-// Filters are also kept in the address (?q=&category=&date=) so a search can be shared,
-// and the Home page search lands here.
 function EventList() {
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get("q") || "");

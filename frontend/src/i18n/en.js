@@ -1,5 +1,3 @@
-// English is written directly in the pages, so this file only holds the texts
-// whose English wording changes with a number (1 ticket, 2 tickets).
 import { enPlural } from "./plural";
 
 const en = {

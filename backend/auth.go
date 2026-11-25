@@ -40,7 +40,7 @@ type signupRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	FullName string `json:"full_name"`
-	Role     string `json:"role"` // "attendee" (default) or "organizer"
+	Role     string `json:"role"`
 }
 
 func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +89,7 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 	).Scan(&u.ID, &u.Email, &u.FullName, &u.Role, &u.EmailVerified, &u.CreatedAt)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // unique_violation
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			writeError(w, http.StatusConflict, "email already registered")
 			return
 		}
@@ -209,8 +209,6 @@ func (s *Server) requireAuth(next http.Handler) http.Handler {
 			writeError(w, http.StatusUnauthorized, "invalid or expired token")
 			return
 		}
-		// A suspended account loses access at once, even with a token issued before.
-		// (Unit tests run without a database.)
 		if s.db != nil {
 			if !isUUID(claims.Subject) {
 				writeError(w, http.StatusUnauthorized, "invalid or expired token")

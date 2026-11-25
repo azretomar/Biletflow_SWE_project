@@ -5,8 +5,6 @@ import LanguagePicker from "../../components/LanguagePicker";
 import { AdminDataProvider, useAdminData } from "./AdminDataContext";
 import "./admin.css";
 
-// The frame around every admin page: a sidebar on the left,
-// the current page on the right (<Outlet /> is where the page appears).
 function AdminLayout() {
   return (
     <AdminDataProvider>
@@ -21,7 +19,6 @@ function AdminLayout() {
   );
 }
 
-// Shows loading, "not connected yet", or why the last admin action failed.
 function AdminNotice() {
   const { notice } = useAdminData();
   if (!notice) return null;

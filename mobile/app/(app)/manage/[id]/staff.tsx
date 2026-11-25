@@ -13,8 +13,6 @@ import { api } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import type { StaffMember } from '@/lib/types';
 
-// Check-in staff of one event (package 2-4, SRS 4.8 "assigned events"):
-// GET/POST /api/events/{id}/staff, DELETE /api/events/{id}/staff/{userId}.
 export default function StaffScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();

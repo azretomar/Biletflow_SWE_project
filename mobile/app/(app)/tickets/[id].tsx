@@ -12,9 +12,6 @@ import { api } from '@/lib/api';
 import { formatDateTime, formatKzt } from '@/lib/format';
 import type { Ticket } from '@/lib/types';
 
-// One ticket with a large QR code for the entrance (package 1-3, SRS 4.7).
-// The backend has no single-ticket endpoint, so the ticket is taken from GET /api/my-tickets.
-// Like the website, cancelled and refunded tickets show no QR code: they no longer give entry.
 export default function TicketScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -35,7 +32,6 @@ export default function TicketScreen() {
     }
   }, [id]);
 
-  // Reload when the screen comes back into view, e.g. after the ticket was scanned.
   useFocusEffect(
     useCallback(() => {
       void load();
@@ -79,7 +75,6 @@ export default function TicketScreen() {
             accessibilityRole="image"
             accessibilityLabel={t('tickets.qrLabel', { event: ticket.event.title })}
           >
-            {/* High error correction and a white quiet zone so door scanners read it on any screen. */}
             <QRCode value={ticket.qr_code} size={240} ecl="H" quietZone={12} backgroundColor="#ffffff" />
           </View>
           <Text style={styles.qrHint}>

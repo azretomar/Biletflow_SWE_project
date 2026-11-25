@@ -15,12 +15,11 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// Promo campaigns (SRS 4.14). The server makes the code and checks every discount.
 const schemaPromo = `
 CREATE TABLE IF NOT EXISTS promo_campaigns (
 	id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	organizer_id    UUID NOT NULL REFERENCES users(id),
-	event_id        UUID REFERENCES events(id) ON DELETE CASCADE, -- NULL = all of the organizer's events
+	event_id        UUID REFERENCES events(id) ON DELETE CASCADE,
 	name            TEXT NOT NULL,
 	code            TEXT NOT NULL UNIQUE,
 	discount_type   TEXT NOT NULL CHECK (discount_type IN ('percent','fixed')),
@@ -62,7 +61,7 @@ type campaign struct {
 	MaxRedemptions int       `json:"max_redemptions"`
 	Redemptions    int       `json:"redemptions"`
 	Disabled       bool      `json:"disabled"`
-	QRURL          string    `json:"qr_url"` // empty: the website draws the QR itself
+	QRURL          string    `json:"qr_url"`
 	CreatedAt      time.Time `json:"created_at"`
 	organizerID    string
 }
@@ -80,7 +79,6 @@ func scanCampaign(row rowScanner) (campaign, error) {
 	return c, err
 }
 
-// GET /api/organizer/campaigns
 func (s *Server) handleListCampaigns(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.db.Query(r.Context(), `SELECT `+campaignColumns+campaignFrom+`
 		WHERE c.organizer_id = $1 ORDER BY c.created_at DESC`, claimsFrom(r.Context()).Subject)
@@ -115,10 +113,9 @@ type campaignRequest struct {
 	MaxRedemptions int      `json:"max_redemptions"`
 }
 
-var codeChars = []byte("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") // no 0/O or 1/I
+var codeChars = []byte("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
 var nonCodeChars = regexp.MustCompile(`[^A-Z0-9]`)
 
-// newPromoCode makes a readable code like "STUDENT-7K2Q".
 func newPromoCode(name string) (string, error) {
 	base := nonCodeChars.ReplaceAllString(strings.ToUpper(name), "")
 	if len(base) > 10 {
@@ -138,7 +135,6 @@ func newPromoCode(name string) (string, error) {
 	return base + "-" + string(tail), nil
 }
 
-// POST /api/organizer/campaigns
 func (s *Server) handleCreateCampaign(w http.ResponseWriter, r *http.Request) {
 	var req campaignRequest
 	if !decodeJSON(w, r, &req) {
@@ -206,7 +202,7 @@ func (s *Server) handleCreateCampaign(w http.ResponseWriter, r *http.Request) {
 			req.StartsAt.Time, req.EndsAt.Time, req.MaxRedemptions).Scan(&id)
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			continue // the code already exists; try another
+			continue
 		}
 		if err != nil {
 			internalError(w, "create campaign: insert", err)
@@ -239,7 +235,6 @@ type campaignPatch struct {
 	Disabled *bool `json:"disabled"`
 }
 
-// PATCH /api/organizer/campaigns/{id} { disabled }
 func (s *Server) handleUpdateCampaign(w http.ResponseWriter, r *http.Request) {
 	var req campaignPatch
 	if !decodeJSON(w, r, &req) {
@@ -280,8 +275,6 @@ func (s *Server) handleUpdateCampaign(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, c)
 }
 
-// findPromo checks a code for an event at a time. lock=true locks the row for checkout.
-// It returns a message for the buyer when the code cannot be used.
 func findPromo(ctx context.Context, db dbtx, code string, ev eventInfo, now time.Time, lock bool) (campaign, string, error) {
 	code = strings.ToUpper(strings.TrimSpace(code))
 	q := `SELECT ` + campaignColumns + campaignFrom + ` WHERE c.code = $1`
@@ -310,7 +303,6 @@ func findPromo(ctx context.Context, db dbtx, code string, ev eventInfo, now time
 	return c, "", nil
 }
 
-// discountFor returns the discount on a paid subtotal (never more than the subtotal).
 func discountFor(c campaign, subtotal int) int {
 	d := c.Amount
 	if c.DiscountType == "percent" {
@@ -327,7 +319,6 @@ type validatePromoRequest struct {
 	Code    string `json:"code"`
 }
 
-// POST /api/promo/validate { event_id, code } -> { code, discount_type, amount }
 func (s *Server) handleValidatePromo(w http.ResponseWriter, r *http.Request) {
 	var req validatePromoRequest
 	if !decodeJSON(w, r, &req) {

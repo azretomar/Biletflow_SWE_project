@@ -24,7 +24,6 @@ const STATUS_CLASSES = {
 function TicketView() {
     const { id } = useParams();
   const { user } = useAuth();
-  // The ticket comes from GET /api/my-tickets (only the owner's tickets).
   const { data: tickets, status, error, reload } = useApi("/my-tickets", []);
   const ticket = (tickets || []).find((tt) => String(tt.id) === String(id)) || null;
 

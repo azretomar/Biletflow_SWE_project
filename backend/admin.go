@@ -11,8 +11,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Platform admin (SRS 4.12). platform_admin only; every action needs a reason and is
-// written to the audit log (SRS 7).
 func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
 	adminOnly := func(h http.HandlerFunc) http.Handler {
 		return s.requireAuth(s.requireRole("platform_admin")(h))
@@ -35,7 +33,6 @@ type adminUser struct {
 	CreatedAt     time.Time `json:"created_at"`
 }
 
-// GET /api/admin/users
 func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.db.Query(r.Context(), `
 		SELECT id, full_name, email, role, suspended, email_verified, created_at
@@ -69,7 +66,7 @@ type adminReport struct {
 }
 
 type adminActivation struct {
-	PaidSales        string     `json:"paid_sales"` // pending | active | stopped
+	PaidSales        string     `json:"paid_sales"`
 	IdentityVerified bool       `json:"identity_verified"`
 	FeePaid          bool       `json:"fee_paid"`
 	PayoutAccount    bool       `json:"payout_account"`
@@ -94,7 +91,6 @@ type adminEvent struct {
 	Activation  *adminActivation `json:"activation"`
 }
 
-// GET /api/admin/events - every event, drafts and cancelled ones included.
 func (s *Server) handleAdminEvents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	rows, err := s.db.Query(ctx, `
@@ -171,7 +167,6 @@ func (s *Server) handleAdminEvents(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list)
 }
 
-// GET /api/admin/stats
 func (s *Server) handleAdminStats(w http.ResponseWriter, r *http.Request) {
 	var failed, users, events, openCases int
 	err := s.db.QueryRow(r.Context(), `
@@ -200,7 +195,6 @@ type auditView struct {
 	Message  string    `json:"message"`
 }
 
-// GET /api/admin/audit - the latest 200 entries of the audit log.
 func (s *Server) handleAdminAudit(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.db.Query(r.Context(), `
 		SELECT a.id, a.at, COALESCE(u.email, ''), a.category, a.action, a.event_id, a.target_id, a.reason, a.message
@@ -227,7 +221,6 @@ func (s *Server) handleAdminAudit(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list)
 }
 
-// POST /api/admin/users/{id}/suspend | unsuspend { reason }
 func (s *Server) handleAdminUserAction(w http.ResponseWriter, r *http.Request) {
 	action := r.PathValue("action")
 	if action != "suspend" && action != "unsuspend" {
@@ -291,9 +284,6 @@ func (s *Server) handleAdminUserAction(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"id": id, "suspended": want})
 }
 
-// POST /api/admin/events/{id}/suspend | restore | stop-sales | resume-sales { reason }
-// Suspending hides the event and stops its paid sales; restoring shows it again but paid
-// sales stay stopped until an admin resumes them.
 func (s *Server) handleAdminEventAction(w http.ResponseWriter, r *http.Request) {
 	action := r.PathValue("action")
 	switch action {
@@ -390,7 +380,7 @@ func (s *Server) handleAdminEventAction(w http.ResponseWriter, r *http.Request) 
 	if err := s.db.QueryRow(ctx, `SELECT email FROM users WHERE id = $1`, info.OrganizerID).Scan(&organizerEmail); err == nil {
 		sendEmail(organizerEmail, "BiletFlow: change to your event "+info.Title, fmt.Sprintf("%s. Reason: %s", msg, reason))
 	} else if !errors.Is(err, pgx.ErrNoRows) {
-		log.Printf("admin event: organizer email: %v", err) // the change itself is saved
+		log.Printf("admin event: organizer email: %v", err)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"id": info.ID, "suspended": suspended, "paid_sales": paidSales})
 }

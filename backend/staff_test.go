@@ -85,7 +85,6 @@ func TestAssignStaffValidation(t *testing.T) {
 	}
 }
 
-// End-to-end staff assignment and event-scoped check-in against a real database.
 func TestStaffAssignmentAndCheckinDB(t *testing.T) {
 	s := newDBTestServer(t)
 	mux := staffMux(s)
@@ -280,7 +279,6 @@ func TestStaffAssignmentAndCheckinDB(t *testing.T) {
 	})
 }
 
-// Entrance counter and manual search for staff (GET /api/staff/events/{id}/attendees).
 func TestStaffAttendeesDB(t *testing.T) {
 	s := newDBTestServer(t)
 	mux := staffMux(s)

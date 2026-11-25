@@ -8,7 +8,6 @@ import type { Event } from '@/lib/types';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
-// A tappable row with an icon, used for menus in the organizer area.
 export function MenuRow({ icon, label, hint, onPress }: { icon: IconName; label: string; hint?: string; onPress: () => void }) {
   return (
     <Pressable
@@ -27,7 +26,6 @@ export function MenuRow({ icon, label, hint, onPress }: { icon: IconName; label:
   );
 }
 
-// Event status as text + color (draft / published / cancelled, suspended).
 export function EventStatusBadges({ event }: { event: Pick<Event, 'status' | 'suspended' | 'paid_sales'> }) {
   const { t } = useTranslation();
   const tone = event.status === 'published' ? 'good' : event.status === 'cancelled' ? 'bad' : 'neutral';
@@ -42,7 +40,6 @@ export function EventStatusBadges({ event }: { event: Pick<Event, 'status' | 'su
   );
 }
 
-// Section heading inside a screen.
 export function Heading({ children }: { children: React.ReactNode }) {
   return (
     <Text style={styles.heading} accessibilityRole="header">
@@ -51,7 +48,6 @@ export function Heading({ children }: { children: React.ReactNode }) {
   );
 }
 
-// A bordered card for list items.
 export function Card({ children }: { children: React.ReactNode }) {
   return <View style={styles.card}>{children}</View>;
 }

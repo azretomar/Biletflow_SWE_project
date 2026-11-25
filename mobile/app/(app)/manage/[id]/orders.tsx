@@ -16,9 +16,6 @@ import type { OrganizerOrder } from '@/lib/types';
 
 type Action = { order: OrganizerOrder; kind: 'cancel' | 'refund' };
 
-// Orders of one event with cancel / refund and the refund policy (package 2-4, SRS 4.9):
-// GET /api/organizer/events/{id}/orders, POST /api/organizer/orders/{orderId}/cancel|refund,
-// GET/PUT /api/organizer/events/{id}/refund-policy.
 export default function OrdersScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();

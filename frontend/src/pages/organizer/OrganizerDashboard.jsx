@@ -7,11 +7,6 @@ import { shortDateTime } from "../../lib/format";
 import "./organizerDashboard.css";
 import { t } from "../../i18n";
 
-// The organizer's own events (SRS 4.16: upcoming, active, completed, cancelled).
-// GET /api/organizer/events (backend/organizer.go) ->
-//   [{ id, title, date, venue, capacity, sold, image_url, ... }]; status "cancelled" comes later.
-// Upcoming / active / completed are worked out from the date when the server does not send them.
-
 const FILTERS = [
   { value: "all", get label() { return t("All"); } },
   { value: "draft", get label() { return t("Drafts"); } },

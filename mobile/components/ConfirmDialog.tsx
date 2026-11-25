@@ -6,9 +6,6 @@ import { Button, ErrorText, Field } from '@/components/ui';
 import { colors, radius, spacing } from '@/constants/theme';
 import { errorText } from '@/i18n';
 
-// Confirmation for destructive actions (cancel, refund, delete). With `withReason` it also
-// asks for the reason the backend requires and the attendee sees in the email.
-// A custom modal instead of Alert.alert, which has no buttons on the web build.
 export function ConfirmDialog(props: {
   visible: boolean;
   title: string;

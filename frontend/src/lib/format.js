@@ -1,7 +1,5 @@
-// Small display helpers shared by several pages.
 import { locale, t } from "../i18n";
 
-// Thousands separator in the current language: "12,500 ₸" in English, "12 500 ₸" in Kazakh and Russian.
 export function number(n) {
   return (Number(n) || 0).toLocaleString(locale());
 }
@@ -22,8 +20,6 @@ export function shortDateTime(value) {
   );
 }
 
-// Labels are getters so they are read in the language chosen at the moment they are shown.
-// Order status -> label and shared.css badge class (text is always shown, not only colour).
 export const ORDER_STATUS = {
   paid: { get label() { return t("Paid"); }, badge: "bf-badge-valid" },
   free: { get label() { return t("Free registration"); }, badge: "bf-badge-valid" },
@@ -32,7 +28,6 @@ export const ORDER_STATUS = {
   refunded: { get label() { return t("Refunded"); }, badge: "bf-badge-refunded" },
 };
 
-// Support case status (SRS 4.13).
 export const CASE_STATUS = {
   open: { get label() { return t("Open"); }, badge: "bf-badge-upcoming" },
   in_progress: { get label() { return t("In progress"); }, badge: "bf-badge-active" },

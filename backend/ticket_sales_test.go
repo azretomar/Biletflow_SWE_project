@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-// Ticket type sale rules (SRS 4.3): sales window, limit per order, hiding.
-
 func TestSaleBlocked(t *testing.T) {
 	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
 	at := func(d time.Duration) *time.Time { v := now.Add(d); return &v }
@@ -47,7 +45,6 @@ func TestSaleBlocked(t *testing.T) {
 	}
 }
 
-// Validation of the new fields happens before any database access.
 func TestTicketTypeSaleValidation(t *testing.T) {
 	s := newTestServer()
 	mux := s.routes()
@@ -119,7 +116,6 @@ func TestTicketSalesDB(t *testing.T) {
 	typesURL := "/api/events/" + ev + "/ticket-types"
 	hour := func(h int) string { return time.Now().Add(time.Duration(h) * time.Hour).UTC().Format(time.RFC3339) }
 
-	// All types are free so checkout works without activating paid sales.
 	create := func(name string, extra map[string]any) string {
 		body := map[string]any{"name": name, "price": 0, "quantity": 50}
 		for k, v := range extra {
@@ -182,7 +178,6 @@ func TestTicketSalesDB(t *testing.T) {
 				}
 			}
 		}
-		// Refused purchases must not take stock; the four successful ones took 2+2 and 1+1.
 		for typeID, want := range map[string]int{secret: 50, early: 50, over: 50, capped: 46, plain: 48} {
 			if got := left(typeID); got != want {
 				t.Errorf("quantity_left of %s = %d, want %d", typeID, got, want)
@@ -251,19 +246,16 @@ func TestTicketSalesDB(t *testing.T) {
 		if m["sales_starts_at"] == nil || m["sales_ends_at"] == nil || num(m["max_per_order"]) != 4 || m["hidden"] != true {
 			t.Fatalf("created type = %v", m)
 		}
-		// Only the name changes: all four sale rules stay.
 		m = c.must(200, tokOrg, "PUT", typesURL+"/"+id, map[string]any{"name": "Rules 2", "price": 0, "quantity": 10})
 		if m["sales_starts_at"] == nil || m["sales_ends_at"] == nil || num(m["max_per_order"]) != 4 || m["hidden"] != true {
 			t.Fatalf("omitted fields were not kept: %v", m)
 		}
-		// null clears each of them; hidden is switched off explicitly.
 		m = c.must(200, tokOrg, "PUT", typesURL+"/"+id, map[string]any{
 			"name": "Rules 2", "price": 0, "quantity": 10,
 			"sales_starts_at": nil, "sales_ends_at": nil, "max_per_order": nil, "hidden": false})
 		if m["sales_starts_at"] != nil || m["sales_ends_at"] != nil || m["max_per_order"] != nil || m["hidden"] != false {
 			t.Fatalf("null did not clear: %v", m)
 		}
-		// A type created without the new fields has them empty and is visible.
 		m = c.must(201, tokOrg, "POST", typesURL, map[string]any{"name": "Bare", "price": 0, "quantity": 10})
 		if m["sales_starts_at"] != nil || m["sales_ends_at"] != nil || m["max_per_order"] != nil || m["hidden"] != false {
 			t.Fatalf("defaults = %v", m)
@@ -279,8 +271,8 @@ func TestTicketSalesDB(t *testing.T) {
 			}
 			c.errMsg(400, tokOrg, "PUT", typesURL+"/"+id, body)
 		}
-		put(map[string]any{"sales_starts_at": hour(6)}) // start moved past the stored end
-		put(map[string]any{"sales_ends_at": hour(0)})   // end moved before the stored start
+		put(map[string]any{"sales_starts_at": hour(6)})
+		put(map[string]any{"sales_ends_at": hour(0)})
 		put(map[string]any{"max_per_order": 0})
 		put(map[string]any{"max_per_order": 11})
 		c.errMsg(400, tokOrg, "POST", typesURL, map[string]any{"name": "Bad", "price": 0, "quantity": 5, "max_per_order": 11})

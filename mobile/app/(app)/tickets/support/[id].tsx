@@ -22,11 +22,8 @@ import { useAuth } from '@/lib/auth';
 import { formatDateTime } from '@/lib/format';
 import type { SupportCase, SupportMessage } from '@/lib/types';
 
-const REFRESH_MS = 15000; // new replies appear while the chat is open
+const REFRESH_MS = 15000;
 
-// One support request as a chat (package 2-3, SRS 4.13):
-// GET /api/support/cases/{id}, POST /api/support/cases/{id}/messages { body }.
-// Replies from BiletFlow support or the event's organizer show on the left.
 export default function SupportCaseScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -50,7 +47,6 @@ export default function SupportCaseScreen() {
     }
   }, [id]);
 
-  // Load when opened and keep checking for replies while the screen is visible.
   useFocusEffect(
     useCallback(() => {
       void load();
@@ -73,7 +69,7 @@ export default function SupportCaseScreen() {
     try {
       await api<SupportMessage>(`/support/cases/${id}/messages`, { method: 'POST', body: { body } });
       setReply('');
-      await load(); // the status may change too (a resolved request opens again)
+      await load();
       setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 100);
     } catch (err) {
       setSendError(errorText(err));
@@ -107,7 +103,6 @@ export default function SupportCaseScreen() {
   }
   if (!c) return <Loading />;
 
-  // The backend sends the author's name and role; the requester's own messages go on the right.
   const isMine = (m: SupportMessage) => !!user && m.author_role === user.role && m.author_name === user.full_name;
   const authorLabel = (m: SupportMessage) => {
     if (isMine(m)) return t('support.you');

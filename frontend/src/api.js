@@ -14,14 +14,11 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-// Calls the backend. Adds the /api prefix and the login token,
-// and throws an Error with the backend's message when a request fails.
 export async function api(path, { method = "GET", body } = {}) {
   const headers = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  // The chosen interface language, so the backend can answer in it later.
   headers["Accept-Language"] = getLanguage();
 
   let res;
@@ -45,7 +42,6 @@ export async function api(path, { method = "GET", body } = {}) {
   if (!res.ok) {
     const error = new Error((data && data.error) || t("Something went wrong."));
     error.status = res.status;
-    // true when the backend itself answered with a message (the endpoint exists)
     error.fromServer = Boolean(data && data.error);
     throw error;
   }

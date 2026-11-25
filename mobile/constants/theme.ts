@@ -1,4 +1,3 @@
-// Same palette as the website (frontend/src/index.css).
 export const colors = {
   blue: '#2f6fed',
   blueDark: '#2459c4',

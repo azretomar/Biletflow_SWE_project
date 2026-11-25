@@ -7,7 +7,6 @@ import { t } from "../i18n";
 function LogIn() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  // Set when a protected page (e.g. /admin) sent the user here to log in first.
   const location = useLocation();
   const from = location.state && location.state.from;
   const [error, setError] = useState("");

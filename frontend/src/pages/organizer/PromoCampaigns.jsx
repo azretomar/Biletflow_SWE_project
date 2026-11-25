@@ -5,25 +5,11 @@ import { useApi, send, NOT_CONNECTED_TEXT } from "../../lib/useApi";
 import "./promo.css";
 import { locale, t } from "../../i18n";
 
-// Promo campaigns for an organizer's event (SRS 4.14).
-//
-// Backend (docs/api.md; the server generates the real code, the page draws the campaign QR,
-// and checks every discount, SRS 4.14 and 7):
-//   GET   /api/organizer/campaigns  -> [{ id, event_id, name, code, discount_type, amount, starts_at,
-//                                         ends_at, max_redemptions, redemptions, disabled, qr_url }]
-//   POST  /api/organizer/campaigns    { event_id, name, discount_type, amount, starts_at, ends_at, max_redemptions }
-//   PATCH /api/organizer/campaigns/{id} { disabled }
-// The event list for the form comes from GET /api/organizer/events.
-// Until these exist, new campaigns are only shown on this page and are not saved.
-
-// The campaign QR opens the event page with the code filled in at checkout.
-// It is a link, not an admission ticket (SRS 4.14).
 function campaignLink(c) {
   if (!c.eventId) return "";
   return `${window.location.origin}/events/${c.eventId}?promo=${encodeURIComponent(c.code)}`;
 }
 
-// Server (snake_case) -> page shape
 function fromApi(c) {
   return {
     id: c.id,
@@ -44,14 +30,13 @@ function fromApi(c) {
 const EMPTY_FORM = {
   eventId: "",
   name: "",
-  discountType: "percent", // "percent" or "fixed"
+  discountType: "percent",
   amount: "",
   startsAt: "",
   endsAt: "",
   maxRedemptions: "",
 };
 
-// Makes a readable code like "STUDENT-7K2Q" for the preview.
 function makeCode(name) {
   const base = name.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10) || "PROMO";
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -87,7 +72,6 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString(locale(), { day: "numeric", month: "short", year: "numeric" });
 }
 
-// Checks the form. Returns { fieldName: message } for each problem (empty = OK).
 function validate(form) {
   const errors = {};
   const amount = Number(form.amount);
@@ -113,7 +97,7 @@ function PromoCampaigns() {
   const [saveNote, setSaveNote] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
-  const [created, setCreated] = useState(null); // the campaign just created
+  const [created, setCreated] = useState(null);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -147,7 +131,6 @@ function PromoCampaigns() {
       setSaveNote(r.message);
       return;
     }
-    // Not connected yet: show it on this page only, clearly marked as not saved.
     setSaveNote(t("Shown here only: promo campaigns are not saved to the server yet."));
     const campaign = {
       id: Date.now(),

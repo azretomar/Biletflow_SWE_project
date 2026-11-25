@@ -13,9 +13,6 @@ import type { StaffEvent } from '@/lib/types';
 
 const HOUR = 60 * 60 * 1000;
 
-// Step 1 of check-in (SRS 4.8): the events this person may check tickets in for,
-// i.e. their own events (organizer) and the ones they are assigned to (staff).
-// GET /api/staff/events. Events that ended more than a day ago are not shown.
 export default function ScannerEventsScreen() {
   const { t } = useTranslation();
   const router = useRouter();

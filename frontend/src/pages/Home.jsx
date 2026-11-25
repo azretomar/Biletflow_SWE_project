@@ -16,17 +16,14 @@ const CATEGORIES = [
   { value: "other", get label() { return t("Other"); } },
 ];
 
-
 function Home() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
 
   const navigate = useNavigate();
   const { data: events, status, error } = useApi("/events", []);
-  // The six nearest upcoming events; the full list with filters is on /events.
   const upcoming = sortUpcoming(events || []).filter((ev) => new Date(ev.date) >= new Date()).slice(0, 6);
 
-  // The search opens the Events page with the filters filled in.
   function handleSearch(e) {
     e.preventDefault();
     const q = new URLSearchParams();

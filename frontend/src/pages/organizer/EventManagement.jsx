@@ -7,19 +7,6 @@ import { kzt, shortDateTime } from "../../lib/format";
 import "./eventManagement.css";
 import { t } from "../../i18n";
 
-// Event management for the organizer.
-//   GET    /api/events/{id}                  event + ticket types (sold = quantity - quantity_left)
-//   PUT    /api/events/{id}                  (used here only to publish a draft)
-//   DELETE /api/events/{id}/ticket-types/{typeId}  (only while none of its tickets were issued)
-//   GET    /api/events/{id}/staff            check-in staff
-//   POST   /api/events/{id}/staff            { email }  (the person must have an account)
-//   DELETE /api/events/{id}/staff/{userId}
-//   GET    /api/organizer/events/{id}/attendees -> [{ ticket_id, full_name, email, ticket_type, status, checked_in_at }]
-//   Planned (frontend ready, backend not built yet; see docs/api.md):
-//   POST   /api/checkin/undo { event_id, ticket_id }  (undo an accidental check-in, SRS 4.8)
-//   POST   /api/organizer/events/{id}/cancel    { reason }
-//   (orders and refunds: see the Orders and refunds page)
-
 const TABS = [
   { value: "types", get label() { return t("Ticket types"); } },
   { value: "attendees", get label() { return t("Attendees"); } },
@@ -140,7 +127,7 @@ function StaffSection({ eventId }) {
 function AttendeesSection({ eventId, list }) {
   const { data: attendees, setData, status, error } = list;
   const [search, setSearch] = useState("");
-  const [undoing, setUndoing] = useState(null); // attendee whose check-in to undo
+  const [undoing, setUndoing] = useState(null);
   const [msg, setMsg] = useState("");
   const note = statusNote(status, error);
 
@@ -218,8 +205,6 @@ function AttendeesSection({ eventId, list }) {
   );
 }
 
-// Per ticket type: how many tickets are checked in and how many were refunded or cancelled.
-// Keyed by ticket type name, which the attendee list gives for every ticket.
 function countByType(attendees) {
   const out = {};
   for (const a of attendees) {
@@ -237,12 +222,11 @@ function EventManagement() {
   const { data: event, setData: setEvent, status, error, code } = useApi(`/events/${id}`, null);
   const attendeeList = useApi(`/organizer/events/${id}/attendees`, []);
   const location = useLocation();
-  // After "Duplicate event": ticket types that could not be copied (e.g. capacity was lowered).
   const copyErrors = (location.state && location.state.copyErrors) || [];
   const counts = countByType(attendeeList.data);
   const notFound = status === "not_connected" || code === 404 || code === 400;
   const [cancelling, setCancelling] = useState(false);
-  const [deleting, setDeleting] = useState(null); // ticket type to delete
+  const [deleting, setDeleting] = useState(null);
   const [msg, setMsg] = useState("");
 
   const types = (event && event.ticket_types) || [];
@@ -260,7 +244,6 @@ function EventManagement() {
     else setMsg(r.message);
   }
 
-  // Publish a draft, or take a published event back to draft while nobody has a ticket (SRS 4.2).
   async function setPublished(published) {
     setMsg("");
     const r = await send(`/events/${id}`, "PUT", {

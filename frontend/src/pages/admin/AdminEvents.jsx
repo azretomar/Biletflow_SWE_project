@@ -14,12 +14,11 @@ const FILTERS = [
   { value: "reported", get label() { return t("Reported"); } },
 ];
 
-// Screen 2: Events list - search, filter by status, suspend.
 function AdminEvents() {
   const { events, getUser, setEventSuspended } = useAdminData();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [confirming, setConfirming] = useState(null); // the event we are about to suspend/restore
+  const [confirming, setConfirming] = useState(null);
 
   const filter = searchParams.get("filter") || "all";
 

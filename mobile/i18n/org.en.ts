@@ -1,4 +1,3 @@
-// English strings for the organizer area and checkout. ru and kk must have the same keys.
 const orgEn = {
   manage: {
     empty: "You haven't created any events yet.",

@@ -15,8 +15,6 @@ import type { Activation } from '@/lib/types';
 
 type Step = 'identity' | 'payout' | 'fee' | 'terms';
 
-// Paid sales activation checklist (package 2-2, SRS 3.2 / 4.5). All steps are simulated:
-// GET /api/organizer/events/{id}/activation, POST .../activation/{identity|payout|fee|terms|activate}.
 export default function ActivationScreen() {
   const { t } = useTranslation();
   const router = useRouter();

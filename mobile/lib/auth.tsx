@@ -8,7 +8,6 @@ const TOKEN_KEY = 'bf_token';
 
 type AuthState = {
   user: User | null;
-  // true until the saved token has been checked on app start
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (fullName: string, email: string, password: string, role: 'attendee' | 'organizer') => Promise<void>;
@@ -27,7 +26,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await removeItem(TOKEN_KEY);
   }, []);
 
-  // Restore the session: a saved token is kept only if /api/me still accepts it.
   useEffect(() => {
     setUnauthorizedHandler(() => {
       void logout();
@@ -82,12 +80,10 @@ export function useAuth(): AuthState {
   return ctx;
 }
 
-// Which parts of the app each role sees (SRS 2.3).
 export const canBrowseEvents = (role: Role) => role !== 'platform_admin';
 export const canManageEvents = (role: Role) => role === 'organizer';
 export const canCheckIn = (role: Role) => role === 'organizer' || role === 'event_admin';
 
-// First tab after login.
 export function startTab(role: Role): 'scanner' | 'manage' | 'profile' | 'events' {
   if (role === 'event_admin') return 'scanner';
   if (role === 'organizer') return 'manage';

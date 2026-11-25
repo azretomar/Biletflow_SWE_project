@@ -15,12 +15,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Email verification and password reset (SRS 4.1, 4.10).
-// The project has no mail server yet, so "sending" an email writes it to the
-// backend log (docker compose logs backend). The links work the same way.
 const schemaAccount = `
 CREATE TABLE IF NOT EXISTS account_tokens (
-	token_hash TEXT PRIMARY KEY,           -- sha256 of the token; the token itself is never stored
+	token_hash TEXT PRIMARY KEY,
 	user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	purpose    TEXT NOT NULL CHECK (purpose IN ('verify_email','reset_password')),
 	expires_at TIMESTAMPTZ NOT NULL,
@@ -51,13 +48,11 @@ func hashToken(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// newAccountToken stores a fresh one-time token and returns it.
 func (s *Server) newAccountToken(ctx context.Context, userID, purpose string, ttl time.Duration) (string, error) {
-	token, err := newQRCode() // 32 random bytes, URL-safe
+	token, err := newQRCode()
 	if err != nil {
 		return "", err
 	}
-	// Older unused tokens for the same purpose stop working.
 	if _, err := s.db.Exec(ctx, `
 		UPDATE account_tokens SET used_at = now()
 		WHERE user_id = $1 AND purpose = $2 AND used_at IS NULL`, userID, purpose); err != nil {
@@ -69,7 +64,6 @@ func (s *Server) newAccountToken(ctx context.Context, userID, purpose string, tt
 	return token, err
 }
 
-// sendEmail stands in for a mail service: the message goes to the backend log.
 func sendEmail(to, subject, body string) {
 	log.Printf("[email] to=%s subject=%q\n%s", to, subject, body)
 }
@@ -87,7 +81,6 @@ func (s *Server) sendVerificationEmail(ctx context.Context, u User) {
 		"Open this link to confirm your email: "+s.cfg.AppURL+"/verify-email?token="+token)
 }
 
-// useAccountToken marks a valid token as used and returns its user, inside tx.
 func useAccountToken(ctx context.Context, tx pgx.Tx, token, purpose string) (string, error) {
 	var userID string
 	err := tx.QueryRow(ctx, `
@@ -101,7 +94,6 @@ type tokenRequest struct {
 	Token string `json:"token"`
 }
 
-// POST /api/auth/verify-email { token }
 func (s *Server) handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 	var req tokenRequest
 	if !decodeJSON(w, r, &req) {
@@ -134,7 +126,6 @@ func (s *Server) handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"email_verified": true})
 }
 
-// POST /api/auth/resend-verification (logged in)
 func (s *Server) handleResendVerification(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var u User
@@ -156,7 +147,6 @@ type forgotRequest struct {
 	Email string `json:"email"`
 }
 
-// POST /api/auth/forgot-password { email } - always 200, so nobody can find out which emails exist.
 func (s *Server) handleForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var req forgotRequest
 	if !decodeJSON(w, r, &req) {
@@ -191,7 +181,6 @@ type resetRequest struct {
 	Password string `json:"password"`
 }
 
-// POST /api/auth/reset-password { token, password }
 func (s *Server) handleResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req resetRequest
 	if !decodeJSON(w, r, &req) {
@@ -222,7 +211,6 @@ func (s *Server) handleResetPassword(w http.ResponseWriter, r *http.Request) {
 		internalError(w, "reset password: token", err)
 		return
 	}
-	// Opening the emailed link also proves the address belongs to the user.
 	if _, err := tx.Exec(ctx, `UPDATE users SET password_hash = $1, email_verified = TRUE WHERE id = $2`,
 		string(hash), userID); err != nil {
 		internalError(w, "reset password: update", err)

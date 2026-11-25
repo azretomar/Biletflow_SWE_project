@@ -1,5 +1,3 @@
-/* ===== My orders + organizer Orders and refunds (uses shared.css) ===== */
-
 .ord {
   display: flex;
   flex-direction: column;
@@ -99,7 +97,6 @@
   font-size: 14px;
 }
 
-/* Organizer page */
 .ord-policy {
   margin-bottom: 20px;
   padding: 20px;
@@ -164,7 +161,6 @@
   margin: 0;
 }
 
-/* keep the hidden screen-reader label inside the scrollable table */
 .ord-table-card .bf-table-wrap {
   position: relative;
 }

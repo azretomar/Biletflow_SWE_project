@@ -3,7 +3,6 @@ import { useAdminData, eventDisplayStatus, formatDate } from "./AdminDataContext
 import { StatusBadge } from "./AdminComponents";
 import { t } from "../../i18n";
 
-// Screen 1: Admin dashboard (home) - a quick overview of the platform.
 function AdminDashboard() {
   const { users, events, failedPayments, getUser } = useAdminData();
 

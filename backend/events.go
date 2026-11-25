@@ -49,8 +49,6 @@ CREATE TABLE IF NOT EXISTS event_reports (
 );
 `
 
-// Sale rules of a ticket type (SRS 4.3): a sales window, a limit per order, and hiding.
-// Hidden types are not shown to attendees and cannot be bought.
 const schemaTicketSales = `
 ALTER TABLE ticket_types ADD COLUMN IF NOT EXISTS sales_starts_at TIMESTAMPTZ;
 ALTER TABLE ticket_types ADD COLUMN IF NOT EXISTS sales_ends_at   TIMESTAMPTZ;
@@ -58,7 +56,6 @@ ALTER TABLE ticket_types ADD COLUMN IF NOT EXISTS max_per_order   INT CHECK (max
 ALTER TABLE ticket_types ADD COLUMN IF NOT EXISTS hidden          BOOLEAN NOT NULL DEFAULT FALSE;
 `
 
-// Registers this file's tables so migrate() creates them.
 func init() {
 	schemas = append(schemas, schemaEvents)
 	alterSchemas = append(alterSchemas, schemaTicketSales)
@@ -81,13 +78,12 @@ type Event struct {
 	OrganizerName      string     `json:"organizer_name"`
 	RegistrationOpens  *time.Time `json:"registration_opens_at"`
 	RegistrationCloses *time.Time `json:"registration_closes_at"`
-	Status             string     `json:"status"`     // draft | published | cancelled
-	Visibility         string     `json:"visibility"` // public | unlisted | private
-	PaidSales          string     `json:"paid_sales"` // none | active | stopped
+	Status             string     `json:"status"`
+	Visibility         string     `json:"visibility"`
+	PaidSales          string     `json:"paid_sales"`
 	Suspended          bool       `json:"suspended"`
 }
 
-// Columns for scanEvent, in order. Needs "FROM events e JOIN users u ON u.id = e.organizer_id".
 const eventColumns = `
 	e.id, e.title, e.description, e.date, e.ends_at, e.venue, e.venue_address, e.capacity,
 	e.category, e.image_url, e.organizer_id,
@@ -120,7 +116,6 @@ type TicketType struct {
 	Hidden        bool       `json:"hidden"`
 }
 
-// ticketTypeColumns lists the columns scanTicketType expects, in this order.
 const ticketTypeColumns = `id, name, description, price, quantity, quantity_left,
 	       sales_starts_at, sales_ends_at, max_per_order, hidden`
 
@@ -134,7 +129,6 @@ type EventDetail struct {
 	TicketTypes []TicketType `json:"ticket_types"`
 }
 
-// bad uuid in URL -> Postgres error 22P02. Treat as "not found".
 func isBadUUID(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "22P02"
@@ -154,7 +148,6 @@ func (s *Server) registerEventRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /api/events/{id}/report", s.requireAuth(http.HandlerFunc(s.handleReportEvent)))
 }
 
-// GET /api/events - published, public, not suspended events.
 func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.db.Query(r.Context(), `
 		SELECT `+eventColumns+`,
@@ -185,9 +178,6 @@ func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list)
 }
 
-// canSeeEvent: published events (public or unlisted, i.e. by link) and cancelled ones are
-// open to anyone; drafts, private and suspended events only to the organizer, platform admins
-// and, for private events, people who already hold a ticket.
 func (s *Server) canSeeEvent(ctx context.Context, ev Event, claims *Claims) bool {
 	if claims != nil && (claims.Subject == ev.OrganizerID || claims.Role == "platform_admin") {
 		return true
@@ -207,7 +197,6 @@ func (s *Server) canSeeEvent(ctx context.Context, ev Event, claims *Claims) bool
 	return has
 }
 
-// GET /api/events/{id}
 func (s *Server) handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	var ev EventDetail
@@ -230,7 +219,6 @@ func (s *Server) handleGetEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hidden ticket types are only for the event's organizer and platform admins.
 	seeHidden := claims != nil && (claims.Subject == ev.OrganizerID || claims.Role == "platform_admin")
 	types, err := s.loadTicketTypes(r.Context(), id, seeHidden)
 	if err != nil {
@@ -271,15 +259,13 @@ type eventRequest struct {
 	Category           string   `json:"category"`
 	ImageURL           string   `json:"image_url"`
 	RegistrationCloses flexTime `json:"registration_closes_at"`
-	// Extended fields (optional).
-	Status            string   `json:"status"`
-	Visibility        string   `json:"visibility"`
-	EndsAt            flexTime `json:"ends_at"`
-	RegistrationOpens flexTime `json:"registration_opens_at"`
-	VenueAddress      string   `json:"venue_address"`
+	Status             string   `json:"status"`
+	Visibility         string   `json:"visibility"`
+	EndsAt             flexTime `json:"ends_at"`
+	RegistrationOpens  flexTime `json:"registration_opens_at"`
+	VenueAddress       string   `json:"venue_address"`
 }
 
-// validate cleans the request and returns a message for the first problem ("" = fine).
 func (req *eventRequest) validate() string {
 	req.Title = strings.TrimSpace(req.Title)
 	req.Venue = strings.TrimSpace(req.Venue)
@@ -331,7 +317,6 @@ func (req *eventRequest) validate() string {
 	return ""
 }
 
-// POST /api/events  (organizer only)
 func (s *Server) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
 	var req eventRequest
 	if !decodeJSON(w, r, &req) {
@@ -401,7 +386,6 @@ func (s *Server) loadEvent(ctx context.Context, id string) (Event, error) {
 	return ev, err
 }
 
-// updateEventRequest: like eventRequest, but extended fields keep their current value when left out.
 type updateEventRequest struct {
 	Title              string    `json:"title"`
 	Description        string    `json:"description"`
@@ -418,7 +402,6 @@ type updateEventRequest struct {
 	VenueAddress       *string   `json:"venue_address"`
 }
 
-// PUT /api/events/{id}  (the event's organizer)
 func (s *Server) handleUpdateEvent(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	var upd updateEventRequest
@@ -454,7 +437,6 @@ func (s *Server) handleUpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Start from the current values and apply what was sent.
 	req := eventRequest{
 		Title: upd.Title, Description: upd.Description, Date: upd.Date, Venue: upd.Venue,
 		Capacity: upd.Capacity, Category: upd.Category, ImageURL: upd.ImageURL,
@@ -573,8 +555,6 @@ func changedEventFields(old Event, req eventRequest) []string {
 	return out
 }
 
-// optTime and optInt tell a field that was left out (Given == false: an update keeps the
-// current value) from one sent as null or "" (clear it) or with a value.
 type optTime struct {
 	Given bool
 	flexTime
@@ -615,7 +595,6 @@ type ticketTypeRequest struct {
 	Hidden        *bool   `json:"hidden"`
 }
 
-// validateSales checks the sale rules of a ticket type as they will be stored.
 func validateSales(starts, ends *time.Time, maxPerOrder *int) string {
 	if starts != nil && ends != nil && !starts.Before(*ends) {
 		return "sales_starts_at must be before sales_ends_at"
@@ -644,7 +623,6 @@ func (req *ticketTypeRequest) validate() string {
 	return ""
 }
 
-// ownedEventTx locks an event the caller organizes inside tx; writes the error and returns false otherwise.
 func ownedEventTx(w http.ResponseWriter, r *http.Request, tx pgx.Tx, id string) (eventInfo, bool) {
 	info, err := loadEventInfo(r.Context(), tx, id, true)
 	if err != nil {
@@ -662,7 +640,6 @@ func ownedEventTx(w http.ResponseWriter, r *http.Request, tx pgx.Tx, id string) 
 	return info, true
 }
 
-// POST /api/events/{id}/ticket-types  (organizer who owns the event)
 func (s *Server) handleCreateTicketType(w http.ResponseWriter, r *http.Request) {
 	eventID := r.PathValue("id")
 	var req ticketTypeRequest
@@ -734,9 +711,6 @@ func priceText(p int) string {
 	return kztText(p)
 }
 
-// PUT /api/events/{id}/ticket-types/{typeId}
-// The price can only change while no tickets of this type were issued; the quantity
-// cannot go below what was already issued.
 func (s *Server) handleUpdateTicketType(w http.ResponseWriter, r *http.Request) {
 	eventID, typeID := r.PathValue("id"), r.PathValue("typeId")
 	var req ticketTypeRequest
@@ -766,7 +740,6 @@ func (s *Server) handleUpdateTicketType(w http.ResponseWriter, r *http.Request) 
 		notFoundOr500(w, "update ticket type: load", "ticket type", err)
 		return
 	}
-	// Sale rules left out of the request keep their current value; null clears a date or the limit.
 	starts, ends, maxPerOrder, hidden := old.SalesStartsAt, old.SalesEndsAt, old.MaxPerOrder, old.Hidden
 	if req.SalesStartsAt.Given {
 		starts = req.SalesStartsAt.ptr()
@@ -835,7 +808,6 @@ func (s *Server) handleUpdateTicketType(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, t)
 }
 
-// DELETE /api/events/{id}/ticket-types/{typeId} - only while none of its tickets were issued.
 func (s *Server) handleDeleteTicketType(w http.ResponseWriter, r *http.Request) {
 	eventID, typeID := r.PathValue("id"), r.PathValue("typeId")
 	ctx := r.Context()
@@ -881,7 +853,6 @@ func (s *Server) handleDeleteTicketType(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
-// POST /api/events/{id}/report { reason } - any logged-in user, once per event (SRS 4.12).
 func (s *Server) handleReportEvent(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	reason, ok := readReason(w, r, true)

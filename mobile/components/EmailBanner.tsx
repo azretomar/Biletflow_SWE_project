@@ -9,8 +9,6 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import type { User } from '@/lib/types';
 
-// "Your email is not confirmed" note for the profile screen (package 1-3).
-// Asks /api/me each time the screen opens, so it hides right after the email is confirmed.
 export function EmailBanner() {
   const { t } = useTranslation();
   const router = useRouter();

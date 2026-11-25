@@ -39,14 +39,12 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-// routes builds every API route. Tests use it too.
 func (s *Server) routes() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	// auth
 	mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
 	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
 	mux.Handle("GET /api/me", s.requireAuth(http.HandlerFunc(s.handleMe)))
@@ -60,6 +58,5 @@ func (s *Server) routes() *http.ServeMux {
 	s.registerSupportRoutes(mux)
 	s.registerAdminRoutes(mux)
 
-	// tickets (friend adds his routes below)
 	return mux
 }

@@ -3,8 +3,6 @@ import { t } from "../i18n";
 import LanguagePicker from "../components/LanguagePicker";
 import "./auth.css";
 
-// Shared frame for the Sign up and Log in pages:
-// a dark panel with the BiletFlow message on the left, the form on the right.
 function AuthLayout({ title, subtitle, children }) {
   return (
     <div className="auth">

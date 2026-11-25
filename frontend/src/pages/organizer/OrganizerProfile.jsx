@@ -6,12 +6,6 @@ import { useApi, send, statusNote } from "../../lib/useApi";
 import "./organizerProfile.css";
 import { t } from "../../i18n";
 
-// Organizer profile (SRS 4.1): public contact details and payout details.
-// Payouts are simulated in the MVP (SRS 8): no real money is sent.
-// Backend (docs/api.md):
-//   GET /api/organizer/profile -> { display_name, bio, contact_email, phone, website, city,
-//                                   payout: { holder_name, bank_name, iban, bin_iin } }
-//   PUT /api/organizer/profile    same shape
 const EMPTY = {
   display_name: "",
   bio: "",
@@ -22,7 +16,6 @@ const EMPTY = {
   payout: { holder_name: "", bank_name: "", iban: "", bin_iin: "" },
 };
 
-// Kazakhstan IBAN: "KZ" + 2 check digits + 16 characters = 20 characters.
 function ibanProblem(iban) {
   const v = iban.replace(/\s+/g, "").toUpperCase();
   if (!v) return "";
@@ -41,7 +34,6 @@ function OrganizerProfile() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Fill the form once the profile arrives; start from the account name otherwise.
   useEffect(() => {
     setForm({
       ...EMPTY,

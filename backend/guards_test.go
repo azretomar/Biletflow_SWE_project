@@ -6,7 +6,6 @@ import (
 	"testing"
 )
 
-// Every new route rejects missing tokens and wrong roles before touching the database.
 func TestRouteGuards(t *testing.T) {
 	s := newTestServer()
 	mux := s.routes()
@@ -91,10 +90,10 @@ func TestDiscountFor(t *testing.T) {
 		amount, sub, d int
 	}{
 		{"percent", 20, 6000, 1200},
-		{"percent", 15, 999, 150}, // rounded
+		{"percent", 15, 999, 150},
 		{"percent", 100, 3000, 3000},
 		{"fixed", 500, 3000, 500},
-		{"fixed", 5000, 3000, 3000}, // never more than the price
+		{"fixed", 5000, 3000, 3000},
 		{"fixed", 500, 0, 0},
 	}
 	for _, c := range cases {

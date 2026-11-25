@@ -40,8 +40,6 @@ function toDraft(tt: TicketType): Draft {
   };
 }
 
-// Ticket types of one event (package 2-4, SRS 4.3):
-// POST /api/events/{id}/ticket-types, PUT/DELETE /api/events/{id}/ticket-types/{typeId}.
 export default function TicketTypesScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();

@@ -3,11 +3,6 @@ import { useAuth } from "../../AuthContext";
 import Navbar from "../../components/Navbar";
 import { roleName, t } from "../../i18n";
 
-// Guards every /admin page (SRS 4.12): only Platform Admins may enter.
-// - Not logged in  -> go to Log in, then come back here after logging in.
-// - Logged in, but not a platform_admin -> "No access" message.
-// The backend must still check the role on every admin endpoint;
-// this guard only keeps the admin screens out of sight.
 function RequireAdmin({ children }) {
   const { user } = useAuth();
   const location = useLocation();

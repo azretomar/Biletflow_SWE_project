@@ -12,8 +12,6 @@ import { api } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import type { OrganizerCase } from '@/lib/types';
 
-// Attendee requests about the organizer's events (package 2-3, SRS 4.13):
-// GET /api/organizer/support/cases.
 export default function OrganizerInboxScreen() {
   const { t } = useTranslation();
   const router = useRouter();

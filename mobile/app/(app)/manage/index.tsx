@@ -12,8 +12,6 @@ import { api } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import type { OrganizerEvent } from '@/lib/types';
 
-// Organizer home (package 1-4): own events, plus campaigns, profile and attendee requests.
-// GET /api/organizer/events
 export default function ManageScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -30,7 +28,6 @@ export default function ManageScreen() {
     }
   }, []);
 
-  // Reload when coming back from create / edit screens.
   useFocusEffect(
     useCallback(() => {
       void load();

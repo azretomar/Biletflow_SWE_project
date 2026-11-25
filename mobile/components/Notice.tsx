@@ -2,7 +2,6 @@ import { StyleSheet, Text } from 'react-native';
 
 import { colors, radius, spacing } from '@/constants/theme';
 
-// A short success message after an action ("Saved.", "Done.").
 export function Notice({ children }: { children: React.ReactNode }) {
   if (!children) return null;
   return (

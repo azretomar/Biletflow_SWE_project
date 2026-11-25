@@ -2,23 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import { t } from "../i18n";
 
-// True when the backend does not have this endpoint yet (or not for this method).
-// A 404 that carries the backend's own JSON message (for example "event not found")
-// comes from an endpoint that exists, so it is a real answer, not "not connected".
 export function isNotConnected(err) {
   if (!err) return false;
   if (err.status === 405 || err.status === 501) return true;
   return err.status === 404 && !err.fromServer;
 }
 
-// English text; show it with t(NOT_CONNECTED_TEXT).
 export const NOT_CONNECTED_TEXT = "This part is not connected to the server yet.";
 
-// Loads `path` from the backend once (and again on reload()).
-// status: "loading" | "ready" | "not_connected" | "error"
-// code: the HTTP status of the last failed request (404 = not found), 0 otherwise
-// While an endpoint does not exist yet, pages show their empty state plus a
-// short note, and start working by themselves once the backend adds it.
 export function useApi(path, fallback = null) {
   const [data, setData] = useState(fallback);
   const [status, setStatus] = useState(path ? "loading" : "ready");
@@ -47,7 +38,6 @@ export function useApi(path, fallback = null) {
     return () => {
       active = false;
     };
-    // fallback is a constant default; reloading only on path or reload()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, tick]);
 
@@ -55,8 +45,6 @@ export function useApi(path, fallback = null) {
   return { data, setData, status, error, code, reload };
 }
 
-// Runs a change (POST/PUT) and returns { ok, data, message } instead of throwing,
-// with a friendly message when the endpoint is not built yet.
 export async function send(path, method, body) {
   try {
     const data = await api(path, { method, body });
@@ -66,7 +54,6 @@ export async function send(path, method, body) {
   }
 }
 
-// Small status line shown under a section while data is loading or missing.
 export function statusNote(status, error) {
   if (status === "loading") return t("Loading...");
   if (status === "not_connected") return t(NOT_CONNECTED_TEXT);

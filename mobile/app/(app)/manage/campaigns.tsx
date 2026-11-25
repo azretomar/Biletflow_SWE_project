@@ -16,14 +16,10 @@ import { dayLabel } from '@/components/dayLabel';
 import { formatKzt, fromDateInput, toDateInput } from '@/lib/format';
 import type { Campaign, OrganizerEvent } from '@/lib/types';
 
-// The campaign QR opens the event page with the code applied (SRS 4.14). It carries only an
-// opaque code, never a price, and the scanner rejects it as an entry ticket.
 function campaignLink(c: Campaign): string {
   return c.qr_url || `${WEB_URL}/events/${c.event_id ?? ''}?promo=${encodeURIComponent(c.code)}`;
 }
 
-// Promo campaigns (package 2-2, SRS 4.14): GET/POST /api/organizer/campaigns,
-// PATCH /api/organizer/campaigns/{id} { disabled }.
 export default function CampaignsScreen() {
   const { t } = useTranslation();
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);

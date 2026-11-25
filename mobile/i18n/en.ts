@@ -1,4 +1,3 @@
-// English strings. ru.ts and kk.ts must have the same keys (TypeScript checks this).
 import orgEn from './org.en';
 
 const en = {

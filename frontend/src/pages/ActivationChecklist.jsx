@@ -5,15 +5,6 @@ import { useApi, send, statusNote } from "../lib/useApi";
 import "./activationChecklist.css";
 import { locale, t } from "../i18n";
 
-// Paid sales activation checklist (SRS 3.2, 4.5). Everything is simulated: no real money,
-// no real identity check. The paid-ticket step is read from GET /api/events/{id} (already exists).
-// Backend (docs/api.md):
-//   GET  /api/organizer/events/{id}/activation -> { identity_verified, payout_connected, fee_paid,
-//                                                   terms_accepted, activated, fee_kzt }
-//   POST /api/organizer/events/{id}/activation/{step}   step = identity | payout | fee | terms
-//   POST /api/organizer/events/{id}/activation/activate
-// The payout account comes from the organizer profile.
-
 const EMPTY = {
   identity_verified: false,
   payout_connected: false,

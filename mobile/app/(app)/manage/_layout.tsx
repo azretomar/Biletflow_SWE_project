@@ -1,7 +1,6 @@
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-// Organizer area (packages 1-4, 2-2, 2-3, 2-4): own events and everything inside one event.
 export default function ManageLayout() {
   const { t } = useTranslation();
   return (

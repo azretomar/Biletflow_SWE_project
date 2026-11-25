@@ -17,8 +17,6 @@ const TABS: { name: TabName; icon: IconName; visible: (role: Role) => boolean }[
   { name: 'profile', icon: 'person-outline', visible: () => true },
 ];
 
-// One app for every role; each role sees only its own tabs (href: null hides a tab).
-// The role's start tab goes first, so it opens after login.
 export default function AppTabs() {
   const { t } = useTranslation();
   const { user } = useAuth();

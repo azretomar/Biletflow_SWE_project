@@ -8,8 +8,6 @@ import { errorText } from '@/i18n';
 import { api } from '@/lib/api';
 import type { OrganizerProfile } from '@/lib/types';
 
-// Organizer profile with contact and payout details (package 2-4, SRS 4.1):
-// GET/PUT /api/organizer/profile. Payout details unlock the activation step "payout".
 export default function OrganizerProfileScreen() {
   const { t } = useTranslation();
   const [profile, setProfile] = useState<OrganizerProfile | null>(null);

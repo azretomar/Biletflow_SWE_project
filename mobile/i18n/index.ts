@@ -8,7 +8,6 @@ import en from './en';
 import kk from './kk';
 import ru from './ru';
 
-// SRS 7: Kazakh and Russian, with English as an additional locale.
 export const LANGUAGES = [
   { code: 'kk', label: 'Қазақша' },
   { code: 'ru', label: 'Русский' },
@@ -34,7 +33,6 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
-// Applies the language the user picked earlier, if any.
 export async function loadSavedLanguage() {
   const saved = await getItem(LANG_KEY);
   if (isLanguage(saved) && saved !== i18n.language) await i18n.changeLanguage(saved);
@@ -45,7 +43,6 @@ export async function setLanguage(code: Language) {
   await setItem(LANG_KEY, code);
 }
 
-// Network and unknown errors are translated; backend validation messages are shown as sent.
 export function errorText(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.message === 'network') return i18n.t('errors.network');

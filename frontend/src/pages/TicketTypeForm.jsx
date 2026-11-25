@@ -6,20 +6,14 @@ import { useApi } from "../lib/useApi";
 import "./ticketTypeForm.css";
 import { t } from "../i18n";
 
-// Kazakhstan uses one time zone (UTC+5): the form shows and sends times in it.
 const TZ = "+05:00";
 
-// "2026-12-14T19:00:00+05:00" -> "2026-12-14T19:00" (Kazakhstan time) for a datetime-local input
 function toKzInput(value) {
   if (!value) return "";
   const d = new Date(new Date(value).getTime() + 5 * 60 * 60 * 1000);
   return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 16);
 }
 
-// Add a ticket type: POST /api/events/{id}/ticket-types
-// Edit one (/organizer/events/:id/ticket-types/:typeId/edit): PUT /api/events/{id}/ticket-types/{typeId}
-//   The price can only change while none of its tickets were issued, and the quantity
-//   cannot go below what was already issued; the server explains when that happens.
 function TicketTypeForm() {
   const { id, typeId } = useParams();
   const editing = Boolean(typeId);
@@ -42,7 +36,6 @@ function TicketTypeForm() {
     : null;
   const issued = existing ? existing.quantity - existing.quantity_left : 0;
 
-  // Fill the form once with the saved values.
   useEffect(() => {
     if (!existing || loaded) return;
     setName(existing.name);
@@ -73,7 +66,6 @@ function TicketTypeForm() {
     }
     setBusy(true);
     try {
-      // Empty dates and max per order are sent as null, which clears them when editing.
       await api(editing ? `/events/${id}/ticket-types/${typeId}` : `/events/${id}/ticket-types`, {
         method: editing ? "PUT" : "POST",
         body: {

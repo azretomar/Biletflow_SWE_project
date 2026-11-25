@@ -12,7 +12,6 @@ const ROLE_FILTER_LABELS = {
   get admin() { return t("Admins"); },
 };
 
-// Screen 4: Users list - search by name/email, see the role, suspend/unsuspend.
 function AdminUsers() {
   const { users, events, setUserSuspended } = useAdminData();
   const [search, setSearch] = useState("");

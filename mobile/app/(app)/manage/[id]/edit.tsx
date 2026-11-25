@@ -8,7 +8,6 @@ import { errorText } from '@/i18n';
 import { api } from '@/lib/api';
 import type { EventDetail } from '@/lib/types';
 
-// Edit an event (package 1-4): GET /api/events/{id}, PUT /api/events/{id}.
 export default function EditEventScreen() {
   const { t } = useTranslation();
   const router = useRouter();

@@ -13,15 +13,11 @@ import (
 	"time"
 )
 
-// End-to-end flows through the real router and a real database.
-// Run with TEST_DATABASE_URL set (skipped otherwise).
-
 type apiClient struct {
 	t   *testing.T
 	srv *httptest.Server
 }
 
-// call sends a request and decodes the JSON answer into a generic value.
 func (c apiClient) call(token, method, path string, body any) (int, any) {
 	c.t.Helper()
 	var rd io.Reader
@@ -57,7 +53,6 @@ func (c apiClient) call(token, method, path string, body any) (int, any) {
 	return res.StatusCode, out
 }
 
-// must expects one status and returns the body as a map (or nil for lists).
 func (c apiClient) must(want int, token, method, path string, body any) map[string]any {
 	c.t.Helper()
 	code, out := c.call(token, method, path, body)
@@ -119,7 +114,6 @@ func TestFullFlowsDB(t *testing.T) {
 
 	future := time.Now().Add(10 * 24 * time.Hour).In(kzZone).Format("2006-01-02T15:04")
 
-	// ---- Events: create, visibility, edit ----
 	ev := c.must(201, orgTok, "POST", "/api/events", map[string]any{
 		"title": "Jazz Night", "description": "Live", "date": future, "venue": "NU Hall",
 		"capacity": 100, "category": "music"})
@@ -150,7 +144,6 @@ func TestFullFlowsDB(t *testing.T) {
 	c.must(200, "", "GET", "/api/events/"+unlisted["id"].(string), nil)
 	c.must(404, annaTok, "POST", "/api/events/"+draftID+"/register", map[string]any{"ticket_type_id": evID, "quantity": 1})
 
-	// ---- Ticket types ----
 	free := c.must(201, orgTok, "POST", "/api/events/"+evID+"/ticket-types", map[string]any{"name": "Student", "price": 0, "quantity": 5})
 	paid := c.must(201, orgTok, "POST", "/api/events/"+evID+"/ticket-types", map[string]any{"name": "Standard", "price": 3000, "quantity": 20})
 	extra := c.must(201, orgTok, "POST", "/api/events/"+evID+"/ticket-types", map[string]any{"name": "Extra", "price": 100, "quantity": 5})
@@ -158,7 +151,6 @@ func TestFullFlowsDB(t *testing.T) {
 	c.must(403, org2Tok, "POST", "/api/events/"+evID+"/ticket-types", map[string]any{"name": "Hack", "price": 0, "quantity": 1})
 	c.errMsg(400, orgTok, "POST", "/api/events/"+evID+"/ticket-types", map[string]any{"name": "Too many", "price": 0, "quantity": 71})
 
-	// Edit event
 	edited := c.must(200, orgTok, "PUT", "/api/events/"+evID, map[string]any{
 		"title": "Jazz Night Live", "description": "Live music", "date": future + ":00+05:00", "venue": "NU Hall",
 		"capacity": 120, "category": "music", "image_url": "https://example.com/a.jpg", "registration_closes_at": nil})
@@ -171,14 +163,12 @@ func TestFullFlowsDB(t *testing.T) {
 	}
 	c.must(403, org2Tok, "PUT", "/api/events/"+evID, map[string]any{"title": "X", "date": future, "venue": "V", "capacity": 200})
 	c.must(404, orgTok, "PUT", "/api/events/not-a-uuid", map[string]any{"title": "X", "date": future, "venue": "V", "capacity": 200})
-	// Publish the draft
 	pub := c.must(200, orgTok, "PUT", "/api/events/"+draftID, map[string]any{
 		"title": "Secret Draft", "date": future, "venue": "X", "capacity": 10, "status": "published"})
 	if pub["status"] != "published" || pub["visibility"] != "private" {
 		t.Errorf("publish draft: %v", pub)
 	}
 
-	// ---- Free registration and paid checkout before activation ----
 	c.must(201, annaTok, "POST", "/api/events/"+evID+"/register", map[string]any{"ticket_type_id": freeID, "quantity": 2})
 	c.errMsg(400, annaTok, "POST", "/api/events/"+evID+"/register", map[string]any{"ticket_type_id": paidID, "quantity": 1})
 	if msg := c.errMsg(400, annaTok, "POST", "/api/orders/checkout", map[string]any{
@@ -186,7 +176,6 @@ func TestFullFlowsDB(t *testing.T) {
 		t.Errorf("paid before activation: %q", msg)
 	}
 
-	// ---- Activation ----
 	act := c.must(200, orgTok, "GET", "/api/organizer/events/"+evID+"/activation", nil)
 	if act["activated"] != false || num(act["fee_kzt"]) != kzFeeKZT {
 		t.Fatalf("activation start: %v", act)
@@ -198,7 +187,6 @@ func TestFullFlowsDB(t *testing.T) {
 	for _, step := range []string{"identity", "fee", "terms"} {
 		c.must(200, orgTok, "POST", "/api/organizer/events/"+evID+"/activation/"+step, nil)
 	}
-	// Profile with payout details
 	prof := c.must(200, orgTok, "GET", "/api/organizer/profile", nil)
 	if prof["display_name"] != "Org" || prof["contact_email"] != strings.ToLower(mail("Org")) {
 		t.Errorf("profile defaults: %v", prof)
@@ -217,7 +205,6 @@ func TestFullFlowsDB(t *testing.T) {
 		t.Errorf("organizer_name from profile = %v", got)
 	}
 
-	// ---- Promo ----
 	camp := c.must(201, orgTok, "POST", "/api/organizer/campaigns", map[string]any{
 		"event_id": evID, "name": "Student week", "discount_type": "percent", "amount": 20,
 		"starts_at": time.Now().In(kzZone).Format("2006-01-02"), "ends_at": future[:10] + "T23:59:59", "max_redemptions": 1})
@@ -240,7 +227,6 @@ func TestFullFlowsDB(t *testing.T) {
 	}
 	c.errMsg(400, annaTok, "POST", "/api/promo/validate", map[string]any{"event_id": evID, "code": "NOPE-1234"})
 
-	// ---- Paid checkout ----
 	failedOrder := c.must(200, benTok, "POST", "/api/orders/checkout", map[string]any{
 		"event_id": evID, "items": []any{map[string]any{"ticket_type_id": paidID, "quantity": 1}}, "simulate": "failure"})
 	if failedOrder["status"] != "failed" || len(failedOrder["tickets"].([]any)) != 0 {
@@ -273,7 +259,6 @@ func TestFullFlowsDB(t *testing.T) {
 		}
 	}
 
-	// ---- Orders ----
 	myOrders := c.list(annaTok, "/api/my-orders")
 	if len(myOrders) != 2 {
 		t.Fatalf("anna orders = %d, want 2", len(myOrders))
@@ -303,7 +288,6 @@ func TestFullFlowsDB(t *testing.T) {
 		t.Errorf("policy: %v", p)
 	}
 
-	// Refund the paid order: tickets invalid, stock back.
 	c.errMsg(400, orgTok, "POST", "/api/organizer/orders/"+paidOrderID+"/refund", map[string]any{"reason": ""})
 	c.must(404, org2Tok, "POST", "/api/organizer/orders/"+paidOrderID+"/refund", map[string]any{"reason": "mine"})
 	c.errMsg(409, orgTok, "POST", "/api/organizer/orders/"+paidOrderID+"/cancel", map[string]any{"reason": "wrong"})
@@ -332,9 +316,8 @@ func TestFullFlowsDB(t *testing.T) {
 	c.errMsg(409, orgTok, "POST", "/api/organizer/orders/"+freeOrderID+"/refund", map[string]any{"reason": "x"})
 	c.must(200, orgTok, "POST", "/api/organizer/orders/"+freeOrderID+"/cancel", map[string]any{"reason": "Duplicate"})
 
-	// ---- Attendees, check-in, analytics, history ----
 	att := c.list(orgTok, "/api/organizer/events/"+evID+"/attendees")
-	if len(att) != 6 { // 2 free (cancelled) + 3 refunded + 1 Ben
+	if len(att) != 6 {
 		t.Errorf("attendees = %d, want 6", len(att))
 	}
 	var benQR string
@@ -375,7 +358,6 @@ func TestFullFlowsDB(t *testing.T) {
 		t.Errorf("history types: %v", types)
 	}
 
-	// ---- Ticket type edit/delete ----
 	c.errMsg(409, orgTok, "PUT", "/api/events/"+evID+"/ticket-types/"+paidID, map[string]any{"name": "Standard", "price": 3500, "quantity": 20})
 	c.errMsg(400, orgTok, "PUT", "/api/events/"+evID+"/ticket-types/"+paidID, map[string]any{"name": "Standard", "price": 3000, "quantity": 0})
 	tt := c.must(200, orgTok, "PUT", "/api/events/"+evID+"/ticket-types/"+paidID, map[string]any{"name": "Standard entry", "price": 3000, "quantity": 30})
@@ -385,7 +367,6 @@ func TestFullFlowsDB(t *testing.T) {
 	c.errMsg(409, orgTok, "DELETE", "/api/events/"+evID+"/ticket-types/"+paidID, nil)
 	c.must(200, orgTok, "DELETE", "/api/events/"+evID+"/ticket-types/"+extraID, nil)
 
-	// ---- Reports and admin ----
 	c.must(201, annaTok, "POST", "/api/events/"+evID+"/report", map[string]any{"reason": "Looks fake"})
 	c.errMsg(409, annaTok, "POST", "/api/events/"+evID+"/report", map[string]any{"reason": "Again"})
 	c.errMsg(400, orgTok, "POST", "/api/events/"+evID+"/report", map[string]any{"reason": "Self"})
@@ -438,7 +419,6 @@ func TestFullFlowsDB(t *testing.T) {
 		t.Errorf("audit entries = %d", len(l))
 	}
 
-	// ---- Support ----
 	cs := c.must(201, annaTok, "POST", "/api/support/cases", map[string]any{"category": "payment", "subject": "Refund",
 		"message": "Where is my refund money?", "context": map[string]any{"type": "order", "id": paidOrderID}})
 	caseID := fmt.Sprint(num(cs["id"]))
@@ -465,7 +445,6 @@ func TestFullFlowsDB(t *testing.T) {
 	c.errMsg(400, adminTok, "PATCH", "/api/admin/support/cases/"+caseID, map[string]any{"status": "lost"})
 	c.must(404, annaTok, "GET", "/api/support/cases/abc", nil)
 
-	// ---- Account: reset password, verify email ----
 	c.must(200, "", "POST", "/api/auth/forgot-password", map[string]any{"email": "nobody@nowhere.kz"})
 	c.must(200, "", "POST", "/api/auth/forgot-password", map[string]any{"email": mail("Ben")})
 	var benID string
@@ -492,7 +471,6 @@ func TestFullFlowsDB(t *testing.T) {
 	c.errMsg(400, "", "POST", "/api/auth/verify-email", map[string]any{"token": "garbage"})
 	c.must(200, annaTok, "POST", "/api/auth/resend-verification", map[string]any{})
 
-	// ---- Cancel the event ----
 	c.errMsg(400, orgTok, "POST", "/api/organizer/events/"+evID+"/cancel", map[string]any{"reason": ""})
 	c.must(403, org2Tok, "POST", "/api/organizer/events/"+evID+"/cancel", map[string]any{"reason": "mine"})
 	res := c.must(200, orgTok, "POST", "/api/organizer/events/"+evID+"/cancel", map[string]any{"reason": "Venue flooded"})

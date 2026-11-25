@@ -3,9 +3,6 @@ import { useAuth } from "../AuthContext";
 import Navbar from "./Navbar";
 import { roleName, t } from "../i18n";
 
-// Wraps a page that needs a logged-in user.
-// roles (optional): only these roles may open it, e.g. ["organizer"].
-// Not logged in -> Log in, then back to this page. Wrong role -> short message.
 function RequireLogin({ roles, children }) {
   const { user } = useAuth();
   const location = useLocation();

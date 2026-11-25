@@ -15,8 +15,6 @@ import type { CheckinResult, StaffAttendees } from '@/lib/types';
 
 type Person = StaffAttendees['attendees'][number];
 
-// Entrance counter and manual check-in when a QR code cannot be scanned (package 2-1, SRS 4.8):
-// GET /api/staff/events/{id}/attendees?q=, POST /api/checkin, POST /api/checkin/undo.
 export default function StaffSearchScreen() {
   const { t } = useTranslation();
   const { id, title } = useLocalSearchParams<{ id: string; title?: string }>();
@@ -40,7 +38,6 @@ export default function StaffSearchScreen() {
     [id],
   );
 
-  // Refresh the counter whenever the screen is shown (scans happen on the camera screen).
   useFocusEffect(
     useCallback(() => {
       void load(searched);

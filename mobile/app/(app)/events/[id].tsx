@@ -11,11 +11,8 @@ import { api, ApiError } from '@/lib/api';
 import { formatDateTime, formatKzt } from '@/lib/format';
 import type { EventDetail, RegisterResponse, TicketType } from '@/lib/types';
 
-const MAX_PER_ORDER = 10; // same limit as the backend (maxTicketsPerOrder)
+const MAX_PER_ORDER = 10;
 
-// Event details and free registration (plan steps 2 and 3): GET /api/events/{id},
-// POST /api/events/{id}/register. Orders with paid tickets go to checkout (package 2-2);
-// a campaign link (?promo=CODE) is passed on to checkout.
 export default function EventDetailScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -98,7 +95,6 @@ export default function EventDetailScreen() {
     });
   }
 
-  // The backend registers one ticket type per request, so several types mean several orders.
   async function register() {
     if (chosen.length === 0) return;
     setBusy(true);
@@ -242,7 +238,6 @@ function StepButton({
   );
 }
 
-// A ticket type's own sale period (SRS 4.3); the backend checks it again.
 function onSale(tt: TicketType): boolean {
   const now = Date.now();
   if (tt.sales_starts_at && now < new Date(tt.sales_starts_at).getTime()) return false;
@@ -250,8 +245,6 @@ function onSale(tt: TicketType): boolean {
   return true;
 }
 
-// Same rules as registrationBlocked() in backend/tickets.go, so the attendee sees why
-// before trying. The backend still decides.
 function blockedReason(ev: EventDetail, t: TFunction): string {
   const now = Date.now();
   if (ev.status === 'cancelled') return t('events.cancelled');

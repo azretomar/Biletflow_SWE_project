@@ -19,7 +19,6 @@ services:
     build: ./backend
     env_file: ./backend/.env
     environment:
-      # Inside the compose network the database host is `db`, not localhost.
       DATABASE_URL: postgres://biletflow:biletflow@db:5432/biletflow?sslmode=disable
       PORT: "8080"
     ports:

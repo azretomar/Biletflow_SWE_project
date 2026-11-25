@@ -22,10 +22,11 @@ Self-service event ticketing platform for Kazakhstan (CSCI 361, Team 5). This is
 - Paid sales activation per event (identity check, payout account, activation fee and terms, all simulated).
 - QR-code tickets, ticket page, and a printable ticket (Print / Save as PDF through the browser).
 - Promo codes and campaign QR codes (`/events/:id?promo=CODE`). Discounts are calculated and limited on the server. A campaign QR is rejected at check-in.
-- Check-in endpoint for the organizer and staff assigned to the event. Staff assignment per event.
+- Check-in endpoint for the organizer and staff assigned to the event, and check-in undo. Staff assignment per event.
 - Orders, order cancellation and full refunds (simulated).
 - Organizer analytics (capacity, sales over time, revenue, ticket types, campaigns, attendance) and event history with activity timeline.
-- Support cases with a message thread (attendee and platform admin).
+- Support cases with a message thread (attendee, platform admin, and the organizer for cases about their own events).
+- Ticket type sale rules: sales window, limit per order, hidden types.
 - Admin portal: users, events, paid-sales activations, support cases, suspend and restore users and events, audit log of admin actions (API: `/api/admin/audit`).
 
 ## API
@@ -47,7 +48,7 @@ Platform admin: `/admin` (dashboard, `/events`, `/events/:id`, `/users`, `/activ
 - Payments, identity verification, payouts and the activation fee are simulated (allowed by SRS 3.2 and 4.6).
 - Emails (verification, password reset, refunds, cancellations) are written to the backend log instead of being sent: `docker compose logs backend`. The links in them work. No mail service is connected, and ticket confirmation emails are not sent; tickets are available in the attendee's account.
 - The website interface is available in Kazakh, Russian and English (language switch in the top bar; the choice is remembered in the browser). Translations live in `frontend/src/i18n/kk.js` and `ru.js`. Error messages that come from the backend and the emails are still in English.
-- Not implemented: check-in undo, assigned seating, calendar (.ics) export, server-generated PDF tickets (the printable page uses the browser's print dialog), an admin page for the audit log, configurable activation fee.
+- Not implemented: assigned seating, calendar (.ics) export, server-generated PDF tickets (the printable page uses the browser's print dialog), an admin page for the audit log, configurable activation fee.
 - The mobile verification app is not part of this web release.
 
 ## Run everything with Docker

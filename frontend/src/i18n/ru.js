@@ -701,6 +701,15 @@ const ru = {
   "{n}% off": "Скидка {n}%",
   "{n}% sold": "Продано {n}%",
   "{sold} / {capacity} sold": "Продано {sold} / {capacity}",
+  "Hidden": "Скрыт",
+  "Hidden from attendees": "Скрыт от участников",
+  "Max tickets per order must be a whole number from 1 to 10.": "Макс. билетов в заказе: целое число от 1 до 10.",
+  "Sales ended": "Продажи завершены",
+  "Sales must start before they end.": "Продажи должны начаться раньше, чем закончатся.",
+  "Sales start {date}": "Продажи начнутся {date}",
+  "Sales times are Kazakhstan time (UTC+5). Leave them empty to sell for as long as registration is open. A hidden ticket type is not shown to attendees and cannot be bought.": "Время продаж указывается по Казахстану (UTC+5). Оставьте поля пустыми, чтобы продавать, пока открыта регистрация. Скрытый тип билета не виден участникам, и его нельзя купить.",
+  "Sales: {from} to {to}": "Продажи: с {from} по {to}",
+  "Up to {n} per order": "Не больше {n} в одном заказе",
 };
 
 export default ru;

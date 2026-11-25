@@ -696,6 +696,15 @@ const kk = {
   "{n}% off": "{n}% жеңілдік",
   "{n}% sold": "{n}% сатылды",
   "{sold} / {capacity} sold": "{sold} / {capacity} сатылды",
+  "Hidden": "Жасырын",
+  "Hidden from attendees": "Қатысушылардан жасырылған",
+  "Max tickets per order must be a whole number from 1 to 10.": "Бір тапсырыстағы ең көп билет 1-ден 10-ға дейінгі бүтін сан болуы керек.",
+  "Sales ended": "Сатылым аяқталды",
+  "Sales must start before they end.": "Сатылым аяқталмас бұрын басталуы керек.",
+  "Sales start {date}": "Сатылым {date} басталады",
+  "Sales times are Kazakhstan time (UTC+5). Leave them empty to sell for as long as registration is open. A hidden ticket type is not shown to attendees and cannot be bought.": "Сатылым уақыты Қазақстан уақытымен (UTC+5) көрсетіледі. Тіркеу ашық тұрғанда сата беру үшін өрістерді бос қалдырыңыз. Жасырын билет түрі қатысушыларға көрінбейді және оны сатып алуға болмайды.",
+  "Sales: {from} to {to}": "Сатылым: {from} бастап {to} дейін",
+  "Up to {n} per order": "Бір тапсырыста {n} дейін",
 };
 
 export default kk;

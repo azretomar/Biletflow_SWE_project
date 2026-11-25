@@ -138,3 +138,9 @@
 .em-row-actions .em-link:last-child {
   margin-right: 0;
 }
+
+/* "Hidden" label next to a hidden ticket type (SRS 4.3) */
+.em-hidden {
+  margin-left: 8px;
+  vertical-align: middle;
+}

@@ -7,7 +7,7 @@ import { useApi, send, statusNote } from "../lib/useApi";
 import { kzt, shortDateTime } from "../lib/format";
 import "./eventDetail.css";
 import { t } from "../i18n";
-import { categoryName } from "../lib/events";
+import { categoryName, maxPerOrder, saleNote } from "../lib/events";
 
 const MAX_PER_TYPE = 10;
 
@@ -33,10 +33,10 @@ function EventDetail() {
   const paidOnSale = Boolean(event && event.paid_sales === "active");
   const chosen = Object.values(quantities).reduce((s, n) => s + n, 0);
 
-  function changeQuantity(typeId, delta, left) {
-    const current = quantities[typeId] || 0;
-    const next = Math.min(Math.max(current + delta, 0), Math.min(left, MAX_PER_TYPE));
-    setQuantities({ ...quantities, [typeId]: next });
+  function changeQuantity(tt, delta) {
+    const current = quantities[tt.id] || 0;
+    const next = Math.min(Math.max(current + delta, 0), maxPerOrder(tt, MAX_PER_TYPE));
+    setQuantities({ ...quantities, [tt.id]: next });
   }
 
   if (status !== "ready" || !event) {
@@ -119,7 +119,11 @@ function EventDetail() {
             {ticketTypes.length === 0 ? (
               <p className="bf-muted">{t("No ticket types available yet.")}</p>
             ) : (
-              ticketTypes.map((tt) => (
+              ticketTypes.map((tt) => {
+                // Only the organizer (and admins) get hidden types back from the server.
+                const note = tt.hidden ? t("Hidden from attendees") : saleNote(tt);
+                const canPick = !blocked && !note && tt.quantity_left > 0 && (tt.price === 0 || paidOnSale);
+                return (
                 <div key={tt.id} className="bf-card ed-type">
                   <h3>{tt.name}</h3>
                   {tt.description && <p className="bf-muted ed-type-desc">{tt.description}</p>}
@@ -127,22 +131,27 @@ function EventDetail() {
                     <div>
                       <div className="ed-price">{kzt(tt.price)}</div>
                       <div className="bf-muted ed-left">{tt.quantity_left > 0 ? t("{n} left", { n: tt.quantity_left }) : t("Sold out")}</div>
+                      {tt.max_per_order && (
+                        <div className="bf-muted ed-left">{t("Up to {n} per order", { n: tt.max_per_order })}</div>
+                      )}
                     </div>
-                    {!blocked && tt.price > 0 && !paidOnSale && <span className="bf-muted ed-left">{t("On sale soon")}</span>}
-                    {!blocked && tt.quantity_left > 0 && (tt.price === 0 || paidOnSale) && (
+                    {!blocked && note && <span className="bf-muted ed-left">{note}</span>}
+                    {!blocked && !note && tt.price > 0 && !paidOnSale && <span className="bf-muted ed-left">{t("On sale soon")}</span>}
+                    {canPick && (
                       <div className="ed-stepper">
                         <button type="button" aria-label={t("One less {name} ticket", { name: tt.name })}
-                          onClick={() => changeQuantity(tt.id, -1, tt.quantity_left)}>-</button>
+                          onClick={() => changeQuantity(tt, -1)}>-</button>
                         <span aria-live="polite" aria-label={t("{name} tickets: {n}", { name: tt.name, n: quantities[tt.id] || 0 })}>
                           {quantities[tt.id] || 0}
                         </span>
                         <button type="button" aria-label={t("One more {name} ticket", { name: tt.name })}
-                          onClick={() => changeQuantity(tt.id, 1, tt.quantity_left)}>+</button>
+                          onClick={() => changeQuantity(tt, 1)}>+</button>
                       </div>
                     )}
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
 
             {event.registration_closes_at && !ended && (

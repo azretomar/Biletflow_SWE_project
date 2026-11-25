@@ -1,5 +1,6 @@
 // Client-side filtering of the public event list (GET /api/events returns all events).
 import { t } from "../i18n";
+import { shortDateTime } from "./format";
 
 // label is a getter so it is read in the current language.
 export const CATEGORY_OPTIONS = [
@@ -8,6 +9,22 @@ export const CATEGORY_OPTIONS = [
   { value: "sports", get label() { return t("Sports"); } },
   { value: "other", get label() { return t("Other"); } },
 ];
+
+// Sale period of one ticket type (SRS 4.3), the same check as saleBlocked() in
+// backend/tickets.go. Returns why it cannot be bought right now, or "" when it can.
+export function saleNote(tt, now = Date.now()) {
+  if (tt.sales_starts_at && now < new Date(tt.sales_starts_at).getTime()) {
+    return t("Sales start {date}", { date: shortDateTime(tt.sales_starts_at) });
+  }
+  if (tt.sales_ends_at && now >= new Date(tt.sales_ends_at).getTime()) return t("Sales ended");
+  return "";
+}
+
+// The most tickets of this type one order may hold: the order limit, the tickets left,
+// and the organizer's own max per order for this type.
+export function maxPerOrder(tt, orderLimit) {
+  return Math.max(0, Math.min(orderLimit, tt.quantity_left, tt.max_per_order || orderLimit));
+}
 
 // "music" -> "Music" in the current language (unknown codes are shown as they are).
 export function categoryName(code) {

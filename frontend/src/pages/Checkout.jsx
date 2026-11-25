@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
 import { isNotConnected } from "../lib/useApi";
+import { maxPerOrder, saleNote } from "../lib/events";
 import "./checkout.css";
 import { locale, t } from "../i18n";
 
@@ -76,7 +77,8 @@ function Checkout() {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  const types = (event && event.ticket_types) || [];
+  // Hidden types cannot be bought, not even by the organizer (SRS 4.3).
+  const types = ((event && event.ticket_types) || []).filter((tt) => !tt.hidden);
   // Paid tickets are sold only after the organizer finished the paid-sales checklist (SRS 3.2).
   const paidOnSale = Boolean(event && event.paid_sales === "active");
   const closedNote =
@@ -209,16 +211,20 @@ function Checkout() {
                 ) : (
                   <ul className="co-types">
                     {types.map((tt) => {
-                      const onSale = tt.price === 0 || paidOnSale;
-                      const max = onSale ? Math.min(MAX_PER_TYPE, tt.quantity_left) : 0;
+                      const note = saleNote(tt);
+                      const onSale = !note && (tt.price === 0 || paidOnSale);
+                      const max = onSale ? maxPerOrder(tt, MAX_PER_TYPE) : 0;
                       return (
                         <li key={tt.id} className="co-type">
                           <div>
                             <strong>{tt.name}</strong>
                             {tt.description && <span className="bf-muted co-type-desc">{tt.description}</span>}
                             <span className="bf-muted co-type-left">
-                              {!onSale ? t("On sale soon") : tt.quantity_left > 0 ? t("{n} left", { n: tt.quantity_left }) : t("Sold out")}
+                              {note || (!onSale ? t("On sale soon") : tt.quantity_left > 0 ? t("{n} left", { n: tt.quantity_left }) : t("Sold out"))}
                             </span>
+                            {onSale && tt.max_per_order && (
+                              <span className="bf-muted co-type-left">{t("Up to {n} per order", { n: tt.max_per_order })}</span>
+                            )}
                           </div>
                           <span className="co-price">{kzt(tt.price)}</span>
                           <label className="co-qty">

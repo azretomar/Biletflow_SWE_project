@@ -6,6 +6,16 @@ import { useApi } from "../lib/useApi";
 import "./ticketTypeForm.css";
 import { t } from "../i18n";
 
+// Kazakhstan uses one time zone (UTC+5): the form shows and sends times in it.
+const TZ = "+05:00";
+
+// "2026-12-14T19:00:00+05:00" -> "2026-12-14T19:00" (Kazakhstan time) for a datetime-local input
+function toKzInput(value) {
+  if (!value) return "";
+  const d = new Date(new Date(value).getTime() + 5 * 60 * 60 * 1000);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 16);
+}
+
 // Add a ticket type: POST /api/events/{id}/ticket-types
 // Edit one (/organizer/events/:id/ticket-types/:typeId/edit): PUT /api/events/{id}/ticket-types/{typeId}
 //   The price can only change while none of its tickets were issued, and the quantity
@@ -39,6 +49,10 @@ function TicketTypeForm() {
     setDescription(existing.description || "");
     setPrice(String(existing.price));
     setQuantity(String(existing.quantity));
+    setSalesStart(toKzInput(existing.sales_starts_at));
+    setSalesEnd(toKzInput(existing.sales_ends_at));
+    setMaxPerOrder(existing.max_per_order ? String(existing.max_per_order) : "");
+    setHidden(Boolean(existing.hidden));
     setLoaded(true);
   }, [existing, loaded]);
 
@@ -50,12 +64,28 @@ function TicketTypeForm() {
     if (!name.trim()) return setError(t("Enter a ticket name."));
     if (!Number.isInteger(p) || p < 0) return setError(t("Price must be 0 (free) or a whole number of KZT."));
     if (!Number.isInteger(q) || q < 1) return setError(t("Quantity must be at least 1."));
+    const max = maxPerOrder.trim() === "" ? null : Number(maxPerOrder);
+    if (max !== null && (!Number.isInteger(max) || max < 1 || max > 10)) {
+      return setError(t("Max tickets per order must be a whole number from 1 to 10."));
+    }
+    if (salesStart && salesEnd && salesStart >= salesEnd) {
+      return setError(t("Sales must start before they end."));
+    }
     setBusy(true);
     try {
-      // Sales dates, max per order and "hidden" are not stored by the backend yet.
+      // Empty dates and max per order are sent as null, which clears them when editing.
       await api(editing ? `/events/${id}/ticket-types/${typeId}` : `/events/${id}/ticket-types`, {
         method: editing ? "PUT" : "POST",
-        body: { name: name.trim(), description, price: p, quantity: q },
+        body: {
+          name: name.trim(),
+          description,
+          price: p,
+          quantity: q,
+          sales_starts_at: salesStart ? salesStart + ":00" + TZ : null,
+          sales_ends_at: salesEnd ? salesEnd + ":00" + TZ : null,
+          max_per_order: max,
+          hidden,
+        },
       });
       navigate(`/organizer/events/${id}`);
     } catch (err) {
@@ -140,7 +170,7 @@ function TicketTypeForm() {
               <input
                 id="ttf-start"
                 className="bf-input"
-                type="date"
+                type="datetime-local"
                 value={salesStart}
                 onChange={(e) => setSalesStart(e.target.value)}
               />
@@ -150,7 +180,7 @@ function TicketTypeForm() {
               <input
                 id="ttf-end"
                 className="bf-input"
-                type="date"
+                type="datetime-local"
                 value={salesEnd}
                 onChange={(e) => setSalesEnd(e.target.value)}
               />
@@ -163,6 +193,7 @@ function TicketTypeForm() {
             className="bf-input ttf-short"
             type="number"
             min="1"
+            max="10"
             placeholder={t("e.g. 5")}
             value={maxPerOrder}
             onChange={(e) => setMaxPerOrder(e.target.value)}
@@ -176,6 +207,9 @@ function TicketTypeForm() {
             />
             {t("Hide this ticket type")}
           </label>
+          <p className="bf-muted ttf-hint">
+            {t("Sales times are Kazakhstan time (UTC+5). Leave them empty to sell for as long as registration is open. A hidden ticket type is not shown to attendees and cannot be bought.")}
+          </p>
 
           {error && <p className="ttf-error" role="alert">{error}</p>}
           <div className="ttf-actions">

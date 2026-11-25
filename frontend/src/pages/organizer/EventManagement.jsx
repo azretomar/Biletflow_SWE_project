@@ -394,7 +394,19 @@ function EventManagement() {
                         <tr key={tt.id}>
                           <td>
                             {tt.name}
+                            {tt.hidden && <span className="bf-badge bf-badge-cancelled em-hidden">{t("Hidden")}</span>}
                             {tt.description && <span className="bf-muted em-cell-sub">{tt.description}</span>}
+                            {(tt.sales_starts_at || tt.sales_ends_at) && (
+                              <span className="bf-muted em-cell-sub">
+                                {t("Sales: {from} to {to}", {
+                                  from: tt.sales_starts_at ? shortDateTime(tt.sales_starts_at) : "...",
+                                  to: tt.sales_ends_at ? shortDateTime(tt.sales_ends_at) : "...",
+                                })}
+                              </span>
+                            )}
+                            {tt.max_per_order && (
+                              <span className="bf-muted em-cell-sub">{t("Up to {n} per order", { n: tt.max_per_order })}</span>
+                            )}
                           </td>
                           <td>{kzt(tt.price)}</td>
                           <td>{tt.quantity - tt.quantity_left}</td>

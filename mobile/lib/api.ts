@@ -3,6 +3,10 @@
 // EXPO_PUBLIC_API_URL (see .env.example).
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/+$/, '');
 
+// The website (campaign QR links point to its event pages). Defaults to the API host on the
+// website's port from docker-compose (5173).
+export const WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL ?? API_URL.replace(/:8080$/, ':5173')).replace(/\/+$/, '');
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {

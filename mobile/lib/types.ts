@@ -46,6 +46,10 @@ export type TicketType = {
   price: number;
   quantity: number;
   quantity_left: number;
+  sales_starts_at: string | null;
+  sales_ends_at: string | null;
+  max_per_order: number | null;
+  hidden: boolean;
 };
 
 export type EventDetail = Event & { ticket_types: TicketType[] };
@@ -164,4 +168,88 @@ export type HistoryEntry = {
 export type HistoryResponse = {
   event: { title: string; date: string };
   activity: HistoryEntry[];
+};
+
+// ---- Organizer area and checkout ----
+
+// GET /api/organizer/events
+export type OrganizerEvent = EventListItem & {
+  ticket_type_count: number;
+  total_quantity: number;
+  sold: number;
+};
+
+// GET /api/organizer/events/{id}/attendees
+export type Attendee = {
+  ticket_id: string;
+  order_id: string;
+  full_name: string;
+  email: string;
+  ticket_type: string;
+  status: TicketStatus;
+  checked_in_at: string | null;
+};
+
+// GET /api/organizer/events/{id}/orders: an Order plus who placed it
+export type OrganizerOrder = Order & { attendee?: { full_name: string; email: string } };
+
+// GET /api/organizer/events/{id}/activation
+export type Activation = {
+  identity_verified: boolean;
+  payout_connected: boolean;
+  fee_paid: boolean;
+  terms_accepted: boolean;
+  activated: boolean;
+  paid_sales: 'none' | 'active' | 'stopped';
+  fee_kzt: number;
+  requested_at: string | null;
+  has_paid_ticket_type: boolean;
+};
+
+// GET/PUT /api/organizer/profile
+export type OrganizerProfile = {
+  display_name: string;
+  bio: string;
+  contact_email: string;
+  phone: string;
+  website: string;
+  city: string;
+  payout: { holder_name: string; bank_name: string; iban: string; bin_iin: string };
+};
+
+// GET /api/organizer/campaigns
+export type Campaign = {
+  id: string;
+  event_id: string | null;
+  event_title: string;
+  name: string;
+  code: string;
+  discount_type: 'percent' | 'fixed';
+  amount: number;
+  starts_at: string;
+  ends_at: string;
+  max_redemptions: number;
+  redemptions: number;
+  disabled: boolean;
+  qr_url: string;
+  created_at: string;
+};
+
+// POST /api/promo/validate
+export type PromoValidation = { code: string; discount_type: 'percent' | 'fixed'; amount: number };
+
+// POST /api/orders/checkout
+export type CheckoutResponse = {
+  order_id: string;
+  status: 'paid' | 'free' | 'failed';
+  subtotal: number;
+  discount: number;
+  total: number;
+  tickets: { id: string; qr_code: string; status: TicketStatus }[];
+};
+
+// GET /api/organizer/support/cases[/{id}]
+export type OrganizerCase = SupportCase & {
+  event?: { id: string; title: string };
+  requester?: { id?: string; full_name: string; email?: string };
 };

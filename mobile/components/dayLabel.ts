@@ -1,4 +1,5 @@
 import i18n from '@/i18n';
+import { kkDay } from '@/lib/format';
 
 const LOCALES: Record<string, string> = { kk: 'kk-KZ', ru: 'ru-RU', en: 'en-GB' };
 
@@ -6,6 +7,7 @@ const LOCALES: Record<string, string> = { kk: 'kk-KZ', ru: 'ru-RU', en: 'en-GB' 
 export function dayLabel(value: string): string {
   const d = new Date(value.length === 10 ? value + 'T12:00:00' : value);
   if (Number.isNaN(d.getTime())) return value;
+  if (i18n.language === 'kk') return kkDay(d);
   try {
     return d.toLocaleDateString(LOCALES[i18n.language] ?? 'en-GB', {
       day: 'numeric',

@@ -9,7 +9,7 @@ import { Button, ErrorText, Loading, Muted } from '@/components/ui';
 import { colors, radius, spacing } from '@/constants/theme';
 import { errorText } from '@/i18n';
 import { ApiError, api } from '@/lib/api';
-import { formatDateTime, formatKzt } from '@/lib/format';
+import { formatDateTime, formatMoney as formatKzt } from '@/lib/format';
 import type { Analytics } from '@/lib/types';
 
 // Event analytics for the organizer (package 2-3, SRS 4.5):

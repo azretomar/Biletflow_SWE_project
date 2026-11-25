@@ -1,4 +1,6 @@
 // English strings. ru.ts and kk.ts must have the same keys (TypeScript checks this).
+import orgEn from './org.en';
+
 const en = {
   common: {
     loading: 'Loading…',
@@ -294,6 +296,7 @@ const en = {
   placeholder: {
     soon: 'This screen is coming next.',
   },
+  ...orgEn,
 };
 
 export default en;

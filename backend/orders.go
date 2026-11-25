@@ -275,6 +275,7 @@ func (s *Server) handleCheckout(w http.ResponseWriter, r *http.Request) {
 	if subtotal == 0 {
 		resp.Status = "free"
 	}
+	s.sendOrderConfirmation(ctx, claims.Subject, ev, orderID, resp.Tickets)
 	writeJSON(w, http.StatusCreated, resp)
 }
 

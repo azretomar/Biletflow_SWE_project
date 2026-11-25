@@ -229,6 +229,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
+	s.sendOrderConfirmation(ctx, userID, ev, orderID, tickets)
 	writeJSON(w, http.StatusCreated, registerResponse{OrderID: orderID, Tickets: tickets})
 }
 

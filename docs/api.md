@@ -32,12 +32,12 @@ Emails (verify email, reset password, refunds, cancellations) are written to the
 
 | Method and path | Role | Notes |
 |---|---|---|
-| `GET /events` | anyone | published, public, not suspended events, with `min_price` |
-| `GET /events/{id}` | anyone | event + `ticket_types`. Drafts, private and suspended events: only their organizer and admins (private: also ticket holders). Cancelled events stay visible with `status: "cancelled"` |
+| `GET /events` | anyone | published, public, not suspended events, with `min_price` (hidden ticket types are not counted) |
+| `GET /events/{id}` | anyone | event + `ticket_types` (each with `sales_starts_at`, `sales_ends_at`, `max_per_order`, `hidden`). Hidden types are left out, except for the event's organizer and platform admins, who get them with `hidden: true`. Drafts, private and suspended events: only their organizer and admins (private: also ticket holders). Cancelled events stay visible with `status: "cancelled"` |
 | `POST /events` | organizer | `{ title, description, date, venue, capacity, category: music\|education\|sports\|other, image_url, registration_closes_at, status: draft\|published, visibility: public\|unlisted\|private, ends_at, registration_opens_at, venue_address }` |
 | `PUT /events/{id}` | organizer, own | same fields; fields left out keep their value. Capacity cannot go below the tickets offered; an event with issued tickets cannot go back to draft; cancelled events cannot be edited |
-| `POST /events/{id}/ticket-types` | organizer, own | `{ name, description, price, quantity }`; all types together must fit in the capacity |
-| `PUT /events/{id}/ticket-types/{typeId}` | organizer, own | same; price fixed once tickets were issued; quantity >= issued |
+| `POST /events/{id}/ticket-types` | organizer, own | `{ name, description, price, quantity, sales_starts_at, sales_ends_at, max_per_order, hidden }`; all types together must fit in the capacity. The last four are optional: `sales_starts_at` / `sales_ends_at` are dates (`null` = no limit, start must be before end), `max_per_order` is 1..10 or `null`, `hidden` is a bool (default `false`) |
+| `PUT /events/{id}/ticket-types/{typeId}` | organizer, own | same; price fixed once tickets were issued; quantity >= issued. Sale fields left out keep their value, `null` clears a date or the limit. Start/end and 1..10 are checked on the values that will be stored |
 | `DELETE /events/{id}/ticket-types/{typeId}` | organizer, own | only while none of its tickets were issued |
 | `POST /events/{id}/report` | user | `{ reason }`, once per user and event; admins see reports |
 
@@ -55,6 +55,7 @@ paid_sales (none|active|stopped), suspended`.
 | `GET /my-tickets` | user | tickets with `event { id, title, date, venue, image_url, status }` |
 | `GET /my-orders` | user | `[{ id, created_at, status: paid\|free\|failed\|cancelled\|refunded, subtotal, discount, total, promo_code, event, items: [{ ticket_type, quantity, price }], tickets: [{ id, status }] }]` |
 | `POST /checkin` | organizer or assigned staff | `{ event_id, qr_code }` -> `{ result: valid\|already_used\|invalid, ticket }` |
+| `POST /checkin/undo` | organizer of the event or assigned staff | `{ event_id, ticket_id }` -> `{ ticket_id, status: "valid" }`; 409 if the ticket is not checked in. The ticket goes back to `valid` (`checked_in_at` and `checked_in_by` cleared). The event history keeps the check-in and adds a "Check-in undone: Name (ticket type)" entry with `type: "checkin"` (SRS 4.8, 4.16) |
 
 Rules: no tickets once the event has started, before `registration_opens_at`, after `registration_closes_at`,
 or for draft, cancelled or suspended events.
@@ -96,6 +97,20 @@ The campaign QR is drawn by the website and opens `/events/{id}?promo=CODE`.
 | `PATCH /admin/support/cases/{id}` | platform_admin | `{ status: open\|in_progress\|waiting\|resolved }` or `{ assign_to_me: true }` |
 | `POST /admin/support/cases/{id}/messages` | platform_admin | `{ body }`; the case then waits for the customer |
 
+### Organizer support inbox (SRS 4.13, UC9)
+
+A support case is "about an event" when its context is that event, or an order or ticket of that
+event. The event's organizer answers it like platform admins do. Organizers see only cases about
+their own events, not cases about other organizers' events and not cases they opened themselves
+(those go to platform admins). Any other case answers 404.
+
+| Method and path | Role | Body / answer |
+|---|---|---|
+| `GET /organizer/support/cases?status=&event_id=` | organizer | same list shape as `GET /admin/support/cases`, plus `event { id, title }`; only cases about their events. 400 for an unknown `status` or `event_id` |
+| `GET /organizer/support/cases/{id}` | organizer | same as the admin one; 404 for other cases |
+| `PATCH /organizer/support/cases/{id}` | organizer | `{ status: open\|in_progress\|waiting\|resolved }` or `{ assign_to_me: true }` |
+| `POST /organizer/support/cases/{id}/messages` | organizer | `{ body }`; the case then waits for the customer, who gets an email. A resolved case stays resolved |
+
 ## Platform admin
 
 | Method and path | Notes |
@@ -121,40 +136,29 @@ Then log out and log in again.
 `go test ./...` in `backend`. The database tests (including `TestFullFlowsDB`, which walks through
 every endpoint above) run when `TEST_DATABASE_URL` is set; CI starts a Postgres for them.
 
-## Planned: frontend ready, backend not built yet
+## Planned: not built yet
 
-The website already calls these. Until they exist the pages say "This part is not connected to
-the server yet"; once they are added, the pages work with no frontend change.
+Still missing in the backend:
 
-### Organizer support inbox (SRS 4.13, UC9, section 11)
-
-A support case is "about an event" when its context is that event, or an order or ticket of that
-event. The event's organizer answers it like platform admins do. Organizers must not see cases
-about other organizers' events or cases they opened themselves (those go to platform admins).
-Suggested: store `event_id` on `support_cases` when the case is created.
-
-| Method and path | Role | Body / answer |
-|---|---|---|
-| `GET /organizer/support/cases?status=` | organizer | same list shape as `GET /admin/support/cases`, only cases about their events |
-| `GET /organizer/support/cases/{id}` | organizer | same as the admin one; 404 for other cases |
-| `PATCH /organizer/support/cases/{id}` | organizer | `{ status }` or `{ assign_to_me: true }` |
-| `POST /organizer/support/cases/{id}/messages` | organizer | `{ body }`; the case then waits for the customer |
-
-Status changes should also appear in the event history with `type: "support"` (SRS 4.16).
-The page also needs "Support inbox" on the organizer dashboard (done) and a reply notification
-for the attendee (SRS 4.10).
-
-### Undo check-in (SRS 4.8, 4.16)
-
-| Method and path | Role | Body / answer |
-|---|---|---|
-| `POST /checkin/undo` | organizer of the event or assigned staff | `{ event_id, ticket_id }` -> `{ ticket_id, status: "valid" }`; 409 if the ticket is not checked in |
-
-The ticket goes back to `valid` (`checked_in_at` and `checked_in_by` cleared) and the history gets
-a "Check-in undone: Name (ticket type)" entry with `type: "checkin"`.
+- Support status changes (open, in progress, resolved) do not appear in the event history yet
+  (`type: "support"`, SRS 4.16).
+- The door search below.
 
 ### For the mobile app (SRS 4.8): door search and counts
 
 | Method and path | Role | Body / answer |
 |---|---|---|
 | `GET /staff/events/{id}/attendees?q=` | organizer of the event or assigned staff | `{ registered, checked_in, attendees: [{ ticket_id, full_name, email, ticket_type, status, checked_in_at }] }`, up to 50 matches by name, email or ticket id |
+
+### Ticket type sale rules
+
+`POST /orders/checkout` and `POST /events/{id}/register` apply these rules to every ticket type in the order, after the event checks and before the stock check:
+
+| Rule | Answer |
+|---|---|
+| type is `hidden` | 404 `ticket type not found for this event` |
+| now is before `sales_starts_at` | 400 `sales for {name} have not started yet` |
+| now is at or after `sales_ends_at` | 400 `sales for {name} have ended` |
+| quantity above `max_per_order` | 400 `you can buy at most {n} {name} tickets in one order` |
+
+Hidden wins over the others, so a hidden type never reveals its dates. `max_per_order` applies to the quantity of that type in one order.

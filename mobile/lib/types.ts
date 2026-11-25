@@ -253,3 +253,18 @@ export type OrganizerCase = SupportCase & {
   event?: { id: string; title: string };
   requester?: { id?: string; full_name: string; email?: string };
 };
+
+// GET /api/staff/events/{id}/attendees?q=
+export type StaffAttendees = {
+  registered: number;
+  checked_in: number;
+  attendees: {
+    ticket_id: string;
+    qr_code: string;
+    full_name: string;
+    email: string;
+    ticket_type: string;
+    status: TicketStatus;
+    checked_in_at: string | null;
+  }[];
+};

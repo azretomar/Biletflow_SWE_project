@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Linking, StyleSheet, Text, Vibration, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Linking, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Button, ErrorText, Loading, Muted, Screen } from '@/components/ui';
@@ -38,6 +38,7 @@ function isCampaignLink(code: string): boolean {
 export default function ScanScreen() {
   const { t } = useTranslation();
   const { id, title } = useLocalSearchParams<{ id: string; title?: string }>();
+  const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [focused, setFocused] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -127,7 +128,26 @@ export default function ScanScreen() {
     }
   }
 
-  const header = <Stack.Screen options={{ title: title || t('tabs.scanner') }} />;
+  // Manual search and the entrance counter (package 2-1) for when a QR code cannot be read.
+  const header = (
+    <Stack.Screen
+      options={{
+        title: title || t('tabs.scanner'),
+        headerRight: () => (
+          <Pressable
+            onPress={() => router.push({ pathname: '/scanner/search', params: { id, title: title ?? '' } })}
+            accessibilityRole="button"
+            accessibilityLabel={t('staffSearch.title')}
+            hitSlop={12}
+            style={styles.headerButton}
+          >
+            <Ionicons name="search" size={20} color={colors.blue} />
+            <Text style={styles.headerButtonText}>{t('staffSearch.open')}</Text>
+          </Pressable>
+        ),
+      }}
+    />
+  );
 
   if (!permission) return <Loading />;
   if (!permission.granted) {
@@ -288,6 +308,8 @@ function detail(o: Outcome, t: T): string {
 }
 
 const styles = StyleSheet.create({
+  headerButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm },
+  headerButtonText: { color: colors.blue, fontSize: 16, fontWeight: '600' },
   fill: { flex: 1, backgroundColor: '#000' },
   cover: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   hintBox: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', gap: spacing.lg },

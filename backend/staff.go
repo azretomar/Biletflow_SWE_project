@@ -39,6 +39,8 @@ func (s *Server) registerStaffRoutes(mux *http.ServeMux) {
 	mux.Handle("DELETE /api/events/{id}/staff/{userId}", organizerOnly(s.handleRemoveStaff))
 	mux.Handle("GET /api/staff/events",
 		s.requireAuth(s.requireRole("event_admin", "organizer")(http.HandlerFunc(s.handleStaffEvents))))
+	mux.Handle("GET /api/staff/events/{id}/attendees",
+		s.requireAuth(s.requireRole("event_admin", "organizer")(http.HandlerFunc(s.handleStaffAttendees))))
 }
 
 type staffMember struct {
@@ -287,4 +289,101 @@ func (s *Server) handleStaffEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
+}
+
+const maxStaffSearchResults = 50
+
+type staffAttendee struct {
+	TicketID    string     `json:"ticket_id"`
+	QRCode      string     `json:"qr_code"`
+	FullName    string     `json:"full_name"`
+	Email       string     `json:"email"`
+	TicketType  string     `json:"ticket_type"`
+	Status      string     `json:"status"`
+	CheckedInAt *time.Time `json:"checked_in_at"`
+}
+
+type staffAttendeesResponse struct {
+	Registered int             `json:"registered"`
+	CheckedIn  int             `json:"checked_in"`
+	Attendees  []staffAttendee `json:"attendees"`
+}
+
+// GET /api/staff/events/{id}/attendees?q=  (event's organizer or assigned staff)
+// Entrance counter and manual attendee search when a QR code cannot be scanned (SRS 4.8).
+// Registered counts tickets that still give entry (valid or checked in). The QR code is
+// returned so the app can check the ticket in through POST /api/checkin.
+func (s *Server) handleStaffAttendees(w http.ResponseWriter, r *http.Request) {
+	eventID := r.PathValue("id")
+	if !isUUID(eventID) {
+		writeError(w, http.StatusNotFound, "event not found")
+		return
+	}
+	ctx := r.Context()
+	allowed, exists, err := s.canCheckIn(ctx, claimsFrom(ctx).Subject, eventID)
+	if err != nil {
+		log.Printf("staff attendees: access: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	if !exists {
+		writeError(w, http.StatusNotFound, "event not found")
+		return
+	}
+	if !allowed {
+		writeError(w, http.StatusForbidden, "you are not assigned to this event")
+		return
+	}
+
+	var resp staffAttendeesResponse
+	if err := s.db.QueryRow(ctx, `
+		SELECT COUNT(*) FILTER (WHERE status IN ('valid','checked_in')),
+		       COUNT(*) FILTER (WHERE status = 'checked_in')
+		FROM tickets WHERE event_id = $1`, eventID).Scan(&resp.Registered, &resp.CheckedIn); err != nil {
+		log.Printf("staff attendees: counts: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+
+	resp.Attendees = []staffAttendee{}
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if q == "" {
+		writeJSON(w, http.StatusOK, resp)
+		return
+	}
+	if len(q) > 100 {
+		q = q[:100]
+	}
+	// Escape LIKE wildcards so a search for "%" matches a literal percent sign.
+	pattern := "%" + strings.NewReplacer(`\`, `\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(q)) + "%"
+	rows, err := s.db.Query(ctx, `
+		SELECT t.id, t.qr_code, u.full_name, u.email, tt.name, t.status, t.checked_in_at
+		FROM tickets t
+		JOIN users u         ON u.id  = t.user_id
+		JOIN ticket_types tt ON tt.id = t.ticket_type_id
+		WHERE t.event_id = $1
+		  AND (lower(u.full_name) LIKE $2 OR lower(u.email) LIKE $2)
+		ORDER BY u.full_name, t.created_at, t.id
+		LIMIT $3`, eventID, pattern, maxStaffSearchResults)
+	if err != nil {
+		log.Printf("staff attendees: query: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var a staffAttendee
+		if err := rows.Scan(&a.TicketID, &a.QRCode, &a.FullName, &a.Email, &a.TicketType, &a.Status, &a.CheckedInAt); err != nil {
+			log.Printf("staff attendees: scan: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal error")
+			return
+		}
+		resp.Attendees = append(resp.Attendees, a)
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("staff attendees: rows: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
 }

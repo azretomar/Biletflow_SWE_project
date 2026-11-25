@@ -26,7 +26,6 @@ export default function SignupScreen() {
       setError(t('errors.required'));
       return;
     }
-    // Same limits as the backend (bcrypt accepts at most 72 bytes).
     if (password.length < 8 || password.length > 72) {
       setError(t('errors.passwordLength'));
       return;

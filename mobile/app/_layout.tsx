@@ -38,7 +38,6 @@ function RootNavigator() {
   }, [ready]);
   if (!ready) return null;
 
-  // Logged-out users only see the auth screens; logged-in users only see the app.
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!user}>

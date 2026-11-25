@@ -10,8 +10,7 @@ func TestConfirmationContent(t *testing.T) {
 	ev := Event{
 		Title: "Jazz Night",
 		Venue: "Astana Arena",
-		// 15:00 UTC = 20:00 in Kazakhstan (UTC+5)
-		Date: time.Date(2027, 3, 14, 15, 0, 0, 0, time.UTC),
+		Date:  time.Date(2027, 3, 14, 15, 0, 0, 0, time.UTC),
 	}
 	tickets := []ticketBrief{{ID: "t-111"}, {ID: "t-222"}}
 

@@ -1,5 +1,3 @@
-/* ===== Event analytics page (uses shared.css: bf-page, bf-stats, bf-card, bf-table) ===== */
-
 .ea {
   display: flex;
   flex-direction: column;
@@ -15,7 +13,6 @@
   font-size: 18px;
 }
 
-/* Filters: one row above the numbers */
 .ea-filters {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 220px)) auto;
@@ -69,7 +66,6 @@
   gap: 20px;
 }
 
-/* ----- Bar chart: thin bars, rounded top, recessive axis ----- */
 .ea-chart {
   display: flex;
   gap: 8px;
@@ -175,7 +171,6 @@
   display: flex;
 }
 
-/* ----- Attendance ----- */
 .ea-attendance {
   display: flex;
   align-items: baseline;

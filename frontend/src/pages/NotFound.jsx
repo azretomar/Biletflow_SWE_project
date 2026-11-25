@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { t } from "../i18n";
 
-// Shown for any address that is not a page on BiletFlow.
 function NotFound() {
   return (
     <div>

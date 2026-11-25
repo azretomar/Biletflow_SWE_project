@@ -11,8 +11,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Asynchronous support chat (SRS 4.13). A user sees only their own cases;
-// platform admins see all of them.
 const schemaSupport = `
 CREATE TABLE IF NOT EXISTS support_cases (
 	id           BIGSERIAL PRIMARY KEY,
@@ -63,7 +61,6 @@ func (s *Server) registerSupportRoutes(mux *http.ServeMux) {
 	mux.Handle("PATCH /api/admin/support/cases/{id}", adminOnly(s.handleAdminPatchCase))
 	mux.Handle("POST /api/admin/support/cases/{id}/messages", adminOnly(s.handleAdminCaseMessage))
 
-	// Organizer inbox: cases about the organizer's own events (SRS 4.13, UC9).
 	organizerOnly := func(h http.HandlerFunc) http.Handler {
 		return s.requireAuth(s.requireRole("organizer")(h))
 	}
@@ -92,7 +89,6 @@ type caseMessage struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-// caseEvent is the organizer's event a case is about (organizer inbox only).
 type caseEvent struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
@@ -124,7 +120,6 @@ const caseFrom = `
 const caseSelect = `
 	SELECT ` + caseColumns + caseFrom
 
-// scanCase scans the caseColumns, followed by any extra columns.
 func scanCase(row rowScanner, extra ...any) (supportCase, error) {
 	var c supportCase
 	var ctxType, ctxID, assigneeID *string
@@ -172,7 +167,6 @@ func (s *Server) loadCase(ctx context.Context, id string) (supportCase, error) {
 	return c, s.loadMessages(ctx, &c)
 }
 
-// loadMessages fills c.Messages with the case's thread, oldest first.
 func (s *Server) loadMessages(ctx context.Context, c *supportCase) error {
 	rows, err := s.db.Query(ctx, `
 		SELECT m.id, u.full_name, u.role, m.body, m.created_at
@@ -193,7 +187,6 @@ func (s *Server) loadMessages(ctx context.Context, c *supportCase) error {
 	return rows.Err()
 }
 
-// caseID returns the numeric case id from the path, or "" if it is not a number.
 func caseID(r *http.Request) string {
 	id := r.PathValue("id")
 	if id == "" || len(id) > 18 || strings.Trim(id, "0123456789") != "" {
@@ -202,7 +195,6 @@ func caseID(r *http.Request) string {
 	return id
 }
 
-// GET /api/support/cases - the caller's own cases.
 func (s *Server) handleMyCases(w http.ResponseWriter, r *http.Request) {
 	list, err := s.listCases(r.Context(), "c.user_id = $1", claimsFrom(r.Context()).Subject)
 	if err != nil {
@@ -222,7 +214,6 @@ type createCaseRequest struct {
 	Context  *caseContext `json:"context"`
 }
 
-// POST /api/support/cases
 func (s *Server) handleCreateCase(w http.ResponseWriter, r *http.Request) {
 	var req createCaseRequest
 	if !decodeJSON(w, r, &req) {
@@ -276,7 +267,6 @@ func (s *Server) handleCreateCase(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, map[string]int64{"id": id})
 }
 
-// GET /api/support/cases/{id} - only the author.
 func (s *Server) handleGetMyCase(w http.ResponseWriter, r *http.Request) {
 	id := caseID(r)
 	if id == "" {
@@ -299,7 +289,6 @@ type messageRequest struct {
 	Body string `json:"body"`
 }
 
-// addMessage appends a message and moves the case to newStatus (if not "").
 func (s *Server) addMessage(ctx context.Context, caseID, authorID, body, newStatus string) (caseMessage, error) {
 	var m caseMessage
 	tx, err := s.db.Begin(ctx)
@@ -340,7 +329,6 @@ func readMessage(w http.ResponseWriter, r *http.Request) (string, bool) {
 	return body, true
 }
 
-// POST /api/support/cases/{id}/messages - the author replies; a waiting or resolved case opens again.
 func (s *Server) handleMyCaseMessage(w http.ResponseWriter, r *http.Request) {
 	id := caseID(r)
 	if id == "" {
@@ -374,7 +362,6 @@ func (s *Server) handleMyCaseMessage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, m)
 }
 
-// GET /api/admin/support/cases?status=
 func (s *Server) handleAdminCases(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	var list []supportCase
@@ -395,7 +382,6 @@ func (s *Server) handleAdminCases(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list)
 }
 
-// GET /api/admin/support/cases/{id}
 func (s *Server) handleAdminGetCase(w http.ResponseWriter, r *http.Request) {
 	id := caseID(r)
 	if id == "" {
@@ -415,13 +401,10 @@ type casePatch struct {
 	AssignToMe bool    `json:"assign_to_me"`
 }
 
-// PATCH /api/admin/support/cases/{id} { status } or { assign_to_me: true }
 func (s *Server) handleAdminPatchCase(w http.ResponseWriter, r *http.Request) {
 	s.patchCase(w, r, false)
 }
 
-// patchCase changes the status and/or the assignee of a case. With organizerScope the
-// caller is an organizer, who may only touch cases about their own events (404 otherwise).
 func (s *Server) patchCase(w http.ResponseWriter, r *http.Request, organizerScope bool) {
 	id := caseID(r)
 	if id == "" {
@@ -441,7 +424,7 @@ func (s *Server) patchCase(w http.ResponseWriter, r *http.Request, organizerScop
 		return
 	}
 	ctx := r.Context()
-	adminID := claimsFrom(ctx).Subject // the organizer's id in the organizer inbox
+	adminID := claimsFrom(ctx).Subject
 	if organizerScope {
 		if _, _, err := s.organizerCaseAccess(ctx, adminID, id); err != nil {
 			notFoundOr500(w, "patch case: access", "case", err)
@@ -457,7 +440,6 @@ func (s *Server) patchCase(w http.ResponseWriter, r *http.Request, organizerScop
 	case req.Status != nil:
 		tag, err = s.db.Exec(ctx, `UPDATE support_cases SET status = $2, updated_at = now() WHERE id = $1`, id, *req.Status)
 	default:
-		// Taking a new case also starts work on it.
 		tag, err = s.db.Exec(ctx, `UPDATE support_cases SET assignee_id = $2,
 			status = CASE WHEN status = 'open' THEN 'in_progress' ELSE status END, updated_at = now() WHERE id = $1`, id, adminID)
 	}
@@ -482,7 +464,6 @@ func (s *Server) patchCase(w http.ResponseWriter, r *http.Request, organizerScop
 	writeJSON(w, http.StatusOK, c)
 }
 
-// POST /api/admin/support/cases/{id}/messages - a staff reply; the case waits for the customer.
 func (s *Server) handleAdminCaseMessage(w http.ResponseWriter, r *http.Request) {
 	id := caseID(r)
 	if id == "" {
@@ -535,8 +516,6 @@ const organizerCaseWhere = `c.category <> 'organizer' AND c.user_id <> $1`
 const organizerCaseSelect = `
 	SELECT ` + caseColumns + `, ev.id, ev.title` + caseFrom + organizerCaseJoin
 
-// organizerCaseAccess returns the status and the requester's email of a case in the
-// organizer's scope, or pgx.ErrNoRows when the organizer may not see it.
 func (s *Server) organizerCaseAccess(ctx context.Context, organizerID, id string) (status, email string, err error) {
 	err = s.db.QueryRow(ctx, `
 		SELECT c.status, ru.email
@@ -546,7 +525,6 @@ func (s *Server) organizerCaseAccess(ctx context.Context, organizerID, id string
 	return status, email, err
 }
 
-// loadOrganizerCase loads one case in the organizer's scope with its event and messages.
 func (s *Server) loadOrganizerCase(ctx context.Context, organizerID, id string) (supportCase, error) {
 	var ev caseEvent
 	c, err := scanCase(s.db.QueryRow(ctx,
@@ -558,7 +536,6 @@ func (s *Server) loadOrganizerCase(ctx context.Context, organizerID, id string) 
 	return c, s.loadMessages(ctx, &c)
 }
 
-// GET /api/organizer/support/cases?status=&event_id=
 func (s *Server) handleOrganizerCases(w http.ResponseWriter, r *http.Request) {
 	where := organizerCaseWhere
 	args := []any{claimsFrom(r.Context()).Subject}
@@ -603,7 +580,6 @@ func (s *Server) handleOrganizerCases(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list)
 }
 
-// GET /api/organizer/support/cases/{id}
 func (s *Server) handleOrganizerGetCase(w http.ResponseWriter, r *http.Request) {
 	id := caseID(r)
 	if id == "" {
@@ -618,12 +594,10 @@ func (s *Server) handleOrganizerGetCase(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, c)
 }
 
-// PATCH /api/organizer/support/cases/{id} { status } or { assign_to_me: true }
 func (s *Server) handleOrganizerPatchCase(w http.ResponseWriter, r *http.Request) {
 	s.patchCase(w, r, true)
 }
 
-// POST /api/organizer/support/cases/{id}/messages - the organizer replies; the case waits for the attendee.
 func (s *Server) handleOrganizerCaseMessage(w http.ResponseWriter, r *http.Request) {
 	id := caseID(r)
 	if id == "" {

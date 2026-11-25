@@ -12,7 +12,6 @@ const TONES: Record<Tone, { fg: string; bg: string }> = {
   neutral: { fg: colors.muted, bg: colors.surface },
 };
 
-// A status shown as text and color together (SRS 7: never color alone).
 export function Badge({ label, tone }: { label: string; tone: Tone }) {
   const c = TONES[tone];
   return <Text style={[styles.badge, { color: c.fg, backgroundColor: c.bg }]}>{label}</Text>;
@@ -30,22 +29,21 @@ const styles = StyleSheet.create({
   },
 });
 
-// Badge colors for the statuses the backend sends.
 export function ticketTone(status: string): Tone {
   if (status === 'valid') return 'good';
   if (status === 'checked_in') return 'info';
-  return 'bad'; // cancelled, refunded
+  return 'bad';
 }
 
 export function orderTone(status: string): Tone {
   if (status === 'paid' || status === 'free') return 'good';
   if (status === 'failed') return 'bad';
-  return 'neutral'; // cancelled, refunded
+  return 'neutral';
 }
 
 export function caseTone(status: string): Tone {
   if (status === 'resolved') return 'good';
   if (status === 'waiting') return 'warn';
   if (status === 'in_progress') return 'info';
-  return 'neutral'; // open
+  return 'neutral';
 }

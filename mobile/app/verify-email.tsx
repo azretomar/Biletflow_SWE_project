@@ -9,8 +9,6 @@ import { errorText } from '@/i18n';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
-// Confirm the account email (package 1-3, SRS 4.1): POST /api/auth/verify-email { token };
-// "Send again" is POST /api/auth/resend-verification (needs the login).
 export default function VerifyEmailScreen() {
   const { t } = useTranslation();
   const router = useRouter();

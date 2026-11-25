@@ -1,7 +1,6 @@
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-// My tickets tab (package 1-3) with orders and support (package 2-3) inside the same stack.
 export default function TicketsLayout() {
   const { t } = useTranslation();
   return (

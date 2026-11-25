@@ -1,8 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-// The login token lives in the iOS Keychain / Android Keystore.
-// SecureStore does not exist in the browser, so `npm run web` falls back to localStorage.
 const isWeb = Platform.OS === 'web';
 
 export async function getItem(key: string): Promise<string | null> {
@@ -21,7 +19,6 @@ export async function setItem(key: string, value: string): Promise<void> {
     try {
       localStorage.setItem(key, value);
     } catch {
-      // private mode: keep the session in memory only
     }
     return;
   }
@@ -33,7 +30,6 @@ export async function removeItem(key: string): Promise<void> {
     try {
       localStorage.removeItem(key);
     } catch {
-      // ignore
     }
     return;
   }

@@ -1,4 +1,5 @@
 import type { Strings } from './en';
+import orgKk from './org.kk';
 
 const kk: Strings = {
   common: {
@@ -39,7 +40,7 @@ const kk: Strings = {
     events: 'Іс-шаралар',
     tickets: 'Билеттерім',
     manage: 'Іс-шараларым',
-    scanner: 'Кіру бақылауы',
+    scanner: 'Тексеру',
     profile: 'Профиль',
   },
   roles: {
@@ -295,6 +296,7 @@ const kk: Strings = {
   placeholder: {
     soon: 'Бұл экран жақында қосылады.',
   },
+  ...orgKk,
 };
 
 export default kk;

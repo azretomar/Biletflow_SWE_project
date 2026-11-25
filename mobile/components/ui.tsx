@@ -131,6 +131,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blue,
     borderRadius: radius.sm,
     paddingVertical: 14,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 48,

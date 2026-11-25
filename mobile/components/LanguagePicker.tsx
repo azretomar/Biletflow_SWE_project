@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { colors, radius, spacing } from '@/constants/theme';
 import { LANGUAGES, setLanguage } from '@/i18n';
 
-// Segmented control: Қаз / Рус / Eng (compact) or full language names.
 export function LanguagePicker({ compact = false }: { compact?: boolean }) {
   const { i18n } = useTranslation();
   return (

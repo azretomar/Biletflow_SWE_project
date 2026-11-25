@@ -12,9 +12,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Staff assignment (SRS 4.8, 6 "Staff Assignment"): an organizer authorizes
-// users to check tickets in for one of their events. Check-in is allowed only
-// for the event's organizer and the staff assigned to that event.
 const schemaStaff = `
 CREATE TABLE IF NOT EXISTS event_staff (
 	event_id    UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -39,6 +36,8 @@ func (s *Server) registerStaffRoutes(mux *http.ServeMux) {
 	mux.Handle("DELETE /api/events/{id}/staff/{userId}", organizerOnly(s.handleRemoveStaff))
 	mux.Handle("GET /api/staff/events",
 		s.requireAuth(s.requireRole("event_admin", "organizer")(http.HandlerFunc(s.handleStaffEvents))))
+	mux.Handle("GET /api/staff/events/{id}/attendees",
+		s.requireAuth(s.requireRole("event_admin", "organizer")(http.HandlerFunc(s.handleStaffAttendees))))
 }
 
 type staffMember struct {
@@ -48,7 +47,6 @@ type staffMember struct {
 	AssignedAt time.Time `json:"assigned_at"`
 }
 
-// requireEventOwner writes 404/403 and returns false unless the caller organizes the event.
 func (s *Server) requireEventOwner(w http.ResponseWriter, r *http.Request, eventID string) bool {
 	if !isUUID(eventID) {
 		writeError(w, http.StatusNotFound, "event not found")
@@ -73,8 +71,6 @@ func (s *Server) requireEventOwner(w http.ResponseWriter, r *http.Request, event
 	return true
 }
 
-// canCheckIn reports whether the user organizes the event or is assigned to it.
-// exists is false when the event does not exist.
 func (s *Server) canCheckIn(ctx context.Context, userID, eventID string) (allowed, exists bool, err error) {
 	err = s.db.QueryRow(ctx, `
 		SELECT e.organizer_id = $1
@@ -90,7 +86,6 @@ func (s *Server) canCheckIn(ctx context.Context, userID, eventID string) (allowe
 	return allowed, true, nil
 }
 
-// GET /api/events/{id}/staff  (organizer who owns the event)
 func (s *Server) handleListStaff(w http.ResponseWriter, r *http.Request) {
 	eventID := r.PathValue("id")
 	if !s.requireEventOwner(w, r, eventID) {
@@ -131,11 +126,6 @@ type assignStaffRequest struct {
 	Email string `json:"email"`
 }
 
-// POST /api/events/{id}/staff  (organizer who owns the event)
-//
-// Assigns a registered user by email. An attendee becomes an event_admin
-// (SRS 1.3: an Event Admin is an organizer-authorized user); the new role
-// is in their token after they log in again.
 func (s *Server) handleAssignStaff(w http.ResponseWriter, r *http.Request) {
 	eventID := r.PathValue("id")
 	var req assignStaffRequest
@@ -219,7 +209,6 @@ func (s *Server) handleAssignStaff(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, m)
 }
 
-// DELETE /api/events/{id}/staff/{userId}  (organizer who owns the event)
 func (s *Server) handleRemoveStaff(w http.ResponseWriter, r *http.Request) {
 	eventID := r.PathValue("id")
 	userID := r.PathValue("userId")
@@ -245,16 +234,13 @@ func (s *Server) handleRemoveStaff(w http.ResponseWriter, r *http.Request) {
 }
 
 type staffEvent struct {
-	ID    string    `json:"id"`
-	Title string    `json:"title"`
-	Date  time.Time `json:"date"`
-	Venue string    `json:"venue"`
-	// "organizer" for the caller's own events, "staff" for assigned ones.
-	Access string `json:"access"`
+	ID     string    `json:"id"`
+	Title  string    `json:"title"`
+	Date   time.Time `json:"date"`
+	Venue  string    `json:"venue"`
+	Access string    `json:"access"`
 }
 
-// GET /api/staff/events  (event_admin, organizer)
-// Events the caller may check tickets in for; used by the mobile app.
 func (s *Server) handleStaffEvents(w http.ResponseWriter, r *http.Request) {
 	userID := claimsFrom(r.Context()).Subject
 	rows, err := s.db.Query(r.Context(), `
@@ -287,4 +273,96 @@ func (s *Server) handleStaffEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
+}
+
+const maxStaffSearchResults = 50
+
+type staffAttendee struct {
+	TicketID    string     `json:"ticket_id"`
+	QRCode      string     `json:"qr_code"`
+	FullName    string     `json:"full_name"`
+	Email       string     `json:"email"`
+	TicketType  string     `json:"ticket_type"`
+	Status      string     `json:"status"`
+	CheckedInAt *time.Time `json:"checked_in_at"`
+}
+
+type staffAttendeesResponse struct {
+	Registered int             `json:"registered"`
+	CheckedIn  int             `json:"checked_in"`
+	Attendees  []staffAttendee `json:"attendees"`
+}
+
+func (s *Server) handleStaffAttendees(w http.ResponseWriter, r *http.Request) {
+	eventID := r.PathValue("id")
+	if !isUUID(eventID) {
+		writeError(w, http.StatusNotFound, "event not found")
+		return
+	}
+	ctx := r.Context()
+	allowed, exists, err := s.canCheckIn(ctx, claimsFrom(ctx).Subject, eventID)
+	if err != nil {
+		log.Printf("staff attendees: access: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	if !exists {
+		writeError(w, http.StatusNotFound, "event not found")
+		return
+	}
+	if !allowed {
+		writeError(w, http.StatusForbidden, "you are not assigned to this event")
+		return
+	}
+
+	var resp staffAttendeesResponse
+	if err := s.db.QueryRow(ctx, `
+		SELECT COUNT(*) FILTER (WHERE status IN ('valid','checked_in')),
+		       COUNT(*) FILTER (WHERE status = 'checked_in')
+		FROM tickets WHERE event_id = $1`, eventID).Scan(&resp.Registered, &resp.CheckedIn); err != nil {
+		log.Printf("staff attendees: counts: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+
+	resp.Attendees = []staffAttendee{}
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if q == "" {
+		writeJSON(w, http.StatusOK, resp)
+		return
+	}
+	if len(q) > 100 {
+		q = q[:100]
+	}
+	pattern := "%" + strings.NewReplacer(`\`, `\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(q)) + "%"
+	rows, err := s.db.Query(ctx, `
+		SELECT t.id, t.qr_code, u.full_name, u.email, tt.name, t.status, t.checked_in_at
+		FROM tickets t
+		JOIN users u         ON u.id  = t.user_id
+		JOIN ticket_types tt ON tt.id = t.ticket_type_id
+		WHERE t.event_id = $1
+		  AND (lower(u.full_name) LIKE $2 OR lower(u.email) LIKE $2)
+		ORDER BY u.full_name, t.created_at, t.id
+		LIMIT $3`, eventID, pattern, maxStaffSearchResults)
+	if err != nil {
+		log.Printf("staff attendees: query: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var a staffAttendee
+		if err := rows.Scan(&a.TicketID, &a.QRCode, &a.FullName, &a.Email, &a.TicketType, &a.Status, &a.CheckedInAt); err != nil {
+			log.Printf("staff attendees: scan: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal error")
+			return
+		}
+		resp.Attendees = append(resp.Attendees, a)
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("staff attendees: rows: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
 }

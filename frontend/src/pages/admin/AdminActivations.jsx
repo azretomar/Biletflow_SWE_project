@@ -11,13 +11,10 @@ const CHECKLIST = [
   { key: "terms_accepted", get label() { return t("Terms"); } },
 ];
 
-// Screen 5: Paid-sales activations - which events asked to sell paid tickets,
-// how far their checklist is (SRS 3.2), and an option to stop their sales.
 function AdminActivations() {
   const { events, getUser, setPaidSalesStopped } = useAdminData();
   const [confirming, setConfirming] = useState(null);
 
-  // Only events that started the paid-sales process have an "activation".
   const rows = events
     .filter((e) => e.activation)
     .sort((a, b) => b.activation.requested_at.localeCompare(a.activation.requested_at));

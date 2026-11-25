@@ -8,18 +8,6 @@ import { maxPerOrder, saleNote } from "../lib/events";
 import "./checkout.css";
 import { locale, t } from "../i18n";
 
-// Checkout with simulated KZT payment (SRS 3.2, 4.6). No real money and no card
-// data: the attendee only chooses whether the test payment succeeds or fails.
-//
-// Backend:
-//   GET  /api/events/{id}            event and its ticket types (paid_sales says if paid tickets are on sale)
-//   POST /api/events/{id}/register   free tickets (one ticket type per call)
-//   POST /api/promo/validate   { event_id, code } -> { code, discount_type, amount }
-//   POST /api/orders/checkout  { event_id, items: [{ ticket_type_id, quantity }],
-//                                promo_code, simulate: "success" | "failure" }
-//        -> { order_id, status: "paid" | "free" | "failed", subtotal, discount, total, tickets }
-// The server, not this page, calculates prices and discounts; the numbers here are a preview.
-
 const MAX_PER_TYPE = 10;
 
 function kzt(n) {
@@ -40,12 +28,12 @@ function Checkout() {
   const [quantities, setQuantities] = useState((location.state && location.state.quantities) || {});
   const initialPromo = (location.state && location.state.promo) || "";
   const [promo, setPromo] = useState(initialPromo);
-  const [discount, setDiscount] = useState(null); // { code, discount_type, amount }
+  const [discount, setDiscount] = useState(null);
   const [promoMessage, setPromoMessage] = useState("");
   const [simulate, setSimulate] = useState("success");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null); // { order_ids, tickets }
+  const [result, setResult] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -57,7 +45,6 @@ function Checkout() {
     };
   }, [id]);
 
-  // A campaign QR brings its code along: check it once, as if "Apply" was pressed.
   useEffect(() => {
     if (!initialPromo || !user) return undefined;
     let active = true;
@@ -77,9 +64,7 @@ function Checkout() {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  // Hidden types cannot be bought, not even by the organizer (SRS 4.3).
   const types = ((event && event.ticket_types) || []).filter((tt) => !tt.hidden);
-  // Paid tickets are sold only after the organizer finished the paid-sales checklist (SRS 3.2).
   const paidOnSale = Boolean(event && event.paid_sales === "active");
   const closedNote =
     event && event.status === "cancelled" ? t("This event was cancelled.")
@@ -127,7 +112,6 @@ function Checkout() {
     setBusy(true);
     try {
       if (isFree) {
-        // Free tickets: the backend already supports this, one ticket type per call.
         const orders = [];
         for (const l of lines) {
           orders.push(await api(`/events/${id}/register`, {

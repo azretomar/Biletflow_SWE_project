@@ -1,5 +1,3 @@
-/* ===== Create event page styles ===== */
-
 .ce {
   --ce-line: #e2e4e9;
   --ce-field-line: #c4c8d0;
@@ -8,7 +6,6 @@
   background: #f5f6f8;
 }
 
-/* Top menu (same look as the home page) */
 .ce-nav {
   display: flex;
   align-items: center;
@@ -35,7 +32,6 @@
   color: var(--blue);
 }
 
-/* Page content */
 .ce-main {
   max-width: 760px;
   margin: 0 auto;
@@ -58,7 +54,6 @@
   gap: 20px;
 }
 
-/* White boxes for each group of fields */
 .ce-card {
   display: flex;
   flex-direction: column;
@@ -84,7 +79,6 @@
   max-width: 280px;
 }
 
-/* Fields */
 .ce .field input,
 .ce .field textarea,
 .ce .field select {
@@ -107,7 +101,6 @@
   min-height: 120px;
 }
 
-/* Buttons */
 .ce-actions {
   display: flex;
   justify-content: flex-end;
@@ -143,7 +136,6 @@
   background: #eef0f4;
 }
 
-/* Phones and small screens */
 @media (max-width: 640px) {
   .ce-nav {
     padding: 14px 16px;
@@ -170,7 +162,6 @@
   }
 }
 
-/* ----- Added: three columns, hints, errors, visibility, preview ----- */
 .ce-row-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }

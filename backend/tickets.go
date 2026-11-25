@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS orders (
 	id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	user_id      UUID NOT NULL REFERENCES users(id),
 	event_id     UUID NOT NULL REFERENCES events(id),
-	total_amount INTEGER NOT NULL DEFAULT 0 CHECK (total_amount >= 0), -- KZT, whole number, 0 = free
+	total_amount INTEGER NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
 	status       TEXT NOT NULL DEFAULT 'completed'
 	             CHECK (status IN ('pending','completed','cancelled','refunded')),
 	created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS tickets (
 	qr_code        TEXT NOT NULL UNIQUE,
 	status         TEXT NOT NULL DEFAULT 'valid'
 	               CHECK (status IN ('valid','checked_in','cancelled','refunded')),
-	price_paid     INTEGER NOT NULL DEFAULT 0 CHECK (price_paid >= 0), -- KZT at purchase time
+	price_paid     INTEGER NOT NULL DEFAULT 0 CHECK (price_paid >= 0),
 	checked_in_at  TIMESTAMPTZ,
 	checked_in_by  UUID REFERENCES users(id),
 	created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -47,7 +47,6 @@ CREATE INDEX IF NOT EXISTS idx_tickets_order ON tickets (order_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_event ON tickets (event_id);
 `
 
-// Registers this file's tables so migrate() creates them.
 func init() {
 	schemas = append(schemas, schemaTickets)
 }
@@ -142,7 +141,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	var price, left int
 	var closesAt *time.Time
-	var tt TicketType // only the sale rules and the name are filled
+	var tt TicketType
 	err = tx.QueryRow(ctx, `
 		SELECT tt.price, tt.quantity_left,
 		       NULLIF(e.registration_closes_at::text, '')::timestamptz,
@@ -239,10 +238,6 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, registerResponse{OrderID: orderID, Tickets: tickets})
 }
 
-// saleBlocked applies the sale rules of one ticket type (SRS 4.3) to a buyer who wants qty
-// tickets of it at time now. It returns the HTTP status and message to answer with, or 0 and ""
-// when the sale may go on. Only Name and the rule fields of t are used.
-// The sales window is [sales_starts_at, sales_ends_at): open from the start, closed from the end.
 func saleBlocked(t TicketType, qty int, now time.Time) (int, string) {
 	switch {
 	case t.Hidden:
@@ -379,7 +374,6 @@ func (s *Server) handleCheckin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	adminID := claimsFrom(ctx).Subject
 
-	// Only the event's organizer and staff assigned to it may check tickets in.
 	allowed, exists, err := s.canCheckIn(ctx, adminID, req.EventID)
 	if err != nil {
 		log.Printf("checkin: access: %v", err)
@@ -395,7 +389,6 @@ func (s *Server) handleCheckin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// A ticket for another event is reported as invalid, without its details.
 	tag, err := s.db.Exec(ctx, `
 		UPDATE tickets
 		SET status = 'checked_in', checked_in_at = now(), checked_in_by = $2
@@ -444,11 +437,6 @@ type undoCheckinResponse struct {
 	Status   string `json:"status"`
 }
 
-// POST /api/checkin/undo { event_id, ticket_id } -> { ticket_id, status: "valid" }
-//
-// Reverses an accidental check-in (SRS 4.8): the ticket is valid again and can be scanned.
-// Same access rule as /api/checkin: the event's organizer and staff assigned to it.
-// 404 if the ticket does not belong to the event, 409 if it is not checked in.
 func (s *Server) handleUndoCheckin(w http.ResponseWriter, r *http.Request) {
 	var req undoCheckinRequest
 	if !decodeJSON(w, r, &req) {
@@ -487,7 +475,6 @@ func (s *Server) handleUndoCheckin(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(context.Background())
 
-	// Lock the ticket so two undos, or an undo and a scan, cannot interleave.
 	var status, attendee, typeName string
 	err = tx.QueryRow(ctx, `
 		SELECT t.status, u.full_name, tt.name
@@ -511,9 +498,6 @@ func (s *Server) handleUndoCheckin(w http.ResponseWriter, r *http.Request) {
 
 	who := attendee + " (" + typeName + ")"
 
-	// The event history lists a check-in from the ticket's own checked_in_at, which is cleared
-	// below. Keep that check-in in the audit log first, with its original time and scanner,
-	// so the timeline reads "Checked in" and then "Check-in undone" (SRS 4.16).
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO audit_log (at, actor_id, event_id, category, action, target_id, message)
 		SELECT COALESCE(t.checked_in_at, now()), t.checked_in_by, t.event_id,
@@ -540,8 +524,6 @@ func (s *Server) handleUndoCheckin(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, undoCheckinResponse{TicketID: req.TicketID, Status: "valid"})
 }
 
-// registrationBlocked explains why nobody can get tickets for ev right now ("" = open).
-// Used by free registration and by checkout.
 func registrationBlocked(ev Event, now time.Time) string {
 	switch {
 	case ev.Status == "cancelled":

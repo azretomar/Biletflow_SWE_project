@@ -13,8 +13,6 @@ import type { EventListItem } from '@/lib/types';
 
 const CATEGORIES = ['', 'music', 'education', 'sports', 'other'] as const;
 
-// Public event list (SRS 2.3 Attendee, plan step 2): GET /api/events, filtered on the phone.
-// Past events are hidden, like the default filter on the website.
 export default function EventsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -105,7 +103,7 @@ export default function EventsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}
         ListEmptyComponent={
           error ? undefined : <Muted>{(events ?? []).length === 0 ? t('events.empty') : t('events.noMatch')}</Muted>
-        }        
+        }
         renderItem={({ item }) => (
           <Pressable
             onPress={() => router.push({ pathname: '/events/[id]', params: { id: item.id } })}
@@ -128,7 +126,6 @@ export default function EventsScreen() {
   );
 }
 
-// Unknown categories from the backend are shown as "Other".
 function categoryKey(c: string): 'music' | 'education' | 'sports' | 'other' {
   return c === 'music' || c === 'education' || c === 'sports' ? c : 'other';
 }

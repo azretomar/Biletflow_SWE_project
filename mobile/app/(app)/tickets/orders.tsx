@@ -12,8 +12,6 @@ import { api } from '@/lib/api';
 import { formatDateTime, formatKzt } from '@/lib/format';
 import type { Order } from '@/lib/types';
 
-// My orders (package 1-3): GET /api/my-orders, newest first. Shows what was bought, the
-// promo discount and the order status; payments are simulated (SRS 3.2).
 export default function OrdersScreen() {
   const { t } = useTranslation();
   const router = useRouter();

@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Linking, StyleSheet, Text, Vibration, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Linking, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Button, ErrorText, Loading, Muted, Screen } from '@/components/ui';
@@ -22,22 +22,16 @@ type Outcome =
   | { kind: 'campaign' }
   | { kind: 'error'; message: string };
 
-// The same code is ignored for this long, so one ticket held in front of the camera
-// is not sent twice.
 const SAME_CODE_PAUSE_MS = 3000;
 
-// A campaign QR is a link like https://.../events/{id}?promo=CODE (SRS 4.14). Ticket codes
-// are random 43-character strings, never links. The backend also never accepts a link.
 function isCampaignLink(code: string): boolean {
   return /^https?:\/\//i.test(code) || /[?&]promo=/i.test(code);
 }
 
-// Check-in at the door (SRS 4.8, UC4): scan a ticket QR, the backend validates it and
-// records the check-in once (POST /api/checkin). A mistaken check-in can be undone
-// (POST /api/checkin/undo).
 export default function ScanScreen() {
   const { t } = useTranslation();
   const { id, title } = useLocalSearchParams<{ id: string; title?: string }>();
+  const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [focused, setFocused] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -45,13 +39,10 @@ export default function ScanScreen() {
   const [undoBusy, setUndoBusy] = useState(false);
   const [undoError, setUndoError] = useState('');
 
-  // The camera reports the same code many times per second, faster than React state
-  // updates, so the guard against double scans lives in refs.
   const busy = useRef(false);
   const lastCode = useRef('');
   const lastAt = useRef(0);
 
-  // Only one camera may run at a time: stop it when this screen is not visible.
   useFocusEffect(
     useCallback(() => {
       setFocused(true);
@@ -104,7 +95,7 @@ export default function ScanScreen() {
   function scanNext() {
     setOutcome(null);
     setUndoError('');
-    lastAt.current = Date.now(); // the same ticket stays ignored for a moment
+    lastAt.current = Date.now();
     busy.current = false;
   }
 
@@ -118,7 +109,7 @@ export default function ScanScreen() {
         body: { event_id: id, ticket_id: outcome.ticket.id },
       });
       setOutcome({ ...outcome, undone: true });
-      lastCode.current = ''; // the same ticket may be scanned again right away
+      lastCode.current = '';
       AccessibilityInfo.announceForAccessibility(t('scanner.undone'));
     } catch (err) {
       setUndoError(errorText(err));
@@ -127,7 +118,25 @@ export default function ScanScreen() {
     }
   }
 
-  const header = <Stack.Screen options={{ title: title || t('tabs.scanner') }} />;
+  const header = (
+    <Stack.Screen
+      options={{
+        title: title || t('tabs.scanner'),
+        headerRight: () => (
+          <Pressable
+            onPress={() => router.push({ pathname: '/scanner/search', params: { id, title: title ?? '' } })}
+            accessibilityRole="button"
+            accessibilityLabel={t('staffSearch.title')}
+            hitSlop={12}
+            style={styles.headerButton}
+          >
+            <Ionicons name="search" size={20} color={colors.blue} />
+            <Text style={styles.headerButtonText}>{t('staffSearch.open')}</Text>
+          </Pressable>
+        ),
+      }}
+    />
+  );
 
   if (!permission) return <Loading />;
   if (!permission.granted) {
@@ -235,7 +244,6 @@ function Row({ label, value }: { label: string; value: string }) {
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
-// Color plus an icon plus text, so the result never depends on color alone (SRS 7).
 const LOOKS: Record<Outcome['kind'], { color: string; icon: IconName }> = {
   valid: { color: colors.success, icon: 'checkmark-circle' },
   already_used: { color: colors.warning, icon: 'alert-circle' },
@@ -288,6 +296,8 @@ function detail(o: Outcome, t: T): string {
 }
 
 const styles = StyleSheet.create({
+  headerButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm },
+  headerButtonText: { color: colors.blue, fontSize: 16, fontWeight: '600' },
   fill: { flex: 1, backgroundColor: '#000' },
   cover: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   hintBox: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', gap: spacing.lg },

@@ -8,14 +8,8 @@ import (
 	"time"
 )
 
-// Order confirmation email (SRS 4.4). Like all emails in this project it is
-// "sent" by writing it to the backend log (see sendEmail in account.go).
-
-// kzTime is Kazakhstan time (UTC+5). A fixed zone avoids needing tzdata in the container.
 var kzTime = time.FixedZone("UTC+5", 5*60*60)
 
-// confirmationContent builds the subject and body of the confirmation email.
-// It is a pure function so it can be tested without a database.
 func confirmationContent(appURL string, ev Event, orderID string, tickets []ticketBrief) (subject, body string) {
 	subject = "Your tickets for " + ev.Title
 
@@ -41,8 +35,6 @@ func confirmationContent(appURL string, ev Event, orderID string, tickets []tick
 	return subject, b.String()
 }
 
-// sendOrderConfirmation emails the buyer after a successful commit.
-// A failure here is only logged: the order is already paid and must not fail.
 func (s *Server) sendOrderConfirmation(ctx context.Context, userID string, ev Event, orderID string, tickets []ticketBrief) {
 	var email string
 	if err := s.db.QueryRow(ctx, `SELECT email FROM users WHERE id = $1`, userID).Scan(&email); err != nil {

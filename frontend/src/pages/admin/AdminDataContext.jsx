@@ -2,24 +2,6 @@ import { createContext, useContext, useState } from "react";
 import { useApi, send, statusNote } from "../../lib/useApi";
 import { locale } from "../../i18n";
 
-// This "context" keeps the admin data in one place, so every admin page
-// sees the same users and events. When you suspend an event on one page,
-// the other pages see the change too.
-//
-// Backend (docs/api.md, platform_admin only; every action is written to the audit log with its reason):
-//   GET  /api/admin/users  -> [{ id, full_name, email, role, suspended, created_at }]
-//   GET  /api/admin/events -> [{ id, title, organizer_id, category, venue, start_at, status, suspended,
-//                                capacity, tickets_sold, revenue_kzt,
-//                                reports: [{ id, reason, reporter, created_at }],
-//                                activation: null | { paid_sales: "pending" | "active" | "stopped",
-//                                  identity_verified, fee_paid, payout_account, terms_accepted, requested_at } }]
-//   GET  /api/admin/stats  -> { failed_payments_7d }
-//   POST /api/admin/users/{id}/suspend | /unsuspend          { reason }
-//   POST /api/admin/events/{id}/suspend | /restore           { reason }   (suspend also stops paid sales)
-//   POST /api/admin/events/{id}/stop-sales | /resume-sales   { reason }
-// The lists stay empty with a short note until the endpoints exist. A change is shown only
-// after the server accepts it.
-
 const AdminDataContext = createContext(null);
 
 export function AdminDataProvider({ children }) {
@@ -43,7 +25,6 @@ export function AdminDataProvider({ children }) {
     eventsReq.setData((list) => (list || []).map((e) => (e.id === id ? { ...e, ...changes } : e)));
   }
 
-  // Sends one admin action; changes the screen only when the server says OK.
   async function act(path, reason, apply) {
     setNotice("");
     const r = await send(path, "POST", { reason: reason || "" });
@@ -56,7 +37,6 @@ export function AdminDataProvider({ children }) {
     const event = getEvent(id);
     return act(`/admin/events/${id}/${suspended ? "suspend" : "restore"}`, reason, () => {
       const changes = { suspended };
-      // Suspending an event also stops its paid sales (SRS 4.5 / 4.12).
       if (suspended && event && event.activation && event.activation.paid_sales === "active") {
         changes.activation = { ...event.activation, paid_sales: "stopped" };
       }
@@ -77,7 +57,6 @@ export function AdminDataProvider({ children }) {
     );
   }
 
-  // One short line for the admin pages: loading, not connected, or the last failed action.
   const loadNote = statusNote(eventsReq.status, eventsReq.error) || statusNote(usersReq.status, usersReq.error);
 
   const value = {
@@ -99,8 +78,6 @@ export function AdminDataProvider({ children }) {
 export function useAdminData() {
   return useContext(AdminDataContext);
 }
-
-// ---- Small helpers used by several admin pages ----
 
 export function formatKzt(amount) {
   return amount.toLocaleString(locale()) + " ₸";
@@ -124,12 +101,10 @@ export function formatDate(value) {
   });
 }
 
-// The status an admin sees: "suspended" wins over the normal status.
 export function eventDisplayStatus(event) {
   return event.suspended ? "suspended" : event.status;
 }
 
-// Is every item of the paid-sales checklist done? (SRS 3.2)
 export function checklistDone(activation) {
   return (
     activation.identity_verified &&

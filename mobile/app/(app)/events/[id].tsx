@@ -11,14 +11,12 @@ import { api, ApiError } from '@/lib/api';
 import { formatDateTime, formatKzt } from '@/lib/format';
 import type { EventDetail, RegisterResponse, TicketType } from '@/lib/types';
 
-const MAX_PER_ORDER = 10; // same limit as the backend (maxTicketsPerOrder)
+const MAX_PER_ORDER = 10;
 
-// Event details and free registration (plan steps 2 and 3): GET /api/events/{id},
-// POST /api/events/{id}/register. Paid tickets come with checkout (plan step 8).
 export default function EventDetailScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, promo } = useLocalSearchParams<{ id: string; promo?: string }>();
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loadError, setLoadError] = useState('');
   const [notFound, setNotFound] = useState(false);
@@ -72,22 +70,31 @@ export default function EventDetailScreen() {
   }
 
   const blocked = blockedReason(event, t);
+  const paidOn = event.paid_sales === 'active';
+  const buyable = (tt: TicketType) => (tt.price === 0 || paidOn) && onSale(tt) && tt.quantity_left > 0;
   const freeTypes = event.ticket_types.filter((tt) => tt.price === 0);
   const hasPaid = event.ticket_types.some((tt) => tt.price > 0);
   const chosen = Object.entries(quantities).filter(([, q]) => q > 0);
   const chosenTotal = chosen.reduce((sum, [, q]) => sum + q, 0);
+  const chosenPaid = chosen.some(([typeId]) => (event.ticket_types.find((tt) => tt.id === typeId)?.price ?? 0) > 0);
+
+  function checkout() {
+    router.push({
+      pathname: '/events/checkout',
+      params: { id, items: JSON.stringify(Object.fromEntries(chosen)), promo: promo ?? '' },
+    });
+  }
 
   function change(tt: TicketType, delta: number) {
     setError('');
     setQuantities((prev) => {
       const current = prev[tt.id] ?? 0;
       const othersTotal = chosenTotal - current;
-      const max = Math.min(tt.quantity_left, MAX_PER_ORDER - othersTotal);
+      const max = Math.min(tt.quantity_left, tt.max_per_order ?? MAX_PER_ORDER, MAX_PER_ORDER - othersTotal);
       return { ...prev, [tt.id]: Math.max(0, Math.min(max, current + delta)) };
     });
   }
 
-  // The backend registers one ticket type per request, so several types mean several orders.
   async function register() {
     if (chosen.length === 0) return;
     setBusy(true);
@@ -141,8 +148,7 @@ export default function EventDetailScreen() {
       {event.ticket_types.length === 0 ? <Muted>{t('events.noTicketTypes')}</Muted> : null}
 
       {event.ticket_types.map((tt) => {
-        const free = tt.price === 0;
-        const canPick = !blocked && free && tt.quantity_left > 0;
+        const canPick = !blocked && buyable(tt);
         const q = quantities[tt.id] ?? 0;
         return (
           <View key={tt.id} style={styles.type}>
@@ -153,6 +159,13 @@ export default function EventDetailScreen() {
               <Text style={styles.typeLeft}>
                 {tt.quantity_left > 0 ? t('events.left', { n: tt.quantity_left }) : t('events.soldOut')}
               </Text>
+              {!onSale(tt) ? <Text style={styles.typeLeft}>{t('checkout.notOnSale')}</Text> : null}
+              {tt.sales_starts_at || tt.sales_ends_at ? (
+                <Text style={styles.typeLeft}>
+                  {t('checkout.sales', { from: formatDateTime(tt.sales_starts_at), to: formatDateTime(tt.sales_ends_at) })}
+                </Text>
+              ) : null}
+              {tt.max_per_order ? <Text style={styles.typeLeft}>{t('checkout.maxPerOrder', { n: tt.max_per_order })}</Text> : null}
             </View>
             {canPick ? (
               <View style={styles.stepper}>
@@ -172,13 +185,14 @@ export default function EventDetailScreen() {
         );
       })}
 
-      {!blocked && hasPaid ? <Muted>{t('events.paidOnWebsite')}</Muted> : null}
+      {!blocked && hasPaid && !paidOn ? <Muted>{t('checkout.paidOff')}</Muted> : null}
       {!blocked && event.registration_closes_at ? (
         <Muted>{t('events.closesAt', { date: formatDateTime(event.registration_closes_at) })}</Muted>
       ) : null}
 
       <ErrorText>{error}</ErrorText>
-      {!blocked && freeTypes.length > 0 ? (
+      {!blocked && chosenPaid ? <Button title={t('checkout.buy')} onPress={checkout} /> : null}
+      {!blocked && !chosenPaid && (freeTypes.length > 0 || paidOn) ? (
         <Button
           title={t('events.getFree')}
           onPress={() => void register()}
@@ -224,8 +238,13 @@ function StepButton({
   );
 }
 
-// Same rules as registrationBlocked() in backend/tickets.go, so the attendee sees why
-// before trying. The backend still decides.
+function onSale(tt: TicketType): boolean {
+  const now = Date.now();
+  if (tt.sales_starts_at && now < new Date(tt.sales_starts_at).getTime()) return false;
+  if (tt.sales_ends_at && now > new Date(tt.sales_ends_at).getTime()) return false;
+  return true;
+}
+
 function blockedReason(ev: EventDetail, t: TFunction): string {
   const now = Date.now();
   if (ev.status === 'cancelled') return t('events.cancelled');

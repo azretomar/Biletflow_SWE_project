@@ -7,7 +7,6 @@
   border-radius: 8px;
 }
 
-/* The placeholder keeps the same shape as a photo unless the page sets a height. */
 .bf-img-ph {
   width: 100%;
   aspect-ratio: 16 / 9;

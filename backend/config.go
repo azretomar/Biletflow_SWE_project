@@ -9,7 +9,7 @@ type Config struct {
 	DatabaseURL string
 	JWTSecret   []byte
 	Port        string
-	AppURL      string // website address used in email links
+	AppURL      string
 }
 
 func loadConfig() Config {

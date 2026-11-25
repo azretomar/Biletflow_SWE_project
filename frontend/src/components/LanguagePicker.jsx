@@ -1,7 +1,6 @@
 import { LANGUAGES, t, useLanguage } from "../i18n";
 import "./languagePicker.css";
 
-// Language switch shown in the navbar, the admin portal and the login pages.
 export default function LanguagePicker({ className = "" }) {
   const { language, setLanguage } = useLanguage();
   return (

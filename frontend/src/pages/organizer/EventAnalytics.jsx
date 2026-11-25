@@ -5,19 +5,6 @@ import { useApi, statusNote } from "../../lib/useApi";
 import "./eventAnalytics.css";
 import { locale, t } from "../../i18n";
 
-// Event analytics for organizers (SRS 4.15).
-//
-// The page shows what the backend will send for one event. Until the endpoint
-// exists, everything starts at zero / empty. Expected response of
-// GET /api/organizer/events/:id/analytics (docs/api.md):
-// {
-//   event: { title, starts_at, venue },
-//   capacity, sold, checked_in,
-//   revenue: { gross, discounts, refunds, net },          // KZT
-//   sales_by_day: [{ date: "2026-11-01", tickets, revenue }],
-//   by_ticket_type: [{ name, price, quantity, sold, revenue }],
-//   promo: [{ code, redemptions, discount_total }]
-// }
 const EMPTY_ANALYTICS = {
   event: { get title() { return t("Event name"); }, starts_at: null, venue: "" },
   capacity: 0,
@@ -47,7 +34,6 @@ function percent(part, whole) {
   return whole > 0 ? Math.round((part / whole) * 100) : 0;
 }
 
-// Bar chart of tickets sold per day. One series, so no legend: the title names it.
 function SalesChart({ days }) {
   if (days.length === 0) {
     return <p className="bf-muted ea-empty">{t("No sales yet. Daily sales will appear here once tickets are sold.")}</p>;
@@ -55,7 +41,6 @@ function SalesChart({ days }) {
 
   const max = Math.max(...days.map((d) => d.tickets), 1);
   const total = days.reduce((sum, d) => sum + d.tickets, 0);
-  // Show at most about 8 date labels so they never overlap.
   const labelStep = Math.ceil(days.length / 8);
 
   return (
@@ -94,7 +79,6 @@ function EventAnalytics() {
   const [to, setTo] = useState("");
   const [ticketType, setTicketType] = useState("");
 
-  // Filters work on the data already loaded. When the API exists, send them as query parameters too.
   const days = data.sales_by_day.filter((d) => (!from || d.date >= from) && (!to || d.date <= to));
   const types = data.by_ticket_type.filter((tt) => !ticketType || tt.name === ticketType);
 

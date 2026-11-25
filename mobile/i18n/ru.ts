@@ -1,4 +1,5 @@
 import type { Strings } from './en';
+import orgRu from './org.ru';
 
 const ru: Strings = {
   common: {
@@ -39,7 +40,7 @@ const ru: Strings = {
     events: 'События',
     tickets: 'Мои билеты',
     manage: 'Мои события',
-    scanner: 'Вход',
+    scanner: 'Проверка',
     profile: 'Профиль',
   },
   roles: {
@@ -295,6 +296,7 @@ const ru: Strings = {
   placeholder: {
     soon: 'Этот экран скоро появится.',
   },
+  ...orgRu,
 };
 
 export default ru;

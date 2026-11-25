@@ -5,11 +5,6 @@ import { kzt, shortDateTime, ORDER_STATUS } from "../lib/format";
 import "./orders.css";
 import { t } from "../i18n";
 
-// Attendee's orders (SRS 4.9). One order = one checkout, with one or more tickets.
-// Backend (docs/api.md): GET /api/my-orders ->
-// [{ id, created_at, status: "paid" | "free" | "failed" | "cancelled" | "refunded",
-//    total, event: { id, title, date }, items: [{ ticket_type, quantity, price }],
-//    tickets: [{ id, status }] }]
 function MyOrders() {
   const { data: orders, status, error } = useApi("/my-orders", []);
   const note = statusNote(status, error);

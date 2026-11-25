@@ -36,15 +36,12 @@ import { AdminSupportList, AdminSupportCase } from "./pages/admin/AdminSupport";
 import { OrganizerSupportList, OrganizerSupportCase } from "./pages/organizer/OrganizerSupport";
 import RequireLogin from "./components/RequireLogin";
 
-// Old registration links now go to Checkout, which handles free and paid tickets
-// and promo codes in one place. Chosen ticket quantities are passed along.
 function RegisterRedirect() {
   const { id } = useParams();
   const location = useLocation();
   return <Navigate to={`/events/${id}/checkout`} replace state={location.state} />;
 }
 
-// Pages for logged-in users, and pages only organizers may open.
 const member = (page) => <RequireLogin>{page}</RequireLogin>;
 const organizer = (page) => <RequireLogin roles={["organizer"]}>{page}</RequireLogin>;
 
@@ -52,7 +49,6 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
         <Route path="/" element={<Home />} />
         <Route path="/events" element={<EventList />} />
         <Route path="/events/:id" element={<EventDetail />} />
@@ -62,7 +58,6 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Logged-in attendees (and everyone else who is logged in) */}
         <Route path="/events/:id/checkout" element={member(<Checkout />)} />
         <Route path="/events/:id/register" element={<RegisterRedirect />} />
         <Route path="/my-tickets" element={member(<MyTickets />)} />
@@ -73,7 +68,6 @@ function App() {
         <Route path="/support/new" element={member(<SupportNew />)} />
         <Route path="/support/:id" element={member(<SupportCase />)} />
 
-        {/* Organizers */}
         <Route path="/create-event" element={organizer(<CreateEvent />)} />
         <Route path="/organizer/dashboard" element={organizer(<OrganizerDashboard />)} />
         <Route path="/organizer/profile" element={organizer(<OrganizerProfile />)} />
@@ -89,7 +83,6 @@ function App() {
         <Route path="/organizer/events/:id/analytics" element={organizer(<EventAnalytics />)} />
         <Route path="/organizer/events/:id/history" element={organizer(<EventHistory />)} />
 
-        {/* Platform Admin section: only users with role "platform_admin" may open it. */}
         <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
           <Route index element={<AdminDashboard />} />
           <Route path="events" element={<AdminEvents />} />

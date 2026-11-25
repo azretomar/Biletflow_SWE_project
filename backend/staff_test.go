@@ -85,7 +85,6 @@ func TestAssignStaffValidation(t *testing.T) {
 	}
 }
 
-// End-to-end staff assignment and event-scoped check-in against a real database.
 func TestStaffAssignmentAndCheckinDB(t *testing.T) {
 	s := newDBTestServer(t)
 	mux := staffMux(s)
@@ -277,5 +276,110 @@ func TestStaffAssignmentAndCheckinDB(t *testing.T) {
 		want(call(orgA, "organizer", "DELETE", path, ""), http.StatusNoContent)
 		want(call(orgA, "organizer", "DELETE", path, ""), http.StatusNotFound)
 		want(checkin(staff, "event_admin", concert, concertQR), http.StatusForbidden)
+	})
+}
+
+func TestStaffAttendeesDB(t *testing.T) {
+	s := newDBTestServer(t)
+	mux := staffMux(s)
+	ctx := context.Background()
+	stamp := time.Now().UnixNano()
+
+	newUser := func(name, role string) string {
+		var id string
+		if err := s.db.QueryRow(ctx, `INSERT INTO users (email, password_hash, full_name, role)
+			VALUES ($1, 'x', $2, $3) RETURNING id`, fmt.Sprintf("%s-%d@test.biletflow.local", name, stamp), name, role,
+		).Scan(&id); err != nil {
+			t.Fatalf("create user: %v", err)
+		}
+		return id
+	}
+	org := newUser("org", "organizer")
+	staff := newUser("door", "event_admin")
+	outsider := newUser("outsider", "event_admin")
+	alice := newUser("Alice 100% Fan", "attendee")
+	bob := newUser("Bob", "attendee")
+	ids := []string{org, staff, outsider, alice, bob}
+	t.Cleanup(func() {
+		_, _ = s.db.Exec(ctx, `DELETE FROM tickets WHERE user_id = ANY($1)`, ids)
+		_, _ = s.db.Exec(ctx, `DELETE FROM orders WHERE user_id = ANY($1)`, ids)
+		_, _ = s.db.Exec(ctx, `DELETE FROM events WHERE organizer_id = ANY($1)`, ids)
+		_, _ = s.db.Exec(ctx, `DELETE FROM users WHERE id = ANY($1)`, ids)
+	})
+
+	var eventID, typeID string
+	if err := s.db.QueryRow(ctx, `INSERT INTO events (organizer_id, title, date, venue, capacity)
+		VALUES ($1, 'Search Fest', now() + interval '3 days', 'Hall', 50) RETURNING id`, org).Scan(&eventID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.db.QueryRow(ctx, `INSERT INTO ticket_types (event_id, name, price, quantity, quantity_left)
+		VALUES ($1, 'General', 0, 10, 7) RETURNING id`, eventID).Scan(&typeID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.db.Exec(ctx, `INSERT INTO event_staff (event_id, user_id, assigned_by) VALUES ($1, $2, $3)`, eventID, staff, org); err != nil {
+		t.Fatal(err)
+	}
+	ticket := func(user, status string) {
+		var orderID string
+		if err := s.db.QueryRow(ctx, `INSERT INTO orders (user_id, event_id) VALUES ($1, $2) RETURNING id`, user, eventID).Scan(&orderID); err != nil {
+			t.Fatal(err)
+		}
+		qr, _ := newQRCode()
+		if _, err := s.db.Exec(ctx, `INSERT INTO tickets (order_id, event_id, ticket_type_id, user_id, qr_code, status)
+			VALUES ($1, $2, $3, $4, $5, $6)`, orderID, eventID, typeID, user, qr, status); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ticket(alice, "valid")
+	ticket(bob, "checked_in")
+	ticket(bob, "cancelled")
+
+	get := func(user, role, query string) (*httptest.ResponseRecorder, staffAttendeesResponse) {
+		t.Helper()
+		req := jsonRequest("GET", "/api/staff/events/"+eventID+"/attendees"+query, "")
+		req.Header.Set("Authorization", "Bearer "+mustToken(t, s, user, role))
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		var resp staffAttendeesResponse
+		if rec.Code == http.StatusOK {
+			if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+				t.Fatalf("decode: %v", err)
+			}
+		}
+		return rec, resp
+	}
+
+	t.Run("counter without a query", func(t *testing.T) {
+		rec, resp := get(staff, "event_admin", "")
+		if rec.Code != http.StatusOK || resp.Registered != 2 || resp.CheckedIn != 1 || len(resp.Attendees) != 0 {
+			t.Fatalf("status %d, resp %+v", rec.Code, resp)
+		}
+	})
+	t.Run("search by name is case-insensitive and returns the QR code", func(t *testing.T) {
+		_, resp := get(staff, "event_admin", "?q=bOb")
+		if len(resp.Attendees) != 2 || resp.Attendees[0].QRCode == "" || resp.Attendees[0].FullName != "Bob" {
+			t.Fatalf("resp %+v", resp)
+		}
+	})
+	t.Run("LIKE wildcards are literal", func(t *testing.T) {
+		_, resp := get(staff, "event_admin", "?q=100%25")
+		if len(resp.Attendees) != 1 || resp.Attendees[0].FullName != "Alice 100% Fan" {
+			t.Fatalf("resp %+v", resp)
+		}
+		_, resp = get(staff, "event_admin", "?q=%25")
+		if len(resp.Attendees) != 1 {
+			t.Fatalf("a bare %% must not match everyone: %+v", resp)
+		}
+	})
+	t.Run("organizer may search, others may not", func(t *testing.T) {
+		if rec, _ := get(org, "organizer", "?q=a"); rec.Code != http.StatusOK {
+			t.Fatalf("organizer: %d", rec.Code)
+		}
+		if rec, _ := get(outsider, "event_admin", ""); rec.Code != http.StatusForbidden {
+			t.Fatalf("outsider: %d", rec.Code)
+		}
+		if rec, _ := get(alice, "attendee", ""); rec.Code != http.StatusForbidden {
+			t.Fatalf("attendee: %d", rec.Code)
+		}
 	})
 }

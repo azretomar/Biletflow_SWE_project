@@ -11,16 +11,12 @@ import { categoryName, maxPerOrder, saleNote } from "../lib/events";
 
 const MAX_PER_TYPE = 10;
 
-// Public event page: GET /api/events/{id}. Chosen quantities go on to Checkout,
-// which handles free registration, simulated payment and promo codes in one place.
-// A campaign QR opens this page with ?promo=CODE; the code is passed on to Checkout.
 function EventDetail() {
   const { id } = useParams();
   const [params] = useSearchParams();
   const promo = params.get("promo") || "";
   const { user } = useAuth();
   const { data: event, status, error, code, reload } = useApi(`/events/${id}`, null);
-  // a missing endpoint, an unknown id or a malformed id all mean "no such event" here
   const notFound = status === "not_connected" || code === 404 || code === 400;
   const [quantities, setQuantities] = useState({});
 
@@ -29,7 +25,6 @@ function EventDetail() {
   const ended = event && new Date(event.date) < now;
   const closed = event && event.registration_closes_at && new Date(event.registration_closes_at) < now;
   const notOpenYet = event && event.registration_opens_at && new Date(event.registration_opens_at) > now;
-  // Paid tickets are sold only after the organizer finished the paid-sales checklist (SRS 3.2).
   const paidOnSale = Boolean(event && event.paid_sales === "active");
   const chosen = Object.values(quantities).reduce((s, n) => s + n, 0);
 
@@ -120,7 +115,6 @@ function EventDetail() {
               <p className="bf-muted">{t("No ticket types available yet.")}</p>
             ) : (
               ticketTypes.map((tt) => {
-                // Only the organizer (and admins) get hidden types back from the server.
                 const note = tt.hidden ? t("Hidden from attendees") : saleNote(tt);
                 const canPick = !blocked && !note && tt.quantity_left > 0 && (tt.price === 0 || paidOnSale);
                 return (
@@ -171,7 +165,6 @@ function EventDetail() {
   );
 }
 
-// "Report this event" for logged-in visitors (SRS 4.12); platform admins review reports.
 function ReportEvent({ eventId }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");

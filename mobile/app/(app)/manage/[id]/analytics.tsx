@@ -9,11 +9,9 @@ import { Button, ErrorText, Loading, Muted } from '@/components/ui';
 import { colors, radius, spacing } from '@/constants/theme';
 import { errorText } from '@/i18n';
 import { ApiError, api } from '@/lib/api';
-import { formatDateTime, formatKzt } from '@/lib/format';
+import { formatDateTime, formatMoney as formatKzt } from '@/lib/format';
 import type { Analytics } from '@/lib/types';
 
-// Event analytics for the organizer (package 2-3, SRS 4.5):
-// GET /api/organizer/events/{id}/analytics. Numbers first, simple bars under them.
 export default function AnalyticsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -199,7 +197,6 @@ function Line({ label, value, strong = false }: { label: string; value: string; 
   );
 }
 
-// A thin bar with its number written next to it, so the bar is never the only way to read it.
 function Bar({ share, label }: { share: number; label: string }) {
   return (
     <View style={styles.bar} accessible accessibilityLabel={label}>

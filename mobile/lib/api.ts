@@ -1,7 +1,6 @@
-// Calls the Go backend, like frontend/src/api.js on the website.
-// On a phone, localhost is the phone itself, so the base URL comes from
-// EXPO_PUBLIC_API_URL (see .env.example).
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/+$/, '');
+
+export const WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL ?? API_URL.replace(/:8080$/, ':5173')).replace(/\/+$/, '');
 
 export class ApiError extends Error {
   status: number;
@@ -18,7 +17,6 @@ export function setApiToken(value: string | null) {
   token = value;
 }
 
-// Called when the backend rejects the token (expired or invalid), so the app can log out.
 export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler;
 }

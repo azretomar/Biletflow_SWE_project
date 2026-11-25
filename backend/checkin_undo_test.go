@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-// Check-in undo (SRS 4.8, 4.16): same access rule as /api/checkin, and the event history keeps
-// the check-in and shows the reversal. Validation and role guards need no database.
 func TestUndoCheckinGuards(t *testing.T) {
 	s := newTestServer()
 	mux := s.routes()
@@ -110,7 +108,7 @@ func TestUndoCheckinDB(t *testing.T) {
 	t.Cleanup(func() {
 		_, _ = s.db.Exec(ctx, `DELETE FROM tickets WHERE user_id = ANY($1)`, ids)
 		_, _ = s.db.Exec(ctx, `DELETE FROM orders WHERE user_id = ANY($1)`, ids)
-		_, _ = s.db.Exec(ctx, `DELETE FROM events WHERE organizer_id = ANY($1)`, ids) // also removes its audit rows
+		_, _ = s.db.Exec(ctx, `DELETE FROM events WHERE organizer_id = ANY($1)`, ids)
 		_, _ = s.db.Exec(ctx, `DELETE FROM users WHERE id = ANY($1)`, ids)
 	})
 
@@ -213,7 +211,7 @@ func TestUndoCheckinDB(t *testing.T) {
 	t.Run("history shows every check-in and every undo, oldest first", func(t *testing.T) {
 		hist := c.must(200, tokOrg, "GET", "/api/organizer/events/"+concert+"/history", nil)
 		var got []string
-		activity := hist["activity"].([]any) // newest first
+		activity := hist["activity"].([]any)
 		for i := len(activity) - 1; i >= 0; i-- {
 			a := activity[i].(map[string]any)
 			if a["type"] == "checkin" {

@@ -7,16 +7,6 @@ import { kzt, shortDateTime, ORDER_STATUS } from "../../lib/format";
 import "../orders.css";
 import { t } from "../../i18n";
 
-// Organizer: orders of one event, refund policy, cancellations and refunds (SRS 4.9).
-// Backend (docs/api.md):
-//   GET  /api/organizer/events/{id}/orders  -> [{ id, created_at, status, total,
-//          attendee: { full_name, email }, items: [{ ticket_type, quantity, price }] }]
-//   GET  /api/organizer/events/{id}/refund-policy -> { policy }
-//   PUT  /api/organizer/events/{id}/refund-policy    { policy }
-//   POST /api/organizer/orders/{orderId}/cancel   { reason }   free registrations only
-//   POST /api/organizer/orders/{orderId}/refund   { reason }   full refund of a paid order
-// Cancelled or refunded tickets become invalid; the server records every action in the audit log.
-
 const FILTERS = [
   { value: "", get label() { return t("All"); } },
   { value: "paid", get label() { return t("Paid"); } },
@@ -29,11 +19,11 @@ function EventOrders() {
   const { id } = useParams();
   const { data: orders, setData: setOrders, status, error } = useApi(`/organizer/events/${id}/orders`, []);
   const policyReq = useApi(`/organizer/events/${id}/refund-policy`, { policy: "" });
-  const [policy, setPolicy] = useState(null); // null = not edited yet
+  const [policy, setPolicy] = useState(null);
   const [policyMsg, setPolicyMsg] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("");
-  const [confirming, setConfirming] = useState(null); // { order, action: "cancel" | "refund" }
+  const [confirming, setConfirming] = useState(null);
   const [actionMsg, setActionMsg] = useState("");
 
   const policyText = policy ?? policyReq.data.policy ?? "";

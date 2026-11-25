@@ -32,7 +32,6 @@ func init() {
 	schemas = append(schemas, schemaOrganizer)
 }
 
-// Organizer-only views and actions on the organizer's own events.
 func (s *Server) registerOrganizerRoutes(mux *http.ServeMux) {
 	organizerOnly := func(h http.HandlerFunc) http.Handler {
 		return s.requireAuth(s.requireRole("organizer")(h))
@@ -56,9 +55,6 @@ type organizerEvent struct {
 	Sold        int `json:"sold"`
 }
 
-// GET /api/organizer/events
-// Events created by the logged-in organizer (drafts and cancelled ones too), soonest first,
-// with how many tickets were issued (sum of quantity - quantity_left over the ticket types).
 func (s *Server) handleOrganizerEvents(w http.ResponseWriter, r *http.Request) {
 	claims := claimsFrom(r.Context())
 	rows, err := s.db.Query(r.Context(), `
@@ -93,9 +89,6 @@ func (s *Server) handleOrganizerEvents(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list)
 }
 
-// POST /api/organizer/events/{id}/cancel { reason }
-// Ticket sales stop, every paid order is refunded (simulated) and every free registration
-// is cancelled, so no ticket of this event works any more. Attendees get an email.
 func (s *Server) handleCancelEvent(w http.ResponseWriter, r *http.Request) {
 	reason, ok := readReason(w, r, true)
 	if !ok {
@@ -149,7 +142,6 @@ type attendee struct {
 	CheckedInAt *time.Time `json:"checked_in_at"`
 }
 
-// GET /api/organizer/events/{id}/attendees
 func (s *Server) handleAttendees(w http.ResponseWriter, r *http.Request) {
 	ev, ok := s.ownedEvent(w, r, r.PathValue("id"))
 	if !ok {
@@ -183,15 +175,13 @@ func (s *Server) handleAttendees(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list)
 }
 
-// ---- Paid sales activation (SRS 3.2, 4.5). Everything is simulated. ----
-
 type activationState struct {
 	IdentityVerified bool       `json:"identity_verified"`
 	PayoutConnected  bool       `json:"payout_connected"`
 	FeePaid          bool       `json:"fee_paid"`
 	TermsAccepted    bool       `json:"terms_accepted"`
 	Activated        bool       `json:"activated"`
-	PaidSales        string     `json:"paid_sales"` // none | active | stopped
+	PaidSales        string     `json:"paid_sales"`
 	FeeKZT           int        `json:"fee_kzt"`
 	RequestedAt      *time.Time `json:"requested_at"`
 	HasPaidType      bool       `json:"has_paid_ticket_type"`
@@ -211,7 +201,6 @@ func loadActivation(ctx context.Context, db dbtx, eventID string) (activationSta
 	return a, err
 }
 
-// GET /api/organizer/events/{id}/activation
 func (s *Server) handleGetActivation(w http.ResponseWriter, r *http.Request) {
 	ev, ok := s.ownedEvent(w, r, r.PathValue("id"))
 	if !ok {
@@ -225,8 +214,6 @@ func (s *Server) handleGetActivation(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, a)
 }
 
-// POST /api/organizer/events/{id}/activation/{step}
-// step: identity | payout | fee | terms (simulated) | activate
 func (s *Server) handleActivationStep(w http.ResponseWriter, r *http.Request) {
 	step := r.PathValue("step")
 	columns := map[string]string{"identity": "identity_verified", "fee": "fee_paid", "terms": "terms_accepted"}
@@ -315,8 +302,6 @@ func (s *Server) handleActivationStep(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, a)
 }
 
-// ---- Analytics (SRS 4.15) ----
-
 type analyticsResponse struct {
 	Event struct {
 		Title    string    `json:"title"`
@@ -358,10 +343,6 @@ type promoUse struct {
 	DiscountTotal int    `json:"discount_total"`
 }
 
-// GET /api/organizer/events/{id}/analytics
-// Money: gross = list price of every completed or later refunded order, discounts = promo
-// discounts on them, refunds = what was paid back, net = gross - discounts - refunds.
-// sales_by_day counts tickets that are still valid (refunded and cancelled ones drop out).
 func (s *Server) handleAnalytics(w http.ResponseWriter, r *http.Request) {
 	ev, ok := s.ownedEvent(w, r, r.PathValue("id"))
 	if !ok {
@@ -456,13 +437,11 @@ func (s *Server) handleAnalytics(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, a)
 }
 
-// ---- History (SRS 4.16) ----
-
 type activity struct {
 	ID      string    `json:"id"`
 	At      time.Time `json:"at"`
 	Actor   string    `json:"actor"`
-	Type    string    `json:"type"` // event | tickets | orders | checkin | payments
+	Type    string    `json:"type"`
 	Message string    `json:"message"`
 	Reason  string    `json:"reason,omitempty"`
 }
@@ -479,8 +458,6 @@ type historyEvent struct {
 
 const maxHistory = 500
 
-// GET /api/organizer/events/{id}/history
-// Combines the audit log of the event with orders and check-ins, newest first.
 func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 	ev, ok := s.ownedEvent(w, r, r.PathValue("id"))
 	if !ok {
@@ -551,8 +528,6 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"event": h, "activity": list})
 }
 
-// ---- Organizer profile (SRS 4.1) ----
-
 type payoutDetails struct {
 	HolderName string `json:"holder_name"`
 	BankName   string `json:"bank_name"`
@@ -570,7 +545,6 @@ type organizerProfile struct {
 	Payout       payoutDetails `json:"payout"`
 }
 
-// GET /api/organizer/profile - defaults to the account name and email until saved.
 func (s *Server) handleGetProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var p organizerProfile
@@ -595,7 +569,6 @@ var (
 	phoneText = regexp.MustCompile(`^[0-9+()\- ]{5,30}$`)
 )
 
-// PUT /api/organizer/profile
 func (s *Server) handlePutProfile(w http.ResponseWriter, r *http.Request) {
 	var p organizerProfile
 	if !decodeJSON(w, r, &p) {

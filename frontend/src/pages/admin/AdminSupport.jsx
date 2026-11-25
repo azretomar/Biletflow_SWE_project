@@ -7,17 +7,6 @@ import { CATEGORIES, ContextLink, Thread, ReplyBox } from "../Support";
 import "../support.css";
 import { t } from "../../i18n";
 
-// Support cases for staff (SRS 4.12, 4.13). Used twice:
-//   scope="admin":     platform admins, every case       (/admin/support)
-//   scope="organizer": organizers, cases about their events (/organizer/support), same API under
-//                      /api/organizer/support/cases (planned: frontend ready, backend not built yet)
-// Backend (docs/api.md):
-//   GET   /api/admin/support/cases?status=   -> [{ id, subject, status, category, requester: { full_name, email },
-//                                                 assignee: { id, full_name } | null, updated_at, context }]
-//   GET   /api/admin/support/cases/{id}      -> same as one case + messages
-//   PATCH /api/admin/support/cases/{id}        { status } or { assign_to_me: true }
-//   POST  /api/admin/support/cases/{id}/messages { body }
-
 const STATUS_FILTERS = [
   { value: "", get label() { return t("All"); } },
   { value: "open", get label() { return t("Open"); } },

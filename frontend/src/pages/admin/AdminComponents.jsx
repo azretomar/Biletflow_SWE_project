@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { t } from "../../i18n";
 
-// A small colored label, e.g. "published", "suspended", "active".
-// The text is always shown, so color is never the only signal (accessibility).
 const STATUS_LABELS = {
   get published() { return t("Published"); },
   get draft() { return t("Draft"); },
@@ -20,8 +18,6 @@ export function StatusBadge({ status }) {
   return <span className={"badge badge-" + status}>{label}</span>;
 }
 
-// A pop-up box that asks the admin to confirm an action and give a reason.
-// The reason is required because admin actions must be auditable (SRS 7).
 export function ConfirmDialog({ title, message, confirmLabel, danger, needsReason, onConfirm, onCancel }) {
   const [reason, setReason] = useState("");
   const canConfirm = !needsReason || reason.trim().length > 0;

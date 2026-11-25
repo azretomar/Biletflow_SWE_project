@@ -15,15 +15,12 @@ import type { Ticket } from '@/lib/types';
 
 type Filter = 'upcoming' | 'past' | 'all';
 
-// An event counts as upcoming until 12 hours after it starts (it may still be running).
 const STILL_ON_MS = 12 * 60 * 60 * 1000;
 
 function isUpcoming(t: Ticket, now: number): boolean {
   return new Date(t.event.date).getTime() + STILL_ON_MS >= now;
 }
 
-// My tickets (package 1-3): GET /api/my-tickets. Reloads every time the tab is opened,
-// so tickets from a new registration show up at once.
 export default function TicketsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -59,7 +56,6 @@ export default function TicketsScreen() {
       filter === 'all' ? true : filter === 'upcoming' ? isUpcoming(tk, now) : !isUpcoming(tk, now),
     );
     const time = (tk: Ticket) => new Date(tk.event.date).getTime();
-    // Upcoming: soonest first. Past and all: newest first.
     return list.sort((a, b) => (filter === 'upcoming' ? time(a) - time(b) : time(b) - time(a)));
   }, [tickets, filter]);
 

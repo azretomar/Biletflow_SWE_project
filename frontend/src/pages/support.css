@@ -1,5 +1,3 @@
-/* ===== Support chat (user side; the message thread is reused in the admin pages) ===== */
-
 .sp {
   display: flex;
   flex-direction: column;

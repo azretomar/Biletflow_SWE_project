@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LanguagePicker } from '@/components/LanguagePicker';
 import { colors, spacing } from '@/constants/theme';
 
-// Shared frame for the login and sign-up screens: logo, language picker, form.
 export function AuthScreen({ children }: { children: React.ReactNode }) {
   return (
     <SafeAreaView style={styles.safe}>

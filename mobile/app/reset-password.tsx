@@ -8,8 +8,6 @@ import { Button, ErrorText, Field, Muted, Title } from '@/components/ui';
 import { errorText } from '@/i18n';
 import { api } from '@/lib/api';
 
-// Choose a new password (package 1-3, SRS 4.1): POST /api/auth/reset-password { token, password }.
-// The user pastes the link from the email; it works once and for 1 hour.
 export default function ResetPasswordScreen() {
   const { t } = useTranslation();
   const router = useRouter();

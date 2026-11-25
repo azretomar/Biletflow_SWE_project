@@ -6,7 +6,6 @@
 
 .ed-grid {
   display: grid;
-  /* minmax(0, ...) lets the columns shrink below their content (the image placeholder) on phones */
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 40px;
   align-items: start;

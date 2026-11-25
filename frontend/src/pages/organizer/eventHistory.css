@@ -1,5 +1,3 @@
-/* ===== Event history page (uses shared.css: bf-page, bf-card, bf-chips, bf-btn) ===== */
-
 .eh {
   display: flex;
   flex-direction: column;
@@ -54,7 +52,6 @@
   text-align: center;
 }
 
-/* One block per day */
 .eh-day {
   padding: 16px 0;
   border-bottom: 1px solid #e2e4e9;
@@ -70,7 +67,6 @@
   color: var(--muted);
 }
 
-/* Timeline: time | dot on a line | text */
 .eh-list {
   margin: 0;
   padding: 0;
@@ -89,7 +85,6 @@
   padding-bottom: 0;
 }
 
-/* vertical line connecting the dots */
 .eh-item::before {
   content: "";
   position: absolute;
@@ -123,7 +118,6 @@
   box-shadow: 0 0 0 1px #9aa1ad;
 }
 
-/* Dot color is only a hint: the type is always written next to it */
 .eh-dot-event {
   background: var(--blue);
   box-shadow: 0 0 0 1px var(--blue);

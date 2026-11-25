@@ -7,8 +7,6 @@ import { Button, ErrorText, Field, Muted, Title } from '@/components/ui';
 import { errorText } from '@/i18n';
 import { api } from '@/lib/api';
 
-// Forgot password (package 1-3, SRS 4.1): POST /api/auth/forgot-password { email }.
-// The backend always answers "ok", so nobody can find out which emails have accounts.
 export default function ForgotPasswordScreen() {
   const { t } = useTranslation();
   const router = useRouter();

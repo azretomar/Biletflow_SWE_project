@@ -6,13 +6,6 @@ import QrCode from "../components/QrCode";
 import "./printTicket.css";
 import { locale, t } from "../i18n";
 
-// Printable ticket (SRS 4.7): one ticket on an A4 page.
-// "Save as PDF" uses the browser's own print dialog (Print -> Save as PDF),
-// so no PDF library is needed. The digital and printed copies share the same
-// ticket id and QR code, so printing never creates a second admission.
-//
-// Data: GET /api/my-tickets (already in the backend), then the ticket with this id.
-
 const STATUS_LABELS = {
   get valid() { return t("Valid"); },
   get checked_in() { return t("Checked in"); },
@@ -36,7 +29,7 @@ function PrintTicket() {
   const { user } = useAuth();
   const location = useLocation();
   const [ticket, setTicket] = useState(null);
-  const [state, setState] = useState("loading"); // loading | ready | notfound | error
+  const [state, setState] = useState("loading");
   const [error, setError] = useState("");
 
   useEffect(() => {

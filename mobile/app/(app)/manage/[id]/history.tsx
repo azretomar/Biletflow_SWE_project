@@ -20,8 +20,6 @@ const TYPES: TypeFilter[] = ['all', 'event', 'tickets', 'orders', 'checkin', 'pa
 const KNOWN = new Set<string>(TYPES);
 const PERIOD_DAYS: Record<Period, number> = { all: 0, week: 7, month: 30 };
 
-// Event history for the organizer (package 2-3, SRS 4.5):
-// GET /api/organizer/events/{id}/history, newest first, grouped by day, with filters.
 export default function HistoryScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();

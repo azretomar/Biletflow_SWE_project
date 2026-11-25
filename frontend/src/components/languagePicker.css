@@ -5,7 +5,6 @@
   font-size: 14px;
 }
 
-/* The word "Language" is for screen readers; the select already shows the language name. */
 .lang-picker-label {
   position: absolute;
   width: 1px;
@@ -30,7 +29,6 @@
   outline-offset: 1px;
 }
 
-/* Admin sidebar (dark) */
 .admin-sidebar .lang-picker {
   margin-top: 12px;
 }
@@ -39,7 +37,6 @@
   width: 100%;
 }
 
-/* Sign up and log in pages: top right of the card */
 .auth-card .lang-picker {
   float: right;
 }

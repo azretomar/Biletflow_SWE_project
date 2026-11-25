@@ -4,14 +4,6 @@ import { api } from "../api";
 import "./createEvent.css";
 import { locale, t } from "../i18n";
 
-// Create event (SRS 4.2): details, time and place, visibility, registration window,
-// image, preview, and "Save as draft" or "Publish".
-//
-// Both buttons use POST /api/events with { title, description, date, venue, capacity, category,
-// image_url, registration_closes_at, status: "draft" | "published",
-// visibility: "public" | "unlisted" | "private", ends_at, registration_opens_at, venue_address }.
-// Kazakhstan uses one time zone (UTC+5), so times are sent with +05:00.
-
 const TZ = "+05:00";
 
 const EMPTY_EVENT = {
@@ -97,11 +89,9 @@ function Preview({ form }) {
 }
 
 function CreateEvent() {
-  // "Duplicate event" on the Event history page sends the copied details here.
   const location = useLocation();
   const navigate = useNavigate();
   const duplicate = location.state && location.state.duplicate;
-  // Ticket types of the event being duplicated; created right after the new event is saved.
   const copyTypes = (location.state && location.state.ticketTypes) || [];
   const [form, setForm] = useState(duplicate ? { ...EMPTY_EVENT, ...duplicate, date: "" } : EMPTY_EVENT);
   const [errors, setErrors] = useState({});
@@ -111,7 +101,6 @@ function CreateEvent() {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    // the field was changed, so its old error no longer applies
     if (errors[e.target.name]) {
       const rest = { ...errors };
       delete rest[e.target.name];
@@ -157,7 +146,6 @@ function CreateEvent() {
     }
   }
 
-  // Creates the duplicated ticket types for the new event (sold counts start at zero).
   async function copyTicketTypes(ev) {
     const failed = [];
     for (const tt of copyTypes) {

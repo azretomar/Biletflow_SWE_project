@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-// Organizer support inbox (SRS 4.13, UC9): organizers see and answer only the cases about
-// their own events. Runs when TEST_DATABASE_URL is set.
 func TestOrganizerSupportDB(t *testing.T) {
 	s := newDBTestServer(t)
 	srv := httptest.NewServer(s.routes())
@@ -40,7 +38,6 @@ func TestOrganizerSupportDB(t *testing.T) {
 		}
 		return id
 	}
-	// newTicket gives the user an order with one ticket for the event.
 	newTicket := func(eventID, userID string) (orderID, ticketID string) {
 		var ttID string
 		if err := s.db.QueryRow(ctx, `
@@ -95,7 +92,7 @@ func TestOrganizerSupportDB(t *testing.T) {
 	}
 	c1 := open(tokAnna, "event", "about event A", "event", evA)
 	c2 := open(tokAnna, "payment", "about order A", "order", orderA)
-	c3 := open(tokAnna, "tickets", "about ticket A", "ticket", strings.ToUpper(ticketA)) // upper-case id still matches
+	c3 := open(tokAnna, "tickets", "about ticket A", "ticket", strings.ToUpper(ticketA))
 	c4 := open(tokAnna, "event", "about event B", "event", evB)
 	c5 := open(tokAnna, "tickets", "about Ben's ticket at B", "ticket", ticketB)
 	c6 := open(tokAnna, "other", "no context", "", "")
@@ -147,7 +144,6 @@ func TestOrganizerSupportDB(t *testing.T) {
 			c.must(404, tokB, "POST", "/api/organizer/support/cases/"+id+"/messages", map[string]any{"body": "hello"})
 			c.must(404, tokB, "PATCH", "/api/organizer/support/cases/"+id, map[string]any{"assign_to_me": true})
 		}
-		// Nothing was changed by the refused calls.
 		var status string
 		var messages int
 		if err := s.db.QueryRow(ctx, `SELECT status, (SELECT COUNT(*) FROM support_messages WHERE case_id = c.id)
@@ -160,7 +156,7 @@ func TestOrganizerSupportDB(t *testing.T) {
 		same(caseIDs(tokA, "/api/organizer/support/cases?status=open"), c1, c2, c3)
 		same(caseIDs(tokA, "/api/organizer/support/cases?status=resolved"))
 		same(caseIDs(tokA, "/api/organizer/support/cases?event_id="+evA), c1, c2, c3)
-		same(caseIDs(tokA, "/api/organizer/support/cases?event_id="+evB)) // someone else's event: nothing
+		same(caseIDs(tokA, "/api/organizer/support/cases?event_id="+evB))
 		c.errMsg(400, tokA, "GET", "/api/organizer/support/cases?status=lost", nil)
 		c.errMsg(400, tokA, "GET", "/api/organizer/support/cases?event_id=nope", nil)
 	})
@@ -180,7 +176,6 @@ func TestOrganizerSupportDB(t *testing.T) {
 		}
 		same(caseIDs(tokA, "/api/organizer/support/cases?status=waiting"), c1)
 
-		// The attendee sees the reply in the same thread; answering reopens the case.
 		mine := c.must(200, tokAnna, "GET", "/api/support/cases/"+c1, nil)
 		if mine["status"] != "waiting" || len(mine["messages"].([]any)) != 2 {
 			t.Fatalf("attendee view = %v", mine)
@@ -198,7 +193,6 @@ func TestOrganizerSupportDB(t *testing.T) {
 		if r := c.must(200, tokA, "PATCH", "/api/organizer/support/cases/"+c1, map[string]any{"status": "resolved"}); r["status"] != "resolved" {
 			t.Fatalf("resolve: %v", r)
 		}
-		// A reply to a resolved case does not reopen it; the attendee's own reply does.
 		c.must(201, tokA, "POST", "/api/organizer/support/cases/"+c1+"/messages", map[string]any{"body": "Closing this."})
 		if r := c.must(200, tokA, "GET", "/api/organizer/support/cases/"+c1, nil); r["status"] != "resolved" {
 			t.Fatalf("status = %v, want resolved", r["status"])

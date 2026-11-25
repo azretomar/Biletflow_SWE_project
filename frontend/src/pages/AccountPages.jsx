@@ -5,27 +5,18 @@ import { useAuth } from "../AuthContext";
 import { send } from "../lib/useApi";
 import { t } from "../i18n";
 
-// Account pages from SRS 4.1: email verification and password reset.
-// They use the same two-panel layout as Sign up and Log in.
-// Backend (docs/api.md; the emails themselves are sent by the backend):
-//   POST /api/auth/verify-email          { token }
-//   POST /api/auth/resend-verification   (logged in)
-//   POST /api/auth/forgot-password       { email }          always answers 200
-//   POST /api/auth/reset-password        { token, password }
-
-// /verify-email?token=... : the link from the verification email lands here.
 export function VerifyEmail() {
   const [params] = useSearchParams();
   const token = params.get("token");
   const { user } = useAuth();
-  const [state, setState] = useState(token ? "checking" : "no_token"); // checking | done | failed | no_token
+  const [state, setState] = useState(token ? "checking" : "no_token");
   const [message, setMessage] = useState("");
   const [resendMsg, setResendMsg] = useState("");
   const started = useRef(false);
 
   useEffect(() => {
     if (!token || started.current) return;
-    started.current = true; // verify once, even in React's development double-run
+    started.current = true;
     send("/auth/verify-email", "POST", { token }).then((r) => {
       setState(r.ok ? "done" : "failed");
       setMessage(r.message);
@@ -67,7 +58,6 @@ export function VerifyEmail() {
   );
 }
 
-// /forgot-password : ask for a reset link.
 export function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -112,7 +102,6 @@ export function ForgotPassword() {
   );
 }
 
-// /reset-password?token=... : the link from the reset email lands here.
 export function ResetPassword() {
   const [params] = useSearchParams();
   const token = params.get("token");

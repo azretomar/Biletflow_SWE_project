@@ -2,8 +2,6 @@ import { useState } from "react";
 import "./eventImage.css";
 import { t } from "../i18n";
 
-// Shows the event's cover image (image_url), or the grey placeholder when there is none
-// or the link is broken. Decorative: the event title is always written next to it.
 function EventImage({ src, className = "", label }) {
   const [broken, setBroken] = useState(false);
   if (src && !broken) {

@@ -5,10 +5,6 @@ import { useApi, send, statusNote } from "../../lib/useApi";
 import "./editEvent.css";
 import { t } from "../../i18n";
 
-// Edit event. The current details are loaded from GET /api/events/{id} (already in the backend).
-// Saving: PUT /api/events/{id} with the same fields as POST /api/events
-//   { title, description, date, venue, capacity, category, image_url, registration_closes_at }
-// Times are Kazakhstan time (UTC+5).
 const TZ = "+05:00";
 
 const EMPTY_EVENT = {
@@ -22,7 +18,6 @@ const EMPTY_EVENT = {
   image_url: "",
 };
 
-// "2026-12-14T19:00:00+05:00" -> { date: "2026-12-14", time: "19:00" } in Kazakhstan time
 function splitKz(value) {
   if (!value) return { date: "", time: "" };
   const d = new Date(new Date(value).getTime() + 5 * 60 * 60 * 1000);

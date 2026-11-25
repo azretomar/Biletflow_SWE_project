@@ -142,15 +142,17 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	var price, left int
 	var closesAt *time.Time
+	var tt TicketType // only the sale rules and the name are filled
 	err = tx.QueryRow(ctx, `
 		SELECT tt.price, tt.quantity_left,
-		       NULLIF(e.registration_closes_at::text, '')::timestamptz
+		       NULLIF(e.registration_closes_at::text, '')::timestamptz,
+		       tt.name, tt.sales_starts_at, tt.sales_ends_at, tt.max_per_order, tt.hidden
 		FROM ticket_types tt
 		JOIN events e ON e.id = tt.event_id
 		WHERE tt.id = $1 AND tt.event_id = $2
 		FOR UPDATE OF tt`,
 		req.TicketTypeID, eventID,
-	).Scan(&price, &left, &closesAt)
+	).Scan(&price, &left, &closesAt, &tt.Name, &tt.SalesStartsAt, &tt.SalesEndsAt, &tt.MaxPerOrder, &tt.Hidden)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "ticket type not found for this event")
 		return
@@ -158,6 +160,10 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("register: lock ticket type: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	if status, msg := saleBlocked(tt, req.Quantity, time.Now()); status != 0 {
+		writeError(w, status, msg)
 		return
 	}
 
@@ -231,6 +237,24 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	s.sendOrderConfirmation(ctx, userID, ev, orderID, tickets)
 	writeJSON(w, http.StatusCreated, registerResponse{OrderID: orderID, Tickets: tickets})
+}
+
+// saleBlocked applies the sale rules of one ticket type (SRS 4.3) to a buyer who wants qty
+// tickets of it at time now. It returns the HTTP status and message to answer with, or 0 and ""
+// when the sale may go on. Only Name and the rule fields of t are used.
+// The sales window is [sales_starts_at, sales_ends_at): open from the start, closed from the end.
+func saleBlocked(t TicketType, qty int, now time.Time) (int, string) {
+	switch {
+	case t.Hidden:
+		return http.StatusNotFound, "ticket type not found for this event"
+	case t.SalesStartsAt != nil && now.Before(*t.SalesStartsAt):
+		return http.StatusBadRequest, fmt.Sprintf("sales for %s have not started yet", t.Name)
+	case t.SalesEndsAt != nil && !now.Before(*t.SalesEndsAt):
+		return http.StatusBadRequest, fmt.Sprintf("sales for %s have ended", t.Name)
+	case t.MaxPerOrder != nil && qty > *t.MaxPerOrder:
+		return http.StatusBadRequest, fmt.Sprintf("you can buy at most %d %s tickets in one order", *t.MaxPerOrder, t.Name)
+	}
+	return 0, ""
 }
 
 type ticketEvent struct {

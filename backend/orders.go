@@ -151,15 +151,23 @@ func (s *Server) handleCheckout(w http.ResponseWriter, r *http.Request) {
 	subtotal := 0
 	for _, id := range order {
 		t := lockedType{ID: id, Qty: wanted[id]}
+		var rules TicketType // the sale rules of this type
 		err := tx.QueryRow(ctx, `
-			SELECT name, price, quantity_left FROM ticket_types
-			WHERE id = $1 AND event_id = $2 FOR UPDATE`, id, ev.ID).Scan(&t.Name, &t.Price, &t.Left)
+			SELECT name, price, quantity_left, sales_starts_at, sales_ends_at, max_per_order, hidden
+			FROM ticket_types
+			WHERE id = $1 AND event_id = $2 FOR UPDATE`, id, ev.ID).Scan(&t.Name, &t.Price, &t.Left,
+			&rules.SalesStartsAt, &rules.SalesEndsAt, &rules.MaxPerOrder, &rules.Hidden)
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "ticket type not found for this event")
 			return
 		}
 		if err != nil {
 			internalError(w, "checkout: lock type", err)
+			return
+		}
+		rules.Name = t.Name
+		if status, msg := saleBlocked(rules, t.Qty, now); status != 0 {
+			writeError(w, status, msg)
 			return
 		}
 		if t.Left < t.Qty {

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { EmailBanner } from '@/components/EmailBanner';
 import { LanguagePicker } from '@/components/LanguagePicker';
 import { Button, Muted, Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/constants/theme';
@@ -19,6 +20,8 @@ export default function ProfileScreen() {
         <Text style={styles.label}>{t('profile.role')}</Text>
         <Text style={styles.value}>{t(`roles.${user.role}`)}</Text>
       </View>
+
+      <EmailBanner />
 
       {user.role === 'platform_admin' ? <Muted>{t('profile.adminNote')}</Muted> : null}
 

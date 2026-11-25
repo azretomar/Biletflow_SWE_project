@@ -54,6 +54,9 @@ export default function LoginScreen() {
         textContentType="password"
         onSubmitEditing={submit}
       />
+      <Link href="/forgot-password" style={styles.forgot}>
+        {t('account.forgotLink')}
+      </Link>
       <ErrorText>{error}</ErrorText>
       <Button title={t('auth.login')} onPress={submit} loading={busy} />
       <View style={styles.switch}>
@@ -70,4 +73,5 @@ const styles = StyleSheet.create({
   switch: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
   switchText: { color: colors.muted, fontSize: 15 },
   link: { color: colors.blue, fontSize: 15, fontWeight: '600' },
+  forgot: { color: colors.blue, fontSize: 15, alignSelf: 'flex-end' },
 });

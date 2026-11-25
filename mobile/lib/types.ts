@@ -91,3 +91,77 @@ export type UndoCheckinResponse = {
   ticket_id: string;
   status: 'valid';
 };
+
+// ---- Package 1-3: orders ----
+
+// GET /api/my-orders
+export type OrderStatus = 'paid' | 'free' | 'failed' | 'cancelled' | 'refunded';
+
+export type Order = {
+  id: string;
+  created_at: string;
+  status: OrderStatus;
+  subtotal: number;
+  discount: number;
+  total: number;
+  promo_code: string;
+  event: { id: string; title: string; date: string };
+  items: { ticket_type: string; quantity: number; price: number }[];
+  tickets: { id: string; status: TicketStatus }[];
+};
+
+// ---- Package 2-3: support, analytics, history ----
+
+export type SupportCategory = 'tickets' | 'payment' | 'event' | 'account' | 'organizer' | 'other';
+export type CaseStatus = 'open' | 'in_progress' | 'waiting' | 'resolved';
+export type CaseContext = { type: 'event' | 'order' | 'ticket'; id: string };
+
+// GET /api/support/cases (list) and GET /api/support/cases/{id} (with messages)
+export type SupportMessage = {
+  id: number;
+  author_name: string;
+  author_role: Role;
+  body: string;
+  created_at: string;
+};
+
+export type SupportCase = {
+  id: number;
+  subject: string;
+  status: CaseStatus;
+  category: SupportCategory;
+  context: CaseContext | null;
+  created_at: string;
+  updated_at: string;
+  assignee: { id?: string; full_name: string } | null;
+  messages?: SupportMessage[];
+};
+
+// GET /api/organizer/events/{id}/analytics
+export type Analytics = {
+  event: { title: string; starts_at: string; venue: string; status: string };
+  capacity: number;
+  sold: number;
+  checked_in: number;
+  revenue: { gross: number; discounts: number; refunds: number; net: number };
+  sales_by_day: { date: string; tickets: number; revenue: number }[];
+  by_ticket_type: { name: string; price: number; quantity: number; sold: number; revenue: number }[];
+  promo: { code: string; redemptions: number; discount_total: number }[];
+};
+
+// GET /api/organizer/events/{id}/history
+export type HistoryType = 'event' | 'tickets' | 'orders' | 'checkin' | 'payments' | 'support';
+
+export type HistoryEntry = {
+  id: string;
+  at: string;
+  actor: string;
+  // One of HistoryType; older audit categories may appear too, they count as "event".
+  type: string;
+  message: string;
+};
+
+export type HistoryResponse = {
+  event: { title: string; date: string };
+  activity: HistoryEntry[];
+};

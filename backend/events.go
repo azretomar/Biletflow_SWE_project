@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -48,9 +49,19 @@ CREATE TABLE IF NOT EXISTS event_reports (
 );
 `
 
+// Sale rules of a ticket type (SRS 4.3): a sales window, a limit per order, and hiding.
+// Hidden types are not shown to attendees and cannot be bought.
+const schemaTicketSales = `
+ALTER TABLE ticket_types ADD COLUMN IF NOT EXISTS sales_starts_at TIMESTAMPTZ;
+ALTER TABLE ticket_types ADD COLUMN IF NOT EXISTS sales_ends_at   TIMESTAMPTZ;
+ALTER TABLE ticket_types ADD COLUMN IF NOT EXISTS max_per_order   INT CHECK (max_per_order BETWEEN 1 AND 10);
+ALTER TABLE ticket_types ADD COLUMN IF NOT EXISTS hidden          BOOLEAN NOT NULL DEFAULT FALSE;
+`
+
 // Registers this file's tables so migrate() creates them.
 func init() {
 	schemas = append(schemas, schemaEvents)
+	alterSchemas = append(alterSchemas, schemaTicketSales)
 }
 
 var eventCategories = map[string]bool{"music": true, "education": true, "sports": true, "other": true}
@@ -97,12 +108,25 @@ type EventListItem struct {
 }
 
 type TicketType struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	Price        int    `json:"price"`
-	Quantity     int    `json:"quantity"`
-	QuantityLeft int    `json:"quantity_left"`
+	ID            string     `json:"id"`
+	Name          string     `json:"name"`
+	Description   string     `json:"description"`
+	Price         int        `json:"price"`
+	Quantity      int        `json:"quantity"`
+	QuantityLeft  int        `json:"quantity_left"`
+	SalesStartsAt *time.Time `json:"sales_starts_at"`
+	SalesEndsAt   *time.Time `json:"sales_ends_at"`
+	MaxPerOrder   *int       `json:"max_per_order"`
+	Hidden        bool       `json:"hidden"`
+}
+
+// ticketTypeColumns lists the columns scanTicketType expects, in this order.
+const ticketTypeColumns = `id, name, description, price, quantity, quantity_left,
+	       sales_starts_at, sales_ends_at, max_per_order, hidden`
+
+func scanTicketType(row rowScanner, t *TicketType) error {
+	return row.Scan(&t.ID, &t.Name, &t.Description, &t.Price, &t.Quantity, &t.QuantityLeft,
+		&t.SalesStartsAt, &t.SalesEndsAt, &t.MaxPerOrder, &t.Hidden)
 }
 
 type EventDetail struct {
@@ -134,7 +158,7 @@ func (s *Server) registerEventRoutes(mux *http.ServeMux) {
 func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.db.Query(r.Context(), `
 		SELECT `+eventColumns+`,
-		       COALESCE((SELECT MIN(price) FROM ticket_types t WHERE t.event_id = e.id), 0)
+		       COALESCE((SELECT MIN(price) FROM ticket_types t WHERE t.event_id = e.id AND NOT t.hidden), 0)
 		FROM events e
 		JOIN users u ON u.id = e.organizer_id
 		WHERE e.status = 'published' AND e.visibility = 'public' AND NOT e.suspended
@@ -200,12 +224,15 @@ func (s *Server) handleGetEvent(w http.ResponseWriter, r *http.Request) {
 		internalError(w, "get event", err)
 		return
 	}
-	if !s.canSeeEvent(r.Context(), ev.Event, s.optionalClaims(r)) {
+	claims := s.optionalClaims(r)
+	if !s.canSeeEvent(r.Context(), ev.Event, claims) {
 		writeError(w, http.StatusNotFound, "event not found")
 		return
 	}
 
-	types, err := s.loadTicketTypes(r.Context(), id)
+	// Hidden ticket types are only for the event's organizer and platform admins.
+	seeHidden := claims != nil && (claims.Subject == ev.OrganizerID || claims.Role == "platform_admin")
+	types, err := s.loadTicketTypes(r.Context(), id, seeHidden)
 	if err != nil {
 		internalError(w, "get event: ticket types", err)
 		return
@@ -214,10 +241,12 @@ func (s *Server) handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, ev)
 }
 
-func (s *Server) loadTicketTypes(ctx context.Context, eventID string) ([]TicketType, error) {
-	rows, err := s.db.Query(ctx, `
-		SELECT id, name, description, price, quantity, quantity_left
-		FROM ticket_types WHERE event_id = $1 ORDER BY price ASC, created_at ASC`, eventID)
+func (s *Server) loadTicketTypes(ctx context.Context, eventID string, includeHidden bool) ([]TicketType, error) {
+	q := `SELECT ` + ticketTypeColumns + ` FROM ticket_types WHERE event_id = $1`
+	if !includeHidden {
+		q += ` AND NOT hidden`
+	}
+	rows, err := s.db.Query(ctx, q+` ORDER BY price ASC, created_at ASC`, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +254,7 @@ func (s *Server) loadTicketTypes(ctx context.Context, eventID string) ([]TicketT
 	types := []TicketType{}
 	for rows.Next() {
 		var t TicketType
-		if err := rows.Scan(&t.ID, &t.Name, &t.Description, &t.Price, &t.Quantity, &t.QuantityLeft); err != nil {
+		if err := scanTicketType(rows, &t); err != nil {
 			return nil, err
 		}
 		types = append(types, t)
@@ -544,11 +573,57 @@ func changedEventFields(old Event, req eventRequest) []string {
 	return out
 }
 
+// optTime and optInt tell a field that was left out (Given == false: an update keeps the
+// current value) from one sent as null or "" (clear it) or with a value.
+type optTime struct {
+	Given bool
+	flexTime
+}
+
+func (o *optTime) UnmarshalJSON(b []byte) error {
+	o.Given = true
+	return o.flexTime.UnmarshalJSON(b)
+}
+
+type optInt struct {
+	Given bool
+	Value *int
+}
+
+func (o *optInt) UnmarshalJSON(b []byte) error {
+	o.Given = true
+	if string(b) == "null" {
+		o.Value = nil
+		return nil
+	}
+	var n int
+	if err := json.Unmarshal(b, &n); err != nil {
+		return err
+	}
+	o.Value = &n
+	return nil
+}
+
 type ticketTypeRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Price       int    `json:"price"`
-	Quantity    int    `json:"quantity"`
+	Name          string  `json:"name"`
+	Description   string  `json:"description"`
+	Price         int     `json:"price"`
+	Quantity      int     `json:"quantity"`
+	SalesStartsAt optTime `json:"sales_starts_at"`
+	SalesEndsAt   optTime `json:"sales_ends_at"`
+	MaxPerOrder   optInt  `json:"max_per_order"`
+	Hidden        *bool   `json:"hidden"`
+}
+
+// validateSales checks the sale rules of a ticket type as they will be stored.
+func validateSales(starts, ends *time.Time, maxPerOrder *int) string {
+	if starts != nil && ends != nil && !starts.Before(*ends) {
+		return "sales_starts_at must be before sales_ends_at"
+	}
+	if maxPerOrder != nil && (*maxPerOrder < 1 || *maxPerOrder > maxTicketsPerOrder) {
+		return fmt.Sprintf("max_per_order must be between 1 and %d", maxTicketsPerOrder)
+	}
+	return ""
 }
 
 func (req *ticketTypeRequest) validate() string {
@@ -598,6 +673,12 @@ func (s *Server) handleCreateTicketType(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadRequest, msg)
 		return
 	}
+	starts, ends, maxPerOrder := req.SalesStartsAt.ptr(), req.SalesEndsAt.ptr(), req.MaxPerOrder.Value
+	if msg := validateSales(starts, ends, maxPerOrder); msg != "" {
+		writeError(w, http.StatusBadRequest, msg)
+		return
+	}
+	hidden := req.Hidden != nil && *req.Hidden
 	ctx := r.Context()
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -623,12 +704,12 @@ func (s *Server) handleCreateTicketType(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var t TicketType
-	err = tx.QueryRow(ctx, `
-		INSERT INTO ticket_types (event_id, name, description, price, quantity, quantity_left)
-		VALUES ($1, $2, $3, $4, $5, $5)
-		RETURNING id, name, description, price, quantity, quantity_left`,
-		eventID, req.Name, req.Description, req.Price, req.Quantity,
-	).Scan(&t.ID, &t.Name, &t.Description, &t.Price, &t.Quantity, &t.QuantityLeft)
+	err = scanTicketType(tx.QueryRow(ctx, `
+		INSERT INTO ticket_types (event_id, name, description, price, quantity, quantity_left,
+		                          sales_starts_at, sales_ends_at, max_per_order, hidden)
+		VALUES ($1, $2, $3, $4, $5, $5, $6, $7, $8, $9)
+		RETURNING `+ticketTypeColumns,
+		eventID, req.Name, req.Description, req.Price, req.Quantity, starts, ends, maxPerOrder, hidden), &t)
 	if err != nil {
 		internalError(w, "create ticket type: insert", err)
 		return
@@ -678,12 +759,29 @@ func (s *Server) handleUpdateTicketType(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var old TicketType
-	err = tx.QueryRow(ctx, `
-		SELECT id, name, description, price, quantity, quantity_left
-		FROM ticket_types WHERE id = $1 AND event_id = $2 FOR UPDATE`, typeID, eventID,
-	).Scan(&old.ID, &old.Name, &old.Description, &old.Price, &old.Quantity, &old.QuantityLeft)
+	err = scanTicketType(tx.QueryRow(ctx, `
+		SELECT `+ticketTypeColumns+`
+		FROM ticket_types WHERE id = $1 AND event_id = $2 FOR UPDATE`, typeID, eventID), &old)
 	if err != nil {
 		notFoundOr500(w, "update ticket type: load", "ticket type", err)
+		return
+	}
+	// Sale rules left out of the request keep their current value; null clears a date or the limit.
+	starts, ends, maxPerOrder, hidden := old.SalesStartsAt, old.SalesEndsAt, old.MaxPerOrder, old.Hidden
+	if req.SalesStartsAt.Given {
+		starts = req.SalesStartsAt.ptr()
+	}
+	if req.SalesEndsAt.Given {
+		ends = req.SalesEndsAt.ptr()
+	}
+	if req.MaxPerOrder.Given {
+		maxPerOrder = req.MaxPerOrder.Value
+	}
+	if req.Hidden != nil {
+		hidden = *req.Hidden
+	}
+	if msg := validateSales(starts, ends, maxPerOrder); msg != "" {
+		writeError(w, http.StatusBadRequest, msg)
 		return
 	}
 	issued := old.Quantity - old.QuantityLeft
@@ -706,19 +804,27 @@ func (s *Server) handleUpdateTicketType(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var t TicketType
-	err = tx.QueryRow(ctx, `
-		UPDATE ticket_types SET name = $3, description = $4, price = $5, quantity = $6::int, quantity_left = $6::int - $7::int
+	err = scanTicketType(tx.QueryRow(ctx, `
+		UPDATE ticket_types SET name = $3, description = $4, price = $5, quantity = $6::int, quantity_left = $6::int - $7::int,
+		       sales_starts_at = $8, sales_ends_at = $9, max_per_order = $10, hidden = $11
 		WHERE id = $1 AND event_id = $2
-		RETURNING id, name, description, price, quantity, quantity_left`,
+		RETURNING `+ticketTypeColumns,
 		typeID, eventID, req.Name, req.Description, req.Price, req.Quantity, issued,
-	).Scan(&t.ID, &t.Name, &t.Description, &t.Price, &t.Quantity, &t.QuantityLeft)
+		starts, ends, maxPerOrder, hidden), &t)
 	if err != nil {
 		internalError(w, "update ticket type: update", err)
 		return
 	}
+	msg := fmt.Sprintf("Ticket type %q changed: %s, %d tickets", t.Name, priceText(t.Price), t.Quantity)
+	if t.Hidden != old.Hidden {
+		if t.Hidden {
+			msg += "; now hidden from attendees"
+		} else {
+			msg += "; now visible to attendees"
+		}
+	}
 	if err := writeAudit(ctx, tx, auditEntry{ActorID: info.OrganizerID, EventID: eventID, Category: "tickets",
-		Action: "ticket_type.update", TargetID: typeID,
-		Message: fmt.Sprintf("Ticket type %q changed: %s, %d tickets", t.Name, priceText(t.Price), t.Quantity)}); err != nil {
+		Action: "ticket_type.update", TargetID: typeID, Message: msg}); err != nil {
 		internalError(w, "update ticket type: audit", err)
 		return
 	}
